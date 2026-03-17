@@ -1,0 +1,177 @@
+/**
+ * WastedRenderReport Component Styles
+ * Wasted render report list
+ */
+
+.report {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-5);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.header h3 > span {
+  color: var(--warning);
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+  color: var(--success);
+}
+
+.empty p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   List
+   ============================================================================ */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.item {
+  padding: var(--spacing-4) var(--spacing-5);
+  border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition-fast);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background: var(--bg-primary);
+}
+
+/* ============================================================================
+   Item Header
+   ============================================================================ */
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-2);
+}
+
+.name {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   Stats
+   ============================================================================ */
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-2);
+}
+
+.dot {
+  opacity: 0.5;
+}
+
+/* ============================================================================
+   Recommendation
+   ============================================================================ */
+
+.recommendation {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--info);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+}
+
+.recommendation > span:first-child {
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+
+.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-light);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+  
+  .item {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+  
+  .stats {
+    flex-wrap: wrap;
+  }
+}

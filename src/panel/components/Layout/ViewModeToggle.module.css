@@ -1,0 +1,78 @@
+/**
+ * ViewModeToggle Component Styles
+ */
+
+.viewModeToggle {
+  display: flex;
+  gap: var(--spacing-1);
+  background: var(--bg-tertiary);
+  padding: var(--spacing-1);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.modeButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.modeButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.modeButton.active {
+  background: var(--primary);
+  color: #000;
+}
+
+.modeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modeButton.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.label {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .label {
+    display: inline;
+  }
+}
+
+.shortcut {
+  display: none;
+  padding: 1px 4px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.modeButton.active .shortcut {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 800px) {
+  .shortcut {
+    display: inline;
+  }
+}

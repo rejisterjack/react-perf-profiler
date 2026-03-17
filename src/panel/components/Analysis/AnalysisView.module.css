@@ -1,0 +1,100 @@
+/**
+ * AnalysisView Component Styles
+ * Main analysis dashboard layout
+ */
+
+.analysisView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-6);
+  min-height: 100%;
+  background: var(--bg-primary);
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--spacing-8);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty p {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+/* ============================================================================
+   Loading State
+   ============================================================================ */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  gap: var(--spacing-4);
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading p {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   Reports Grid
+   ============================================================================ */
+
+.reportsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-6);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+  .reportsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .analysisView {
+    padding: var(--spacing-4);
+    gap: var(--spacing-4);
+  }
+  
+  .reportsGrid {
+    gap: var(--spacing-4);
+  }
+}

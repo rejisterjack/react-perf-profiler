@@ -1,0 +1,176 @@
+/**
+ * PerformanceScore Component Styles
+ * Performance score card with category breakdown
+ */
+
+.scoreCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-6);
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   Categories
+   ============================================================================ */
+
+.categories {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-5);
+  margin-bottom: var(--spacing-6);
+}
+
+.category {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+}
+
+/* Progress Bar */
+
+.bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--border-radius-sm);
+  transition: width var(--transition-normal) ease-out;
+}
+
+.description {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Score Colors
+   ============================================================================ */
+
+.success {
+  color: var(--success);
+}
+
+.success.fill {
+  background: var(--success);
+}
+
+.warning {
+  color: var(--warning);
+}
+
+.warning.fill {
+  background: var(--warning);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.error.fill {
+  background: var(--danger);
+}
+
+/* ============================================================================
+   Summary Stats
+   ============================================================================ */
+
+.summary {
+  display: flex;
+  gap: var(--spacing-6);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border-color);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.statValue {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .categories {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary {
+    flex-wrap: wrap;
+    gap: var(--spacing-4);
+  }
+  
+  .statValue {
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .scoreCard {
+    padding: var(--spacing-4);
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-4);
+    text-align: center;
+  }
+}

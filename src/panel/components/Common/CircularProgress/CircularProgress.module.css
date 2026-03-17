@@ -1,0 +1,78 @@
+/**
+ * CircularProgress Component Styles
+ * Circular progress indicator with percentage
+ */
+
+.container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg {
+  transform: rotate(0deg);
+}
+
+/* ============================================================================
+   Circles
+   ============================================================================ */
+
+.background {
+  stroke: var(--bg-tertiary);
+}
+
+.progress {
+  transition: stroke-dashoffset var(--transition-normal) ease-out;
+}
+
+/* ============================================================================
+   Label
+   ============================================================================ */
+
+.label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   Color Variants
+   ============================================================================ */
+
+.default .progress {
+  stroke: var(--primary);
+}
+
+.primary .progress {
+  stroke: var(--primary);
+}
+
+.success .progress {
+  stroke: var(--success);
+}
+
+.success .label {
+  color: var(--success);
+}
+
+.warning .progress {
+  stroke: var(--warning);
+}
+
+.warning .label {
+  color: var(--warning);
+}
+
+.error .progress {
+  stroke: var(--danger);
+}
+
+.error .label {
+  color: var(--danger);
+}

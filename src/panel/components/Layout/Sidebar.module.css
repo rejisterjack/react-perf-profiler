@@ -1,0 +1,310 @@
+/**
+ * Sidebar Component Styles
+ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  min-width: 200px;
+  max-width: 500px;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Header - Search and Filters
+   ============================================================================ */
+
+.header {
+  padding: var(--spacing-3);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.searchContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.searchContainer.focused {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.searchIcon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
+  min-width: 0;
+}
+
+.searchInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.clearButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ============================================================================
+   Filter Chips
+   ============================================================================ */
+
+.filterChips {
+  display: flex;
+  gap: var(--spacing-1);
+  flex-wrap: wrap;
+}
+
+.filterChip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filterChip:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.filterChip.active {
+  border-color: currentColor;
+}
+
+.filterChip.critical {
+  color: var(--severity-critical);
+}
+
+.filterChip.warning {
+  color: var(--severity-warning);
+}
+
+.filterChip.info {
+  color: var(--severity-info);
+}
+
+.chipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ============================================================================
+   Type Filter Dropdown
+   ============================================================================ */
+
+.typeFilter {
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  outline: none;
+}
+
+.typeFilter:focus {
+  border-color: var(--primary);
+}
+
+/* ============================================================================
+   Actions
+   ============================================================================ */
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.nodeCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.actionButtons {
+  display: flex;
+  gap: var(--spacing-1);
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.actionButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   Tree Container
+   ============================================================================ */
+
+.treeContainer {
+  flex: 1;
+  overflow: auto;
+}
+
+.placeholderList {
+  padding: var(--spacing-2);
+}
+
+.placeholderItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: background var(--transition-fast);
+}
+
+.placeholderItem:hover {
+  background: var(--bg-hover);
+}
+
+.placeholderItem:focus {
+  outline: none;
+  background: var(--bg-active);
+}
+
+.componentName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8) var(--spacing-4);
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.emptyIcon {
+  margin-bottom: var(--spacing-3);
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-1);
+}
+
+.emptyText {
+  font-size: var(--font-size-sm);
+  margin: 0;
+  max-width: 200px;
+}
+
+/* ============================================================================
+   Footer - Legend
+   ============================================================================ */
+
+.footer {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.legend {
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: center;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legendDot.critical {
+  background: var(--severity-critical);
+}
+
+.legendDot.warning {
+  background: var(--severity-warning);
+}
+
+.legendDot.info {
+  background: var(--severity-info);
+}

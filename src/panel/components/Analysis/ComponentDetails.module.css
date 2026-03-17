@@ -1,0 +1,394 @@
+/**
+ * ComponentDetails Component Styles
+ * Component detail view for right panel
+ */
+
+.details {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--spacing-8);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--bg-secondary);
+  border-radius: 50%;
+  margin-bottom: var(--spacing-4);
+  color: var(--text-tertiary);
+}
+
+.empty p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.componentIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  color: var(--primary);
+}
+
+.title h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.memoBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: rgba(var(--success-rgb), 0.1);
+  color: var(--success);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--border-radius-sm);
+}
+
+/* ============================================================================
+   Stats Grid
+   ============================================================================ */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  transition: border-color var(--transition-fast);
+}
+
+.statCard:hover {
+  border-color: var(--border-color-light);
+}
+
+.statIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  color: var(--text-secondary);
+}
+
+.statCard.warning .statIcon {
+  color: var(--warning);
+  background: rgba(var(--warning-rgb), 0.1);
+}
+
+.statCard.error .statIcon {
+  color: var(--danger);
+  background: rgba(var(--danger-rgb), 0.1);
+}
+
+.statCard.success .statIcon {
+  color: var(--success);
+  background: rgba(var(--success-rgb), 0.1);
+}
+
+.statContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.statValue {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   Section
+   ============================================================================ */
+
+.section {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.sectionTitle > span {
+  color: var(--primary);
+}
+
+/* ============================================================================
+   Issues List
+   ============================================================================ */
+
+.issuesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.severityBadge {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+  flex-shrink: 0;
+}
+
+.issueContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.issueType {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.issueSuggestion {
+  margin: var(--spacing-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ============================================================================
+   Memo Stats
+   ============================================================================ */
+
+.memoStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.memoStat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+}
+
+.memoStatLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.memoStatValue {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+}
+
+.memoStatValue.success {
+  color: var(--success);
+}
+
+.memoStatValue.warning {
+  color: var(--warning);
+}
+
+/* ============================================================================
+   Recommendations
+   ============================================================================ */
+
+.recommendations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.recommendation {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  border-left: 2px solid var(--info);
+}
+
+.recommendation > span:first-child {
+  color: var(--info);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Commit Info
+   ============================================================================ */
+
+.commitInfo {
+  padding: var(--spacing-3);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+}
+
+.commitCount {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.commitCount strong {
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+/* ============================================================================
+   Utility Classes
+   ============================================================================ */
+
+.success {
+  color: var(--success);
+}
+
+.warning {
+  color: var(--warning);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.info {
+  color: var(--info);
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+
+.details::-webkit-scrollbar {
+  width: 6px;
+}
+
+.details::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.details::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.details::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-light);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .memoStats {
+    grid-template-columns: 1fr;
+  }
+}

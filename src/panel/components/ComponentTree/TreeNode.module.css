@@ -1,0 +1,228 @@
+/**
+ * TreeNode Component Styles
+ * CSS Module for individual tree node items
+ */
+
+/* Main node container */
+.node {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding-right: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Hover state */
+.node:hover {
+  background-color: var(--hover-bg, #2a2d2e);
+}
+
+/* Selected state */
+.node.selected {
+  background-color: var(--selected-bg, #094771);
+  border-left-color: var(--selected-border, #007acc);
+}
+
+.node.selected:hover {
+  background-color: var(--selected-hover-bg, #0d5c91);
+}
+
+/* Focus visible (when navigating with keyboard) */
+.node:focus-visible {
+  outline: 2px solid var(--focus-ring, #007acc);
+  outline-offset: -2px;
+}
+
+/* Severity indicator styles */
+.node.critical {
+  border-left-color: var(--critical-color, #f14c4c);
+}
+
+.node.warning {
+  border-left-color: var(--warning-color, #cca700);
+}
+
+.node.info {
+  border-left-color: var(--info-color, #75beff);
+}
+
+/* Toggle button for expand/collapse */
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #858585);
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.toggle:hover:not(:disabled) {
+  background-color: var(--button-hover-bg, #3c3c3c);
+  color: var(--text-primary, #cccccc);
+}
+
+.toggle:active:not(:disabled) {
+  background-color: var(--button-active-bg, #4a4a4a);
+}
+
+.toggle:disabled {
+  cursor: default;
+  opacity: 0;
+}
+
+.toggle.hidden {
+  visibility: hidden;
+}
+
+/* Component icon */
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  color: var(--icon-color, #75beff);
+  flex-shrink: 0;
+}
+
+.icon.memoized {
+  color: var(--success-color, #89d185);
+}
+
+/* Component name */
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary, #cccccc);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+/* Selected state for name */
+.selected .name {
+  color: var(--selected-text, #ffffff);
+  font-weight: 500;
+}
+
+/* Badges container */
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Base badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Badge variants */
+.badgeError {
+  background-color: var(--badge-error-bg, #f14c4c);
+  color: var(--badge-error-text, #ffffff);
+}
+
+.badgeWarning {
+  background-color: var(--badge-warning-bg, #cca700);
+  color: var(--badge-warning-text, #1e1e1e);
+}
+
+.badgeSuccess {
+  background-color: var(--badge-success-bg, #89d185);
+  color: var(--badge-success-text, #1e1e1e);
+}
+
+.badgeInfo {
+  background-color: var(--badge-info-bg, #4a4a4a);
+  color: var(--badge-info-text, #cccccc);
+}
+
+/* Selected state adjustments */
+.selected .badgeInfo {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Depth indicator (optional visual guide) */
+.node::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--tree-guide-color, #3e3e3e);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.node:hover::before {
+  opacity: 1;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .node {
+    border-bottom: 1px solid var(--border-color, #6e6e6e);
+  }
+  
+  .node.selected {
+    outline: 2px solid var(--focus-ring, #007acc);
+    outline-offset: -2px;
+  }
+  
+  .badge {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .node,
+  .toggle {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .node {
+    border-left: 1px solid #ccc;
+    break-inside: avoid;
+  }
+  
+  .toggle {
+    display: none;
+  }
+  
+  .badge {
+    border: 1px solid #999;
+  }
+}

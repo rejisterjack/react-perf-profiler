@@ -1,0 +1,299 @@
+/**
+ * OptimizationSuggestions Component Styles
+ * Combined optimization suggestions list
+ */
+
+.suggestions {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-5);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.header h3 > span {
+  color: var(--primary);
+}
+
+.count {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ============================================================================
+   All Good State
+   ============================================================================ */
+
+.allGood {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-10);
+  text-align: center;
+}
+
+.successIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: rgba(var(--success-rgb), 0.1);
+  border-radius: 50%;
+  color: var(--success);
+  margin-bottom: var(--spacing-4);
+}
+
+.allGood h4 {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.allGood p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  max-width: 400px;
+}
+
+/* ============================================================================
+   Suggestions List
+   ============================================================================ */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.suggestion {
+  padding: var(--spacing-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--border-color);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.suggestion:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.suggestion.critical {
+  border-left-color: var(--danger);
+}
+
+.suggestion.warning {
+  border-left-color: var(--warning);
+}
+
+.suggestion.info {
+  border-left-color: var(--info);
+}
+
+/* ============================================================================
+   Suggestion Header
+   ============================================================================ */
+
+.suggestionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-md);
+  flex-shrink: 0;
+}
+
+.critical .iconWrapper {
+  background: rgba(var(--danger-rgb), 0.1);
+  color: var(--danger);
+}
+
+.warning .iconWrapper {
+  background: rgba(var(--warning-rgb), 0.1);
+  color: var(--warning);
+}
+
+.info .iconWrapper {
+  background: rgba(var(--info-rgb), 0.1);
+  color: var(--info);
+}
+
+.titleWrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.titleWrapper h4 {
+  margin: 0 0 var(--spacing-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.component {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+}
+
+.badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+}
+
+.badge.critical {
+  background: rgba(var(--danger-rgb), 0.1);
+  color: var(--danger);
+}
+
+.badge.warning {
+  background: rgba(var(--warning-rgb), 0.1);
+  color: var(--warning);
+}
+
+.badge.info {
+  background: rgba(var(--info-rgb), 0.1);
+  color: var(--info);
+}
+
+/* ============================================================================
+   Description
+   ============================================================================ */
+
+.description {
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ============================================================================
+   Code Example
+   ============================================================================ */
+
+.code {
+  margin: 0 0 var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  overflow-x: auto;
+}
+
+.code code {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  white-space: pre;
+  line-height: var(--line-height-normal);
+}
+
+/* ============================================================================
+   Impact
+   ============================================================================ */
+
+.impact {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--success);
+  font-weight: var(--font-weight-medium);
+}
+
+.impact > span:first-child {
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+
+.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-light);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+  
+  .suggestion {
+    padding: var(--spacing-3);
+  }
+  
+  .suggestionHeader {
+    flex-wrap: wrap;
+  }
+  
+  .code {
+    padding: var(--spacing-2);
+  }
+  
+  .code code {
+    font-size: 10px;
+  }
+}

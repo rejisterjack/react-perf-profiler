@@ -1,0 +1,219 @@
+/**
+ * Flamegraph Component Styles
+ */
+
+.flamegraphContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Header & Legend
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.legendColor {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--border-radius-sm);
+}
+
+/* ============================================================================
+   SVG & Chart Elements
+   ============================================================================ */
+
+.svg {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.flameRect {
+  stroke: transparent;
+  stroke-width: 0;
+  transition: all var(--transition-fast);
+}
+
+.flameRect:hover {
+  filter: brightness(1.2);
+}
+
+.flameLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  fill: var(--text-inverse);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.flameDuration {
+  font-size: 9px;
+  font-weight: var(--font-weight-normal);
+  fill: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Tooltip
+   ============================================================================ */
+
+.tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  min-width: 180px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  animation: tooltipFadeIn 150ms ease;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltipHeader {
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.tooltipContent {
+  padding: var(--spacing-2) var(--spacing-3);
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-1) 0;
+  font-size: var(--font-size-sm);
+}
+
+.tooltipLabel {
+  color: var(--text-secondary);
+}
+
+.tooltipValue {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-mono);
+}
+
+.badgeMemoized {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: rgba(78, 201, 176, 0.2);
+  color: #4ec9b0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(78, 201, 176, 0.4);
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--spacing-8);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-4);
+  opacity: 0.5;
+}
+
+.empty p {
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+/* ============================================================================
+   Loading State
+   ============================================================================ */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  gap: var(--spacing-4);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading p {
+  font-size: var(--font-size-md);
+  margin: 0;
+}

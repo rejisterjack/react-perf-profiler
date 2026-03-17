@@ -1,0 +1,243 @@
+/**
+ * MetricsChart Component Styles
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Header & Controls
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.chartControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.chartButton {
+  padding: var(--spacing-1) var(--spacing-3);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chartButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.chartButton.active {
+  background: var(--primary-alpha);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ============================================================================
+   Stats Bar
+   ============================================================================ */
+
+.stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.statValue {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   SVG & Chart Elements
+   ============================================================================ */
+
+.svg {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.axis {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.axis :global(path),
+.axis :global(line) {
+  stroke: var(--border-color);
+}
+
+.axis :global(text) {
+  fill: var(--text-secondary);
+}
+
+.axisLabel {
+  font-size: var(--font-size-sm);
+  fill: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.grid :global(line) {
+  stroke: var(--border-color);
+  stroke-opacity: 0.3;
+  stroke-dasharray: 3, 3;
+}
+
+.grid :global(path) {
+  stroke: none;
+}
+
+.bar {
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.bar:hover {
+  filter: brightness(1.2);
+}
+
+.averageLine {
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+  stroke-dasharray: 4, 4;
+  opacity: 0.7;
+}
+
+.averageLabel {
+  font-size: var(--font-size-xs);
+  fill: var(--text-secondary);
+  font-family: var(--font-family-mono);
+}
+
+/* ============================================================================
+   Tooltip
+   ============================================================================ */
+
+.tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  min-width: 150px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  animation: tooltipFadeIn 150ms ease;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltipHeader {
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.tooltipContent {
+  padding: var(--spacing-2) var(--spacing-3);
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-1) 0;
+  font-size: var(--font-size-sm);
+}
+
+.tooltipLabel {
+  color: var(--text-secondary);
+}
+
+.tooltipValue {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-mono);
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--spacing-8);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-4);
+  opacity: 0.5;
+}
+
+.empty p {
+  font-size: var(--font-size-lg);
+  margin: 0;
+}

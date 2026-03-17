@@ -1,0 +1,103 @@
+/**
+ * PanelLayout Component Styles
+ * Main 3-panel layout with resizable panels
+ */
+
+.panelLayout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 300px;
+}
+
+/* ============================================================================
+   Resizer Handle
+   ============================================================================ */
+
+.resizer {
+  width: var(--resizer-width);
+  background: var(--border-color);
+  cursor: col-resize;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.resizer:hover,
+.resizer.active {
+  background: var(--primary);
+}
+
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 24px;
+  background: var(--border-color-light);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.resizer:hover::after,
+.resizer.active::after {
+  opacity: 0.5;
+}
+
+.resizer:focus-visible {
+  outline: none;
+  background: var(--primary);
+}
+
+/* ============================================================================
+   Resize Overlay
+   ============================================================================ */
+
+.resizeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  cursor: col-resize;
+  background: transparent;
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .panelLayout {
+    flex-direction: column;
+  }
+
+  .resizer {
+    width: 100%;
+    height: var(--resizer-width);
+    cursor: row-resize;
+  }
+
+  .resizer::after {
+    width: 24px;
+    height: 2px;
+  }
+
+  .mainContent {
+    min-width: auto;
+    min-height: 200px;
+  }
+
+  .resizeOverlay {
+    cursor: row-resize;
+  }
+}

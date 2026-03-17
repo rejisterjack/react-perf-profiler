@@ -1,0 +1,206 @@
+/**
+ * MemoEffectiveness Component Styles
+ * Memo effectiveness report
+ */
+
+.report {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-5);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.header h3 > span {
+  color: var(--primary);
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+  color: var(--text-tertiary);
+}
+
+.empty p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   List
+   ============================================================================ */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.item {
+  padding: var(--spacing-4) var(--spacing-5);
+  border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition-fast);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background: var(--bg-primary);
+}
+
+/* ============================================================================
+   Item Header
+   ============================================================================ */
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-3);
+}
+
+.name {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.badges {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* ============================================================================
+   Issues
+   ============================================================================ */
+
+.issues {
+  list-style: none;
+  margin: 0 0 var(--spacing-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: rgba(var(--warning-rgb), 0.1);
+  border-radius: var(--border-radius-md);
+  border-left: 2px solid var(--warning);
+}
+
+.issue > span:first-child {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ============================================================================
+   Potential
+   ============================================================================ */
+
+.potential {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  padding-top: var(--spacing-2);
+  border-top: 1px dashed var(--border-color);
+}
+
+.potentialLabel {
+  color: var(--text-tertiary);
+}
+
+.potentialValue {
+  font-weight: var(--font-weight-semibold);
+  color: var(--success);
+  font-family: var(--font-family-mono);
+}
+
+.improvement {
+  color: var(--success);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+
+.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-light);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+  
+  .item {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+  
+  .itemHeader {
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+  }
+}

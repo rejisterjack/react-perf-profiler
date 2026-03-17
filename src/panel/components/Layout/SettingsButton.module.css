@@ -1,0 +1,165 @@
+/**
+ * SettingsButton Component Styles
+ */
+
+.settingsContainer {
+  position: relative;
+}
+
+.settingsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.settingsButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.settingsButton.active {
+  background: var(--bg-active);
+  color: var(--primary);
+}
+
+/* ============================================================================
+   Dropdown Menu
+   ============================================================================ */
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + var(--spacing-1));
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  padding: var(--spacing-2);
+}
+
+/* ============================================================================
+   Sections
+   ============================================================================ */
+
+.section {
+  padding: var(--spacing-1) 0;
+}
+
+.sectionTitle {
+  margin: 0 0 var(--spacing-2) var(--spacing-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   Menu Items
+   ============================================================================ */
+
+.menuItem {
+  padding: var(--spacing-1) 0;
+}
+
+.checkboxLabel,
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.checkboxLabel:hover,
+.radioLabel:hover {
+  background: var(--bg-hover);
+}
+
+.checkbox,
+.radio {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.indicator.critical {
+  background: var(--severity-critical);
+}
+
+.indicator.warning {
+  background: var(--severity-warning);
+}
+
+.indicator.info {
+  background: var(--severity-info);
+}
+
+/* ============================================================================
+   Action Button
+   ============================================================================ */
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  padding: var(--spacing-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--danger);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.actionButton:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* ============================================================================
+   Divider
+   ============================================================================ */
+
+.divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: var(--spacing-2) 0;
+}
+
+/* ============================================================================
+   Footer
+   ============================================================================ */
+
+.footer {
+  padding: var(--spacing-1) var(--spacing-2);
+  text-align: right;
+}
+
+.hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}

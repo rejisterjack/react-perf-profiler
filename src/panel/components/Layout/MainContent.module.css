@@ -1,0 +1,392 @@
+/**
+ * MainContent Component Styles
+ */
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* ============================================================================
+   View Header
+   ============================================================================ */
+
+.viewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.viewTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.commitBadge {
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   View Container
+   ============================================================================ */
+
+.viewContainer {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-3);
+}
+
+/* ============================================================================
+   Placeholder Container
+   ============================================================================ */
+
+.placeholderContainer {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.placeholderHeader {
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+  color: var(--text-secondary);
+}
+
+.placeholderHeader h3 {
+  margin: var(--spacing-2) 0 var(--spacing-1);
+  color: var(--text-primary);
+  font-size: var(--font-size-xl);
+}
+
+.placeholderHeader p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.placeholderContent {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4);
+}
+
+.noData {
+  text-align: center;
+  color: var(--text-tertiary);
+  padding: var(--spacing-6);
+}
+
+/* ============================================================================
+   Component Tree Placeholder
+   ============================================================================ */
+
+.commitList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.commitItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  transition: background var(--transition-fast);
+}
+
+.commitItem:hover {
+  background: var(--bg-hover);
+}
+
+.commitNumber {
+  width: 40px;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-family-mono);
+}
+
+.commitInfo {
+  flex: 1;
+  display: flex;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.commitDuration {
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+}
+
+.commitComponents {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.moreCommits {
+  text-align: center;
+  padding: var(--spacing-2);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+/* ============================================================================
+   Flamegraph Placeholder
+   ============================================================================ */
+
+.flameList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.flameItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: linear-gradient(90deg, var(--primary-alpha) 0%, var(--primary) 100%);
+  border-radius: var(--border-radius-sm);
+  min-width: fit-content;
+  transition: opacity var(--transition-fast);
+}
+
+.flameItem:hover {
+  opacity: 0.9;
+}
+
+.flameName {
+  font-size: var(--font-size-sm);
+  color: var(--text-inverse);
+  white-space: nowrap;
+}
+
+.flameTime {
+  font-size: var(--font-size-xs);
+  color: var(--text-inverse);
+  opacity: 0.8;
+  font-family: var(--font-family-mono);
+  margin-left: var(--spacing-3);
+}
+
+/* ============================================================================
+   Timeline Placeholder
+   ============================================================================ */
+
+.timelineChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 200px;
+  padding: var(--spacing-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  overflow-x: auto;
+}
+
+.timelineBar {
+  flex: 1;
+  min-width: 4px;
+  border-radius: 1px;
+  transition: opacity var(--transition-fast);
+  cursor: pointer;
+}
+
+.timelineBar:hover {
+  opacity: 0.8;
+}
+
+.timelineAxis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Analysis View Placeholder
+   ============================================================================ */
+
+.analyzingState,
+.errorState,
+.noAnalysisState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-10);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-3);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorState h3,
+.noAnalysisState h3 {
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  color: var(--text-primary);
+}
+
+.errorState p {
+  color: var(--danger);
+  max-width: 400px;
+}
+
+.retryButton,
+.analyzeButton {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--primary);
+  color: #000;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  transition: background var(--transition-fast);
+}
+
+.retryButton:hover,
+.analyzeButton:hover {
+  background: var(--primary-dark);
+}
+
+.analysisGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.analysisCard {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-3);
+}
+
+.analysisCard.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.analysisCard h4 {
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scoreCircle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 auto;
+}
+
+.metricsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-2);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+}
+
+.metricLabel {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.metricValue {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.issuesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.issue {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid transparent;
+}
+
+.issue.critical {
+  border-left-color: var(--severity-critical);
+}
+
+.issue.warning {
+  border-left-color: var(--severity-warning);
+}
+
+.issueName {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-mono);
+}
+
+.issueDetail {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.noIssues {
+  text-align: center;
+  color: var(--success);
+  padding: var(--spacing-4);
+}

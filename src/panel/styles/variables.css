@@ -1,0 +1,163 @@
+/**
+ * CSS Variables for React Perf Profiler
+ * Define all theme tokens and design system values
+ */
+
+:root {
+  /* ============================================================================
+     Color Palette
+     ============================================================================ */
+
+  /* Primary Colors */
+  --primary: #61dafb;
+  --primary-dark: #42a5f5;
+  --primary-light: #80deea;
+  --primary-alpha: rgba(97, 218, 251, 0.2);
+
+  /* Secondary Colors */
+  --secondary: #8b5cf6;
+  --secondary-dark: #7c3aed;
+  --secondary-light: #a78bfa;
+
+  /* Semantic Colors */
+  --success: #4ade80;
+  --success-dark: #22c55e;
+  --success-rgb: 74, 222, 128;
+  --warning: #fbbf24;
+  --warning-dark: #f59e0b;
+  --warning-rgb: 251, 191, 36;
+  --danger: #f87171;
+  --danger-dark: #ef4444;
+  --danger-rgb: 248, 113, 113;
+  --info: #60a5fa;
+  --info-dark: #3b82f6;
+  --info-rgb: 96, 165, 250;
+
+  /* Background Colors */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d30;
+  --bg-hover: #3e3e42;
+  --bg-active: #094771;
+  --bg-input: #3c3c3c;
+
+  /* Text Colors */
+  --text-primary: #cccccc;
+  --text-secondary: #858585;
+  --text-tertiary: #6e6e6e;
+  --text-inverse: #ffffff;
+  --text-disabled: #5c5c5c;
+
+  /* Border Colors */
+  --border-color: #3e3e42;
+  --border-color-light: #505050;
+  --border-color-dark: #2b2b2b;
+
+  /* Severity Colors */
+  --severity-critical: #ef4444;
+  --severity-warning: #f59e0b;
+  --severity-info: #3b82f6;
+  --severity-none: #6b7280;
+
+  /* ============================================================================
+     Typography
+     ============================================================================ */
+
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family-mono: 'Fira Code', 'Consolas', 'Monaco', 'Courier New',
+    monospace;
+
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 14px;
+  --font-size-xl: 16px;
+  --font-size-2xl: 18px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ============================================================================
+     Spacing
+     ============================================================================ */
+
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+
+  /* ============================================================================
+     Sizing
+     ============================================================================ */
+
+  --toolbar-height: 48px;
+  --sidebar-width: 280px;
+  --detail-panel-width: 320px;
+  --resizer-width: 4px;
+
+  --border-radius-sm: 2px;
+  --border-radius-md: 4px;
+  --border-radius-lg: 6px;
+
+  /* ============================================================================
+     Shadows
+     ============================================================================ */
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-focus: 0 0 0 2px var(--primary-alpha);
+
+  /* ============================================================================
+     Transitions
+     ============================================================================ */
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ============================================================================
+     Z-Index Scale
+     ============================================================================ */
+
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-popover: 400;
+  --z-tooltip: 500;
+}
+
+/* ============================================================================
+   Light Theme Override (optional)
+   ============================================================================ */
+
+[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #eeeeee;
+  --bg-hover: #e0e0e0;
+  --bg-active: #e3f2fd;
+  --bg-input: #ffffff;
+
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-inverse: #ffffff;
+  --text-disabled: #bbbbbb;
+
+  --border-color: #e0e0e0;
+  --border-color-light: #eeeeee;
+  --border-color-dark: #cccccc;
+}

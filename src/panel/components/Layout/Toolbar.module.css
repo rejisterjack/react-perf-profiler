@@ -1,0 +1,183 @@
+/**
+ * Toolbar Component Styles
+ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--toolbar-height);
+  padding: 0 var(--spacing-3);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  gap: var(--spacing-3);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Sections
+   ============================================================================ */
+
+.section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.centerSection {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ============================================================================
+   Recording Controls
+   ============================================================================ */
+
+.recordingControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.recordingIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--danger);
+  font-weight: var(--font-weight-medium);
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+/* ============================================================================
+   Divider
+   ============================================================================ */
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+  margin: 0 var(--spacing-1);
+}
+
+/* ============================================================================
+   Stats
+   ============================================================================ */
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.statIcon {
+  color: var(--text-tertiary);
+}
+
+.statDivider {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border-color-light);
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+.scoreGood {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+
+.scoreFair {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--warning);
+}
+
+.scorePoor {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--danger);
+}
+
+/* ============================================================================
+   Connection Status
+   ============================================================================ */
+
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-1);
+  border-radius: var(--border-radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.connected {
+  color: var(--success);
+}
+
+.disconnected {
+  color: var(--text-disabled);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--spacing-2);
+    gap: var(--spacing-2);
+  }
+
+  .section {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .centerSection {
+    order: -1;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--spacing-2);
+  }
+
+  .stats {
+    font-size: var(--font-size-xs);
+    gap: var(--spacing-2);
+  }
+}

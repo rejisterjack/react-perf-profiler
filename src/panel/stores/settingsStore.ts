@@ -24,7 +24,6 @@ function createChromeStorage(): StateStorage {
       return new Promise((resolve) => {
         chrome.storage.local.get([name], (result) => {
           if (chrome.runtime.lastError) {
-            console.error('Storage get error:', chrome.runtime.lastError);
             resolve(null);
             return;
           }
@@ -33,29 +32,26 @@ function createChromeStorage(): StateStorage {
         });
       });
     },
-    
+
     setItem: async (name: string, value: string): Promise<void> => {
       return new Promise((resolve) => {
         try {
           const parsed = JSON.parse(value);
           chrome.storage.local.set({ [name]: parsed }, () => {
             if (chrome.runtime.lastError) {
-              console.error('Storage set error:', chrome.runtime.lastError);
             }
             resolve();
           });
-        } catch (error) {
-          console.error('Failed to parse value for storage:', error);
+        } catch (_error) {
           resolve();
         }
       });
     },
-    
+
     removeItem: async (name: string): Promise<void> => {
       return new Promise((resolve) => {
         chrome.storage.local.remove(name, () => {
           if (chrome.runtime.lastError) {
-            console.error('Storage remove error:', chrome.runtime.lastError);
           }
           resolve();
         });
@@ -70,23 +66,29 @@ function createChromeStorage(): StateStorage {
 
 export const DEFAULT_SETTINGS: Omit<
   SettingsState,
-  'loadSettings' | 'saveSettings' | 'updateSetting' | 'resetSettings' | 'loaded'
+  | 'loadSettings'
+  | 'saveSettings'
+  | 'updateSetting'
+  | 'resetSettings'
+  | 'loaded'
+  | 'getProfilerConfig'
+  | 'updateSettings'
 > = {
   // Profiler settings
   maxCommits: 100,
   enableTimeTravel: true,
   showInlineDetails: true,
   colorScheme: 'system',
-  
+
   // Analysis settings
   wastedRenderThreshold: 20,
   memoHitRateThreshold: 70,
-  
+
   // UI settings
   sidebarWidth: 280,
   detailPanelOpen: true,
   defaultViewMode: 'tree',
-  
+
   // Advanced settings
   maxNodesPerCommit: 10000,
   analysisWorkerCount: 2,
@@ -103,7 +105,7 @@ export interface SettingsState {
   // ==========================================================================
   // Profiler Settings
   // ==========================================================================
-  
+
   /** Maximum number of commits to store in memory */
   maxCommits: number;
   /** Enable time-travel debugging feature */
@@ -112,31 +114,31 @@ export interface SettingsState {
   showInlineDetails: boolean;
   /** UI color scheme preference */
   colorScheme: 'light' | 'dark' | 'system';
-  
+
   // ==========================================================================
   // Analysis Settings
   // ==========================================================================
-  
+
   /** Threshold percentage for flagging wasted renders (0-100) */
   wastedRenderThreshold: number;
   /** Minimum hit rate percentage for effective memoization (0-100) */
   memoHitRateThreshold: number;
-  
+
   // ==========================================================================
   // UI Settings
   // ==========================================================================
-  
+
   /** Default sidebar width in pixels */
   sidebarWidth: number;
   /** Whether detail panel is open by default */
   detailPanelOpen: boolean;
   /** Default view mode for the profiler */
   defaultViewMode: 'tree' | 'flamegraph' | 'timeline' | 'analysis';
-  
+
   // ==========================================================================
   // Advanced Settings
   // ==========================================================================
-  
+
   /** Maximum number of nodes per commit to process */
   maxNodesPerCommit: number;
   /** Number of Web Workers to use for analysis */
@@ -147,27 +149,24 @@ export interface SettingsState {
   exportIncludeMetrics: boolean;
   /** Include reports in exports */
   exportIncludeReports: boolean;
-  
+
   // ==========================================================================
   // State
   // ==========================================================================
-  
+
   /** Whether settings have been loaded from storage */
   loaded: boolean;
-  
+
   // ==========================================================================
   // Actions
   // ==========================================================================
-  
+
   /** Load settings from chrome.storage */
   loadSettings: () => Promise<void>;
   /** Save settings to chrome.storage */
   saveSettings: () => Promise<void>;
   /** Update a single setting value */
-  updateSetting: <K extends keyof SettingsState>(
-    key: K,
-    value: SettingsState[K]
-  ) => void;
+  updateSetting: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
   /** Reset all settings to defaults */
   resetSettings: () => void;
   /** Get profiler config from settings */
@@ -177,160 +176,167 @@ export interface SettingsState {
 }
 
 // ============================================================================
+// Action Creators
+// ============================================================================
+
+// Define action creators that will be bound to the store
+const createActions = (
+  set: any,
+  get: any
+): Omit<SettingsState, keyof typeof DEFAULT_SETTINGS | 'loaded'> => ({
+  loadSettings: async () => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['profiler-settings'], (result) => {
+        if (chrome.runtime.lastError) {
+          set((state: SettingsState) => {
+            state.loaded = true;
+          });
+          resolve();
+          return;
+        }
+
+        const savedSettings = result['profiler-settings'];
+        if (savedSettings) {
+          try {
+            const parsed =
+              typeof savedSettings === 'string' ? JSON.parse(savedSettings) : savedSettings;
+
+            // Merge with defaults to ensure all keys exist
+            set((state: SettingsState) => {
+              Object.assign(state, DEFAULT_SETTINGS, parsed, { loaded: true });
+            });
+          } catch (_error) {
+            set((state: SettingsState) => {
+              state.loaded = true;
+            });
+          }
+        } else {
+          set((state: SettingsState) => {
+            state.loaded = true;
+          });
+        }
+
+        resolve();
+      });
+    });
+  },
+
+  saveSettings: async () => {
+    const settings = get();
+    const settingsToSave = {
+      maxCommits: settings.maxCommits,
+      enableTimeTravel: settings.enableTimeTravel,
+      showInlineDetails: settings.showInlineDetails,
+      colorScheme: settings.colorScheme,
+      wastedRenderThreshold: settings.wastedRenderThreshold,
+      memoHitRateThreshold: settings.memoHitRateThreshold,
+      sidebarWidth: settings.sidebarWidth,
+      detailPanelOpen: settings.detailPanelOpen,
+      defaultViewMode: settings.defaultViewMode,
+      maxNodesPerCommit: settings.maxNodesPerCommit,
+      analysisWorkerCount: settings.analysisWorkerCount,
+      enableAutoAnalysis: settings.enableAutoAnalysis,
+      exportIncludeMetrics: settings.exportIncludeMetrics,
+      exportIncludeReports: settings.exportIncludeReports,
+    };
+
+    return new Promise((resolve) => {
+      chrome.storage.local.set(
+        {
+          'profiler-settings': settingsToSave,
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+          }
+          resolve();
+        }
+      );
+    });
+  },
+
+  updateSetting: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
+    // Validate the value before setting
+    let validatedValue = value;
+
+    switch (key) {
+      case 'maxCommits':
+        validatedValue = Math.max(10, Math.min(1000, value as number)) as SettingsState[K];
+        break;
+      case 'wastedRenderThreshold':
+      case 'memoHitRateThreshold':
+        validatedValue = Math.max(0, Math.min(100, value as number)) as SettingsState[K];
+        break;
+      case 'sidebarWidth':
+        validatedValue = Math.max(180, Math.min(600, value as number)) as SettingsState[K];
+        break;
+      case 'maxNodesPerCommit':
+        validatedValue = Math.max(100, Math.min(50000, value as number)) as SettingsState[K];
+        break;
+      case 'analysisWorkerCount':
+        validatedValue = Math.max(1, Math.min(8, value as number)) as SettingsState[K];
+        break;
+    }
+
+    set((state: SettingsState) => {
+      state[key] = validatedValue;
+    });
+
+    // Auto-save after update
+    get().saveSettings();
+  },
+
+  resetSettings: () => {
+    set((state: SettingsState) => {
+      Object.assign(state, DEFAULT_SETTINGS, { loaded: true });
+    });
+    get().saveSettings();
+  },
+
+  getProfilerConfig: (): ProfilerConfig & { wastedRenderThreshold: number } => {
+    const settings = get();
+    return {
+      maxCommits: settings.maxCommits,
+      maxNodesPerCommit: settings.maxNodesPerCommit,
+      analysisWorkerCount: settings.analysisWorkerCount,
+      enableTimeTravel: settings.enableTimeTravel,
+      wastedRenderThreshold: settings.wastedRenderThreshold,
+    };
+  },
+
+  updateSettings: (updates: Partial<SettingsState>) => {
+    set((state: SettingsState) => {
+      Object.entries(updates).forEach(([key, value]) => {
+        const typedKey = key as keyof SettingsState;
+        // Skip actions and internal state
+        if (typeof value !== 'function' && typedKey !== 'loaded') {
+          (state[typedKey] as unknown) = value;
+        }
+      });
+    });
+    get().saveSettings();
+  },
+});
+
+// ============================================================================
 // Store Creation
 // ============================================================================
+
+// Store reference for action binding
+let storeActions: Omit<SettingsState, keyof typeof DEFAULT_SETTINGS | 'loaded'> | null = null;
 
 export const useSettingsStore = create<SettingsState>()(
   devtools(
     persist(
-      immer((set, get) => ({
-        // ========================================================================
-        // Initial State
-        // ========================================================================
-        
-        ...DEFAULT_SETTINGS,
-        loaded: false,
-        
-        // ========================================================================
-        // Actions
-        // ========================================================================
-        
-        loadSettings: async () => {
-          return new Promise((resolve) => {
-            chrome.storage.local.get(['profiler-settings'], (result) => {
-              if (chrome.runtime.lastError) {
-                console.error('Failed to load settings:', chrome.runtime.lastError);
-                set((state) => {
-                  state.loaded = true;
-                });
-                resolve();
-                return;
-              }
-              
-              const savedSettings = result['profiler-settings'];
-              if (savedSettings) {
-                try {
-                  const parsed = typeof savedSettings === 'string' 
-                    ? JSON.parse(savedSettings) 
-                    : savedSettings;
-                  
-                  // Merge with defaults to ensure all keys exist
-                  set((state) => {
-                    Object.assign(state, DEFAULT_SETTINGS, parsed, { loaded: true });
-                  });
-                } catch (error) {
-                  console.error('Failed to parse saved settings:', error);
-                  set((state) => {
-                    state.loaded = true;
-                  });
-                }
-              } else {
-                set((state) => {
-                  state.loaded = true;
-                });
-              }
-              
-              resolve();
-            });
-          });
-        },
-        
-        saveSettings: async () => {
-          const settings = get();
-          const settingsToSave = {
-            maxCommits: settings.maxCommits,
-            enableTimeTravel: settings.enableTimeTravel,
-            showInlineDetails: settings.showInlineDetails,
-            colorScheme: settings.colorScheme,
-            wastedRenderThreshold: settings.wastedRenderThreshold,
-            memoHitRateThreshold: settings.memoHitRateThreshold,
-            sidebarWidth: settings.sidebarWidth,
-            detailPanelOpen: settings.detailPanelOpen,
-            defaultViewMode: settings.defaultViewMode,
-            maxNodesPerCommit: settings.maxNodesPerCommit,
-            analysisWorkerCount: settings.analysisWorkerCount,
-            enableAutoAnalysis: settings.enableAutoAnalysis,
-            exportIncludeMetrics: settings.exportIncludeMetrics,
-            exportIncludeReports: settings.exportIncludeReports,
-          };
-          
-          return new Promise((resolve) => {
-            chrome.storage.local.set({
-              'profiler-settings': settingsToSave,
-            }, () => {
-              if (chrome.runtime.lastError) {
-                console.error('Failed to save settings:', chrome.runtime.lastError);
-              }
-              resolve();
-            });
-          });
-        },
-        
-        updateSetting: <K extends keyof SettingsState>(
-          key: K,
-          value: SettingsState[K]
-        ) => {
-          // Validate the value before setting
-          let validatedValue = value;
-          
-          switch (key) {
-            case 'maxCommits':
-              validatedValue = Math.max(10, Math.min(1000, value as number)) as SettingsState[K];
-              break;
-            case 'wastedRenderThreshold':
-            case 'memoHitRateThreshold':
-              validatedValue = Math.max(0, Math.min(100, value as number)) as SettingsState[K];
-              break;
-            case 'sidebarWidth':
-              validatedValue = Math.max(180, Math.min(600, value as number)) as SettingsState[K];
-              break;
-            case 'maxNodesPerCommit':
-              validatedValue = Math.max(100, Math.min(50000, value as number)) as SettingsState[K];
-              break;
-            case 'analysisWorkerCount':
-              validatedValue = Math.max(1, Math.min(8, value as number)) as SettingsState[K];
-              break;
-          }
-          
-          set((state) => {
-            state[key] = validatedValue;
-          });
-          
-          // Auto-save after update
-          get().saveSettings();
-        },
-        
-        resetSettings: () => {
-          set((state) => {
-            Object.assign(state, DEFAULT_SETTINGS, { loaded: true });
-          });
-          get().saveSettings();
-        },
-        
-        getProfilerConfig: (): ProfilerConfig => {
-          const settings = get();
-          return {
-            maxCommits: settings.maxCommits,
-            maxNodesPerCommit: settings.maxNodesPerCommit,
-            analysisWorkerCount: settings.analysisWorkerCount,
-            enableTimeTravel: settings.enableTimeTravel,
-            wastedRenderThreshold: settings.wastedRenderThreshold,
-          };
-        },
-        
-        updateSettings: (updates: Partial<SettingsState>) => {
-          set((state) => {
-            Object.entries(updates).forEach(([key, value]) => {
-              const typedKey = key as keyof SettingsState;
-              // Skip actions and internal state
-              if (typeof value !== 'function' && typedKey !== 'loaded') {
-                (state[typedKey] as unknown) = value;
-              }
-            });
-          });
-          get().saveSettings();
-        },
-      })),
+      immer((set, get) => {
+        // Create actions and store them for potential restoration
+        storeActions = createActions(set, get);
+
+        return {
+          ...DEFAULT_SETTINGS,
+          loaded: false,
+          ...storeActions,
+        };
+      }),
       {
         name: 'profiler-settings',
         storage: createJSONStorage(createChromeStorage),
@@ -357,9 +363,23 @@ export const useSettingsStore = create<SettingsState>()(
     ),
     {
       name: 'settings-store',
-      enabled: process.env.NODE_ENV === 'development',
+      enabled: process.env['NODE_ENV'] === 'development',
     }
   )
 );
+
+// Override setState to ensure actions are always present
+const originalSetState = useSettingsStore.setState;
+useSettingsStore.setState = (partial: any, replace?: boolean) => {
+  if (replace && typeof partial === 'object' && partial !== null) {
+    // When replacing, merge actions back into the state
+    const merged = {
+      ...partial,
+      ...storeActions,
+    };
+    return originalSetState(merged, replace);
+  }
+  return originalSetState(partial, replace);
+};
 
 export default useSettingsStore;

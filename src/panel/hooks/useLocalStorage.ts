@@ -39,7 +39,10 @@ export interface UseLocalStorageReturn<T> {
  * Custom error for localStorage operations
  */
 export class LocalStorageError extends Error {
-  constructor(message: string, public readonly key: string) {
+  constructor(
+    message: string,
+    public readonly key: string
+  ) {
     super(message);
     this.name = 'LocalStorageError';
   }
@@ -57,10 +60,10 @@ const defaultDeserializer = <T>(value: string): T => JSON.parse(value);
 
 /**
  * Hook for persisting state to localStorage with full TypeScript support
- * 
+ *
  * Automatically syncs with localStorage and optionally across browser tabs.
  * Handles serialization errors gracefully and provides loading state.
- * 
+ *
  * @example
  * ```tsx
  * function ThemeToggle() {
@@ -68,7 +71,7 @@ const defaultDeserializer = <T>(value: string): T => JSON.parse(value);
  *     key: 'app-theme',
  *     defaultValue: 'light' as 'light' | 'dark',
  *   });
- *   
+ *
  *   return (
  *     <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
  *       Current: {theme}
@@ -76,13 +79,11 @@ const defaultDeserializer = <T>(value: string): T => JSON.parse(value);
  *   );
  * }
  * ```
- * 
+ *
  * @param options - Configuration options
  * @returns Object containing value, setter, remover, and loading state
  */
-export function useLocalStorage<T>(
-  options: UseLocalStorageOptions<T>
-): UseLocalStorageReturn<T> {
+export function useLocalStorage<T>(options: UseLocalStorageOptions<T>): UseLocalStorageReturn<T> {
   const {
     key,
     defaultValue,
@@ -109,8 +110,7 @@ export function useLocalStorage<T>(
         return defaultValue;
       }
       return deserializer(item);
-    } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
+    } catch (_error) {
       return defaultValue;
     }
   }, [key, defaultValue, deserializer]);
@@ -118,28 +118,29 @@ export function useLocalStorage<T>(
   /**
    * Write value to localStorage
    */
-  const writeValue = useCallback((value: T): void => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      const serialized = serializer(value);
-      window.localStorage.setItem(key, serialized);
-    } catch (error) {
-      console.warn(`Error writing to localStorage key "${key}":`, error);
-      
-      // Check for quota exceeded error
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
-        console.error('localStorage quota exceeded');
+  const writeValue = useCallback(
+    (value: T): void => {
+      if (typeof window === 'undefined') {
+        return;
       }
-      
-      throw new LocalStorageError(
-        error instanceof Error ? error.message : 'Failed to write to localStorage',
-        key
-      );
-    }
-  }, [key, serializer]);
+
+      try {
+        const serialized = serializer(value);
+        window.localStorage.setItem(key, serialized);
+      } catch (error) {
+
+        // Check for quota exceeded error
+        if (error instanceof Error && error.name === 'QuotaExceededError') {
+        }
+
+        throw new LocalStorageError(
+          error instanceof Error ? error.message : 'Failed to write to localStorage',
+          key
+        );
+      }
+    },
+    [key, serializer]
+  );
 
   /**
    * Remove value from localStorage
@@ -153,25 +154,26 @@ export function useLocalStorage<T>(
       window.localStorage.removeItem(key);
       isInternalChange.current = true;
       setState(defaultValue);
-    } catch (error) {
-      console.warn(`Error removing localStorage key "${key}":`, error);
+    } catch (_error) {
     }
   }, [key, defaultValue]);
 
   /**
    * Set value (handles both direct values and updater functions)
    */
-  const setValue = useCallback((value: T | ((prev: T) => T)): void => {
-    try {
-      const newValue = value instanceof Function ? value(state) : value;
-      
-      isInternalChange.current = true;
-      setState(newValue);
-      writeValue(newValue);
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-    }
-  }, [key, state, writeValue]);
+  const setValue = useCallback(
+    (value: T | ((prev: T) => T)): void => {
+      try {
+        const newValue = value instanceof Function ? value(state) : value;
+
+        isInternalChange.current = true;
+        setState(newValue);
+        writeValue(newValue);
+      } catch (_error) {
+      }
+    },
+    [state, writeValue]
+  );
 
   /**
    * Initial load from localStorage
@@ -210,13 +212,12 @@ export function useLocalStorage<T>(
           const newValue = deserializer(event.newValue);
           setState(newValue);
         }
-      } catch (error) {
-        console.warn(`Error parsing storage change for key "${key}":`, error);
+      } catch (_error) {
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
@@ -232,14 +233,14 @@ export function useLocalStorage<T>(
 
 /**
  * Hook for managing multiple related localStorage values
- * 
+ *
  * @example
  * ```tsx
  * const settings = useLocalStorageObject({
  *   theme: { key: 'theme', defaultValue: 'light' },
  *   sidebar: { key: 'sidebar', defaultValue: true },
  * });
- * 
+ *
  * // Access individual values
  * settings.theme.value; // 'light'
  * settings.theme.setValue('dark');
@@ -248,15 +249,25 @@ export function useLocalStorage<T>(
 export function useLocalStorageObject<T extends Record<string, unknown>>(
   config: { [K in keyof T]: { key: string; defaultValue: T[K] } }
 ): { [K in keyof T]: UseLocalStorageReturn<T[K]> } {
-  const result = {} as { [K in keyof T]: UseLocalStorageReturn<T[K]> };
+  // Convert config to entries array for stable hook calls
+  const entries = Object.entries(config) as Array<
+    [keyof T, { key: string; defaultValue: T[keyof T] }]
+  >;
 
-  for (const key in config) {
+  // Create an array of hook results in a stable order
+  const hookResults = entries.map(([, configItem]) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    result[key] = useLocalStorage({
-      key: config[key].key,
-      defaultValue: config[key].defaultValue,
-    });
-  }
+    useLocalStorage({
+      key: configItem.key,
+      defaultValue: configItem.defaultValue,
+    })
+  );
+
+  // Reconstruct the result object
+  const result = {} as { [K in keyof T]: UseLocalStorageReturn<T[K]> };
+  entries.forEach(([key], index) => {
+    result[key] = hookResults[index] as UseLocalStorageReturn<T[keyof T]>;
+  });
 
   return result;
 }

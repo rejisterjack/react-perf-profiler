@@ -4,7 +4,7 @@ export type { ButtonProps } from './Button/Button';
 
 // Icon
 export { Icon } from './Icon/Icon';
-export type { IconName, IconProps } from './Icon/Icon';
+export type { IconName } from './Icon/Icon';
 
 // Badge
 export { Badge } from './Badge/Badge';
@@ -32,3 +32,6 @@ export type { TooltipProps } from './Tooltip/Tooltip';
 // Panel
 export { Panel, PanelSection } from './Panel/Panel';
 export type { PanelProps, PanelSectionProps } from './Panel/Panel';
+
+// Import Dialog
+export { ImportDialog } from './ImportDialog/ImportDialog';

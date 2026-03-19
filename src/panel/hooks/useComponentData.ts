@@ -16,7 +16,9 @@ export interface UseComponentDataReturn {
   /** Commits that include this component */
   commits: CommitData[];
   /** Wasted render report for this component */
-  wastedRenderReport: ReturnType<typeof useProfilerStore.getState>['wastedRenderReports'][number] | null;
+  wastedRenderReport:
+    | ReturnType<typeof useProfilerStore.getState>['wastedRenderReports'][number]
+    | null;
   /** Memo effectiveness report for this component */
   memoReport: ReturnType<typeof useProfilerStore.getState>['memoReports'][number] | null;
 }
@@ -27,15 +29,15 @@ export interface UseComponentDataReturn {
 function isWastedRender(node: FiberNode): boolean {
   // If context changed, render was necessary
   if (node.hasContextChanged) return false;
-  
+
   // Check if props changed using shallow equality
   const propsChanged = !shallowEqual(node.prevProps, node.props);
   if (propsChanged) return false;
-  
+
   // Check if state changed using shallow equality
   const stateChanged = !shallowEqual(node.prevState, node.state);
   if (stateChanged) return false;
-  
+
   // Props and state are equal - this was a wasted render
   return true;
 }
@@ -49,32 +51,32 @@ function shallowEqual(
 ): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  
+
   const keysA = Object.keys(a);
   const keysB = Object.keys(b);
-  
+
   if (keysA.length !== keysB.length) return false;
-  
+
   for (const key of keysA) {
     if (a[key] !== b[key]) return false;
   }
-  
+
   return true;
 }
 
 /**
  * Hook for accessing component-specific profiling data
- * 
+ *
  * Calculates metrics for a specific component across all commits,
  * including render count, wasted renders, and timing statistics.
- * 
+ *
  * @example
  * ```tsx
  * function ComponentDetails({ componentName }: { componentName: string }) {
  *   const { metrics, commits, wastedRenderReport } = useComponentData(componentName);
- *   
+ *
  *   if (!metrics) return <div>No data available</div>;
- *   
+ *
  *   return (
  *     <div>
  *       <h2>{componentName}</h2>
@@ -90,7 +92,7 @@ function shallowEqual(
  *   );
  * }
  * ```
- * 
+ *
  * @param componentName - Name of the component to analyze
  * @returns Object containing component metrics, commits, and reports
  */
@@ -102,9 +104,9 @@ export function useComponentData(componentName: string): UseComponentDataReturn 
    */
   const componentCommits = useMemo((): CommitData[] => {
     if (!componentName) return [];
-    
+
     return commits.filter((commit) =>
-      commit.nodes.some((node) => node.displayName === componentName)
+      commit.nodes?.some((node) => node.displayName === componentName)
     );
   }, [commits, componentName]);
 
@@ -113,7 +115,7 @@ export function useComponentData(componentName: string): UseComponentDataReturn 
    */
   const metrics = useMemo((): ComponentMetrics | null => {
     if (componentCommits.length === 0) return null;
-    
+
     let renderCount = 0;
     let wastedRenderCount = 0;
     let totalRenderTime = 0;
@@ -124,7 +126,7 @@ export function useComponentData(componentName: string): UseComponentDataReturn 
     let lastSeen = 0;
 
     componentCommits.forEach((commit) => {
-      const node = commit.nodes.find((n) => n.displayName === componentName);
+      const node = commit.nodes?.find((n) => n.displayName === componentName);
       if (!node) return;
 
       renderCount++;
@@ -140,9 +142,7 @@ export function useComponentData(componentName: string): UseComponentDataReturn 
       }
     });
 
-    const wastedRenderRate = renderCount > 0 
-      ? (wastedRenderCount / renderCount) * 100 
-      : 0;
+    const wastedRenderRate = renderCount > 0 ? (wastedRenderCount / renderCount) * 100 : 0;
 
     return {
       componentName,

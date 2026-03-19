@@ -67,13 +67,13 @@ const DEFAULT_WEIGHTS = {
 /**
  * Calculates overall performance score based on all available metrics
  * Combines wasted render analysis, memo effectiveness, and render timing
- * 
+ *
  * @param commits - Array of commit data
  * @param wastedRenderReports - Reports from wasted render analysis
  * @param memoReports - Reports from memo effectiveness analysis
  * @param config - Optional scoring configuration
  * @returns Complete performance metrics with scores and issues
- * 
+ *
  * @example
  * ```typescript
  * const metrics = calculatePerformanceScore(
@@ -117,9 +117,9 @@ export function calculatePerformanceScore(
   // Calculate weighted overall score
   const overallScore = Math.round(
     wastedRenderScore * normalizedWeights.wastedRenderWeight +
-    memoizationScore * normalizedWeights.memoizationWeight +
-    renderTimeScore * normalizedWeights.renderTimeWeight +
-    componentCountScore * normalizedWeights.componentCountWeight
+      memoizationScore * normalizedWeights.memoizationWeight +
+      renderTimeScore * normalizedWeights.renderTimeWeight +
+      componentCountScore * normalizedWeights.componentCountWeight
   );
 
   // Collect all issues
@@ -129,9 +129,9 @@ export function calculatePerformanceScore(
   issues.push(...extractRenderTimeIssues(commits, config.slowRenderThreshold));
   issues.push(...extractComponentCountIssues(commits, config.maxComponentsThreshold));
 
-  // Sort issues by severity
-  const severityOrder = { critical: 0, warning: 1, info: 2 };
-  issues.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  // Sort issues by severity (descending: critical > warning > info)
+  const severityOrder = { critical: 3, warning: 2, info: 1 };
+  issues.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);
 
   return {
     overallScore: Math.max(0, Math.min(100, overallScore)),
@@ -148,7 +148,7 @@ export function calculatePerformanceScore(
 /**
  * Scores wasted render performance (0-100)
  * Higher score = fewer wasted renders
- * 
+ *
  * @param reports - Wasted render reports
  * @returns Score from 0-100
  */
@@ -169,7 +169,8 @@ export function scoreWastedRenders(reports: WastedRenderReport[]): number {
         totalScore -= 8 * report.wastedRenderRate;
         break;
       case 'info':
-        totalScore -= 3 * report.wastedRenderRate;
+        // Deduct minimal points for info severity (at least 1 point to ensure score < 100)
+        totalScore -= Math.max(1, 3 * report.wastedRenderRate);
         break;
     }
   }
@@ -180,7 +181,7 @@ export function scoreWastedRenders(reports: WastedRenderReport[]): number {
 /**
  * Scores memoization effectiveness (0-100)
  * Higher score = better memoization usage
- * 
+ *
  * @param reports - Memo effectiveness reports
  * @returns Score from 0-100
  */
@@ -219,15 +220,12 @@ export function scoreMemoization(reports: MemoEffectivenessReport[]): number {
 /**
  * Scores render time performance (0-100)
  * Higher score = faster renders
- * 
+ *
  * @param commits - Array of commit data
  * @param threshold - Threshold for slow render in ms (default: 16ms for 60fps)
  * @returns Score from 0-100
  */
-export function scoreRenderTime(
-  commits: CommitData[],
-  threshold: number = 16
-): number {
+export function scoreRenderTime(commits: CommitData[], threshold: number = 16): number {
   if (!commits || commits.length === 0) {
     return 100;
   }
@@ -267,15 +265,12 @@ export function scoreRenderTime(
 /**
  * Scores component count complexity (0-100)
  * Higher score = more manageable component tree
- * 
+ *
  * @param commits - Array of commit data
  * @param threshold - Threshold for too many components (default: 500)
  * @returns Score from 0-100
  */
-export function scoreComponentCount(
-  commits: CommitData[],
-  threshold: number = 500
-): number {
+export function scoreComponentCount(commits: CommitData[], threshold: number = 500): number {
   if (!commits || commits.length === 0) {
     return 100;
   }
@@ -300,9 +295,7 @@ export function scoreComponentCount(
 /**
  * Extracts issues from wasted render reports
  */
-function extractWastedRenderIssues(
-  reports: WastedRenderReport[]
-): PerformanceIssue[] {
+function extractWastedRenderIssues(reports: WastedRenderReport[]): PerformanceIssue[] {
   const issues: PerformanceIssue[] = [];
 
   for (const report of reports) {
@@ -323,17 +316,15 @@ function extractWastedRenderIssues(
 /**
  * Extracts issues from memo effectiveness reports
  */
-function extractMemoIssues(
-  reports: MemoEffectivenessReport[]
-): PerformanceIssue[] {
+function extractMemoIssues(reports: MemoEffectivenessReport[]): PerformanceIssue[] {
   const issues: PerformanceIssue[] = [];
 
   for (const report of reports) {
     if (report.issues.length === 0 && report.isEffective) continue;
 
-    const criticalIssues = report.issues.filter(i => i.impact > 0.7);
-    const severity = criticalIssues.length > 0 ? 'critical' :
-                     report.issues.length > 2 ? 'warning' : 'info';
+    const criticalIssues = report.issues.filter((i) => i.impact > 0.7);
+    const severity =
+      criticalIssues.length > 0 ? 'critical' : report.issues.length > 2 ? 'warning' : 'info';
 
     issues.push({
       type: 'ineffective-memo',
@@ -378,8 +369,8 @@ function extractRenderTimeIssues(
 
   // Convert to issues
   slowComponents.forEach((data, name) => {
-    const severity = data.maxDuration > 100 ? 'critical' :
-                     data.maxDuration > 50 ? 'warning' : 'info';
+    const severity =
+      data.maxDuration > 100 ? 'critical' : data.maxDuration > 50 ? 'warning' : 'info';
 
     issues.push({
       type: 'slow-render',

@@ -22,16 +22,16 @@ export interface UseAnalysisReturn {
 
 /**
  * Hook for running performance analysis on captured commits
- * 
+ *
  * Offloads analysis computation to a web worker to avoid blocking
  * the main thread. Analysis includes wasted render detection and
  * memo effectiveness scoring.
- * 
+ *
  * @example
  * ```tsx
  * function AnalysisButton() {
  *   const { isAnalyzing, error, runAnalysis } = useAnalysis();
- *   
+ *
  *   return (
  *     <div>
  *       <button onClick={runAnalysis} disabled={isAnalyzing}>
@@ -42,13 +42,13 @@ export interface UseAnalysisReturn {
  *   );
  * }
  * ```
- * 
+ *
  * @returns Object containing analysis state and run function
  */
 export function useAnalysis(): UseAnalysisReturn {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Access store state directly to avoid re-renders
   const storeState = useProfilerStore.getState();
   const { commits, setAnalysisResults } = storeState;
@@ -71,7 +71,6 @@ export function useAnalysis(): UseAnalysisReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
       setError(errorMessage);
-      console.error('Analysis error:', err);
     } finally {
       setIsAnalyzing(false);
     }

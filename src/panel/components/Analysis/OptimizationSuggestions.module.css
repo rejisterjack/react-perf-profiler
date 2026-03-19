@@ -103,7 +103,9 @@
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-md);
   border-left: 3px solid var(--border-color);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .suggestion:hover {
@@ -280,19 +282,19 @@
   .header {
     padding: var(--spacing-3) var(--spacing-4);
   }
-  
+
   .suggestion {
     padding: var(--spacing-3);
   }
-  
+
   .suggestionHeader {
     flex-wrap: wrap;
   }
-  
+
   .code {
     padding: var(--spacing-2);
   }
-  
+
   .code code {
     font-size: 10px;
   }

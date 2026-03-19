@@ -19,9 +19,11 @@ export default defineConfig(({ mode }) => ({
   css: {
     modules: {
       localsConvention: 'camelCase',
-      generateScopedName: mode === 'development' 
-        ? '[name]__[local]___[hash:base64:5]' 
-        : '[hash:base64:8]',
+      generateScopedName: mode === 'test'
+        ? '[local]' // Use clean class names for tests
+        : mode === 'development' 
+          ? '[name]__[local]___[hash:base64:5]' 
+          : '[hash:base64:8]',
     },
     devSourcemap: true,
   },

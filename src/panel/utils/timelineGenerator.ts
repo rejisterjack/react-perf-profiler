@@ -64,34 +64,26 @@ export interface TimelineConfig {
 /**
  * Generates a timeline from commit data
  * Creates a chronological list of render events for visualization
- * 
+ *
  * @param commits - Array of commit data from React profiler
  * @param config - Optional timeline configuration
  * @returns Timeline data with events and metadata
- * 
+ *
  * @example
  * ```typescript
  * const timeline = generateTimeline(commits, {
  *   minDuration: 1,
  *   onlyWasted: false
  * });
- * 
+ *
  * // Use with visualization library
  * timeline.events.forEach(event => {
  *   drawEvent(event.timestamp, event.duration, event.type);
  * });
  * ```
  */
-export function generateTimeline(
-  commits: CommitData[],
-  config: TimelineConfig = {}
-): TimelineData {
-  const {
-    minDuration = 0,
-    componentFilter,
-    onlyWasted = false,
-    maxEvents = 10000,
-  } = config;
+export function generateTimeline(commits: CommitData[], config: TimelineConfig = {}): TimelineData {
+  const { minDuration = 0, componentFilter, onlyWasted = false, maxEvents = 10000 } = config;
 
   // Handle empty commits
   if (!commits || commits.length === 0) {
@@ -104,9 +96,7 @@ export function generateTimeline(
   }
 
   // Build component filter set for O(1) lookups
-  const filterSet = componentFilter && componentFilter.length > 0
-    ? new Set(componentFilter)
-    : null;
+  const filterSet = componentFilter && componentFilter.length > 0 ? new Set(componentFilter) : null;
 
   // Calculate time range
   const startTime = commits[0]?.timestamp ?? 0;
@@ -124,14 +114,13 @@ export function generateTimeline(
 
     // Create commit-level event
     events.push({
-      id: `commit-${commit.commitId}`,
+      id: `commit-${commit.id}`,
       timestamp: commit.timestamp,
       type: 'commit',
       componentName: 'React Commit',
       duration: commit.duration,
       details: {
-        commitId: commit.commitId,
-        priorityLevel: commit.priorityLevel,
+        commitId: commit.id,
       },
     });
 
@@ -144,7 +133,7 @@ export function generateTimeline(
       if (filterSet && !filterSet.has(fiber.displayName)) continue;
 
       // Detect if this was a wasted render
-      const prevFiber = prevFiberMap.get(fiber.id);
+      const prevFiber = prevFiberMap.get(fiber.id) ?? null;
       const isWasted = detectWastedRender(fiber, prevFiber);
 
       // Apply wasted-only filter
@@ -168,9 +157,9 @@ export function generateTimeline(
           fiberId: fiber.id,
           isWasted,
           selfDuration: fiber.selfBaseDuration,
-          priorityLevel: commit.priorityLevel,
+
           changedProps,
-          commitId: commit.commitId,
+          commitId: commit.id,
         },
       });
 
@@ -196,11 +185,11 @@ export function generateTimeline(
 /**
  * Groups events into time buckets for aggregation
  * Useful for creating histograms or heatmaps
- * 
+ *
  * @param events - Array of timeline events
  * @param bucketSizeMs - Size of each time bucket in milliseconds
  * @returns Map of bucket start time to events in that bucket
- * 
+ *
  * @example
  * ```typescript
  * const buckets = bucketEvents(timeline.events, 100); // 100ms buckets
@@ -239,11 +228,11 @@ export function bucketEvents(
 /**
  * Finds peaks in render activity
  * Identifies time periods with unusually high render counts
- * 
+ *
  * @param timeline - Timeline data
  * @param threshold - Threshold for considering activity a peak (renders per ms)
  * @returns Array of peak events (the highest activity events in each peak period)
- * 
+ *
  * @example
  * ```typescript
  * const peaks = findRenderPeaks(timeline, 0.5); // 0.5 renders/ms threshold
@@ -252,17 +241,14 @@ export function bucketEvents(
  * });
  * ```
  */
-export function findRenderPeaks(
-  timeline: TimelineData,
-  threshold: number
-): TimelineEvent[] {
+export function findRenderPeaks(timeline: TimelineData, threshold: number): TimelineEvent[] {
   if (!timeline.events || timeline.events.length === 0 || threshold <= 0) {
     return [];
   }
 
   // Filter to only render events
   const renderEvents = timeline.events.filter(
-    e => e.type === 'render' || e.type === 'wasted-render'
+    (e) => e.type === 'render' || e.type === 'wasted-render'
   );
 
   if (renderEvents.length === 0) return [];
@@ -309,14 +295,7 @@ export function findRenderPeaks(
         processedWindows.add(i);
       }
 
-      peaks.push({
-        ...peakEvent,
-        details: {
-          ...peakEvent.details,
-          peakRenderCount: windowEvents.length,
-          peakDuration: windowEvents.reduce((sum, e) => sum + e.duration, 0),
-        },
-      });
+      peaks.push(peakEvent);
     }
   });
 
@@ -327,10 +306,7 @@ export function findRenderPeaks(
 /**
  * Detects if a render was wasted by comparing with previous fiber state
  */
-function detectWastedRender(
-  current: FiberData,
-  previous: FiberData | null
-): boolean {
+function detectWastedRender(current: FiberData, previous: FiberData | null): boolean {
   if (!previous) return false;
 
   // Quick check: if duration is 0, likely a bailout (not a real render)
@@ -386,7 +362,7 @@ function detectChangedProps(
 /**
  * Generates a summary of timeline statistics
  * Useful for high-level performance overview
- * 
+ *
  * @param timeline - Timeline data
  * @returns Statistics object
  */

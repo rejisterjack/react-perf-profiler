@@ -36,7 +36,10 @@ interface WorkerResponse {
  */
 class AnalysisWorkerClient {
   private worker: Worker | null = null;
-  private pendingRequests: Map<string, { resolve: (value: AnalysisResult) => void; reject: (error: Error) => void }> = new Map();
+  private pendingRequests: Map<
+    string,
+    { resolve: (value: AnalysisResult) => void; reject: (error: Error) => void }
+  > = new Map();
   private requestId = 0;
 
   /**
@@ -223,13 +226,13 @@ class AnalysisWorkerClient {
 
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     const workerUrl = URL.createObjectURL(blob);
-    
+
     this.worker = new Worker(workerUrl);
-    
+
     this.worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const { id, success, data, error } = e.data;
       const request = this.pendingRequests.get(id);
-      
+
       if (request) {
         if (success && data) {
           request.resolve(data);
@@ -240,8 +243,7 @@ class AnalysisWorkerClient {
       }
     };
 
-    this.worker.onerror = (error) => {
-      console.error('Analysis worker error:', error);
+    this.worker.onerror = (_error) => {
       // Reject all pending requests
       this.pendingRequests.forEach((request) => {
         request.reject(new Error('Worker error'));
@@ -258,7 +260,7 @@ class AnalysisWorkerClient {
   private sendRequest(type: WorkerRequest['type'], payload: CommitData[]): Promise<AnalysisResult> {
     const worker = this.initWorker();
     const id = `${Date.now()}-${++this.requestId}`;
-    
+
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
       worker.postMessage({ id, type, payload } as WorkerRequest);
@@ -281,7 +283,7 @@ class AnalysisWorkerClient {
         topOpportunities: [],
       };
     }
-    
+
     return this.sendRequest('analyzeAll', commits);
   }
 
@@ -313,7 +315,7 @@ class AnalysisWorkerClient {
         request.reject(new Error('Worker terminated'));
       });
       this.pendingRequests.clear();
-      
+
       this.worker.terminate();
       this.worker = null;
     }

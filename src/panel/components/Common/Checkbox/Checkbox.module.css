@@ -36,7 +36,9 @@
 
 /* Focus state */
 .input:focus-visible + .checkmark {
-  box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--color-accent-primary);
+  box-shadow:
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-accent-primary);
 }
 
 /* Checked state */
@@ -63,7 +65,7 @@
 
 /* Indeterminate state */
 .input:indeterminate + .checkmark::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;

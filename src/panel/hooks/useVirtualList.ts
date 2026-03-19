@@ -53,10 +53,10 @@ export interface UseVirtualListReturn<T> {
 
 /**
  * Hook for efficiently rendering large lists by only mounting visible items
- * 
+ *
  * Uses a virtual scrolling technique where only items in (or near) the viewport
  * are rendered, dramatically improving performance for lists with thousands of items.
- * 
+ *
  * @example
  * ```tsx
  * function LargeList({ items }: { items: string[] }) {
@@ -66,7 +66,7 @@ export interface UseVirtualListReturn<T> {
  *     containerHeight: 400,
  *     overscan: 5,
  *   });
- *   
+ *
  *   return (
  *     <div ref={containerRef} style={{ height: 400, overflow: 'auto' }}>
  *       <div style={{ height: totalHeight, position: 'relative' }}>
@@ -80,7 +80,7 @@ export interface UseVirtualListReturn<T> {
  *   );
  * }
  * ```
- * 
+ *
  * @param options - Configuration options for virtualization
  * @returns Object containing virtual items, total height, and control functions
  */
@@ -103,7 +103,7 @@ export function useVirtualList<T>({
 
     const handleScroll = (): void => {
       if (rafRef.current !== null) return;
-      
+
       rafRef.current = requestAnimationFrame(() => {
         setScrollTop(container.scrollTop);
         rafRef.current = null;
@@ -111,7 +111,7 @@ export function useVirtualList<T>({
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     return () => {
       container.removeEventListener('scroll', handleScroll);
       if (rafRef.current !== null) {
@@ -125,29 +125,29 @@ export function useVirtualList<T>({
    */
   const { virtualItems, totalHeight, startIndex, endIndex } = useMemo(() => {
     const totalHeight = items.length * itemHeight;
-    
+
     // Calculate visible range with overscan
     const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
     const visibleCount = Math.ceil(containerHeight / itemHeight);
-    const endIndex = Math.min(
-      items.length - 1,
-      startIndex + visibleCount + overscan * 2
-    );
+    const endIndex = Math.min(items.length - 1, startIndex + visibleCount + overscan * 2);
 
     // Build virtual items array
     const virtualItems: VirtualItem<T>[] = [];
     for (let i = startIndex; i <= endIndex; i++) {
-      virtualItems.push({
-        item: items[i],
-        index: i,
-        style: {
-          position: 'absolute',
-          top: i * itemHeight,
-          height: itemHeight,
-          left: 0,
-          right: 0,
-        },
-      });
+      const item = items[i];
+      if (item !== undefined) {
+        virtualItems.push({
+          item,
+          index: i,
+          style: {
+            position: 'absolute',
+            top: i * itemHeight,
+            height: itemHeight,
+            left: 0,
+            right: 0,
+          },
+        });
+      }
     }
 
     return { virtualItems, totalHeight, startIndex, endIndex };
@@ -156,24 +156,27 @@ export function useVirtualList<T>({
   /**
    * Scroll to a specific item index
    */
-  const scrollToIndex = useCallback((index: number, behavior: ScrollBehavior = 'smooth'): void => {
-    const container = containerRef.current;
-    if (!container) return;
+  const scrollToIndex = useCallback(
+    (index: number, behavior: ScrollBehavior = 'smooth'): void => {
+      const container = containerRef.current;
+      if (!container) return;
 
-    // Clamp index to valid range
-    const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
-    const targetScrollTop = clampedIndex * itemHeight;
+      // Clamp index to valid range
+      const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
+      const targetScrollTop = clampedIndex * itemHeight;
 
-    // Center the item in the viewport if possible
-    const maxScrollTop = totalHeight - containerHeight;
-    const centeredScrollTop = targetScrollTop - containerHeight / 2 + itemHeight / 2;
-    const finalScrollTop = Math.max(0, Math.min(centeredScrollTop, maxScrollTop));
+      // Center the item in the viewport if possible
+      const maxScrollTop = totalHeight - containerHeight;
+      const centeredScrollTop = targetScrollTop - containerHeight / 2 + itemHeight / 2;
+      const finalScrollTop = Math.max(0, Math.min(centeredScrollTop, maxScrollTop));
 
-    container.scrollTo({
-      top: finalScrollTop,
-      behavior,
-    });
-  }, [itemHeight, containerHeight, totalHeight, items.length]);
+      container.scrollTo({
+        top: finalScrollTop,
+        behavior,
+      });
+    },
+    [itemHeight, containerHeight, totalHeight, items.length]
+  );
 
   return {
     virtualItems,

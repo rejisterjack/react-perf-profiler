@@ -10,7 +10,9 @@
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   border-radius: var(--border-radius-md);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 /* ============================================================================

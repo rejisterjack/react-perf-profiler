@@ -186,11 +186,12 @@ describe('detectMemoization', () => {
 
   it('should handle mixed stable and unstable references', () => {
     const obj = {};
+    const obj2 = {};
     const history = [
       { value: 'obj:a', reference: obj, timestamp: 1 },
       { value: 'obj:a', reference: obj, timestamp: 2 },
-      { value: 'obj:b', reference: {}, timestamp: 3 }, // Value changed, skip
-      { value: 'obj:b', reference: {}, timestamp: 4 },
+      { value: 'obj:b', reference: obj2, timestamp: 3 }, // Value changed, skip
+      { value: 'obj:b', reference: obj2, timestamp: 4 },
     ];
     // 2 stable comparisons out of 2 total = 100% memoized
     expect(detectMemoization(history)).toBe(true);

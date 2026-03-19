@@ -7,26 +7,15 @@
 // Worker Client
 // ============================================================================
 
-export {
-  AnalysisWorkerClient,
-  analysisWorker,
-} from './workerClient';
+export { analysisWorker } from './workerClient';
 
-export type {
-  WorkerClientOptions,
-  AnalysisResult,
-} from './workerClient';
+export type { AnalysisResult } from '@/shared/types';
 
 // ============================================================================
 // Worker Types
 // ============================================================================
 
-export type {
-  WorkerRequest,
-  WorkerRequestType,
-  WorkerResponse,
-  WorkerResponseType,
-} from './analysis.worker';
+// Worker types are defined in workerClient.ts
 
 // ============================================================================
 // Flamegraph Types

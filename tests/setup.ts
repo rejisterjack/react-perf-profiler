@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 // Mock chrome API
 global.chrome = {
   runtime: {
+    id: 'test-extension-id',
     connect: vi.fn(() => ({
       postMessage: vi.fn(),
       onMessage: { addListener: vi.fn(), removeListener: vi.fn() },

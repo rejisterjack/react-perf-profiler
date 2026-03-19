@@ -10,70 +10,13 @@ export interface BridgeMessage {
   source: 'react-perf-profiler-bridge';
   payload: {
     type: 'COMMIT' | 'INIT' | 'ERROR' | 'START' | 'STOP';
-    data?: any;
+    data?: unknown;
     error?: string;
   };
 }
 
-/**
- * Represents a parsed React Fiber node
- */
-export interface FiberData {
-  /** Unique identifier for the fiber node */
-  id: string;
-  /** Component display name */
-  displayName: string;
-  /** React key if provided */
-  key: string | null;
-  /** First child fiber */
-  child: FiberData | null;
-  /** Sibling fiber */
-  sibling: FiberData | null;
-  /** Parent fiber (called 'return' in React internals) */
-  return: FiberData | null;
-  /** The type of the component (function, class, host component, etc.) */
-  type: any;
-  /** The element type */
-  elementType: any;
-  /** Current props */
-  memoizedProps: Record<string, any>;
-  /** Current state */
-  memoizedState: any;
-  /** Time spent rendering this fiber and its descendants */
-  actualDuration: number;
-  /** When this fiber started rendering */
-  actualStartTime: number;
-  /** Duration without children (self time) */
-  selfBaseDuration: number;
-  /** Total base duration including children */
-  treeBaseDuration: number;
-  /** Fiber tag indicating the type of work */
-  tag: number;
-  /** Index among siblings */
-  index: number;
-  /** Bitfield for mode (concurrent, strict, etc.) */
-  mode: number;
-}
-
-/**
- * Represents a single commit from React
- */
-export interface CommitData {
-  /** Unique commit identifier */
-  commitId: string;
-  /** Timestamp when commit was recorded */
-  timestamp: number;
-  /** Priority level of the commit */
-  priorityLevel: number;
-  /** Duration of the commit in ms */
-  duration: number;
-  /** Root fiber data */
-  rootFiber: FiberData | null;
-  /** All fibers in the tree (flattened) */
-  fibers: FiberData[];
-  /** React version if available */
-  reactVersion?: string;
-}
+// Re-export types from shared for consistency
+export type { CommitData, FiberData } from '@/shared/types';
 
 /**
  * Extended Fiber interface matching React internals

@@ -21,8 +21,6 @@ export const DEFAULT_PROFILER_CONFIG: ProfilerConfig = {
   analysisWorkerCount: 2,
   /** Default: Enable time-travel debugging */
   enableTimeTravel: true,
-  /** Default: Flag renders with > 30% waste rate */
-  wastedRenderThreshold: 30,
 };
 
 /**
@@ -50,10 +48,12 @@ export const CONFIG_LIMITS = {
 export const SEVERITY_THRESHOLDS: Record<Severity, { min: number; max: number }> = {
   /** Critical: > 70% of renders are wasted */
   critical: { min: 70, max: 100 },
-  /** Warning: 30-70% of renders are wasted */
-  warning: { min: 30, max: 69.99 },
-  /** Info: < 30% of renders are wasted */
-  info: { min: 0, max: 29.99 },
+  /** High: 50-70% of renders are wasted */
+  high: { min: 50, max: 69.99 },
+  /** Medium: 30-50% of renders are wasted */
+  medium: { min: 30, max: 49.99 },
+  /** Low: < 30% of renders are wasted */
+  low: { min: 0, max: 29.99 },
 };
 
 /**
@@ -95,16 +95,16 @@ export const COLORS = {
   // Severity colors
   severity: {
     critical: '#DC2626', // Red 600
-    warning: '#F59E0B',  // Amber 500
-    info: '#3B82F6',     // Blue 500
+    warning: '#F59E0B', // Amber 500
+    info: '#3B82F6', // Blue 500
   },
   // Action colors
   action: {
-    memo: '#8B5CF6',      // Violet 500
-    useMemo: '#10B981',   // Emerald 500
+    memo: '#8B5CF6', // Violet 500
+    useMemo: '#10B981', // Emerald 500
     useCallback: '#06B6D4', // Cyan 500
-    colocate: '#F97316',  // Orange 500
-    none: '#6B7280',      // Gray 500
+    colocate: '#F97316', // Orange 500
+    none: '#6B7280', // Gray 500
   },
   // Chart colors (for flame graphs, etc.)
   chart: {
@@ -132,63 +132,27 @@ export const COLORS = {
   },
   // Fiber tag colors (for component type identification)
   fiberTag: {
-    function: '#3B82F6',     // Blue
-    class: '#8B5CF6',        // Violet
-    memo: '#10B981',         // Emerald
-    forwardRef: '#F59E0B',   // Amber
-    host: '#6B7280',         // Gray
-    context: '#EC4899',      // Pink
-    suspense: '#DC2626',     // Red
-    fragment: '#06B6D4',     // Cyan
-    portal: '#F97316',       // Orange
+    function: '#3B82F6', // Blue
+    class: '#8B5CF6', // Violet
+    memo: '#10B981', // Emerald
+    forwardRef: '#F59E0B', // Amber
+    host: '#6B7280', // Gray
+    context: '#EC4899', // Pink
+    suspense: '#DC2626', // Red
+    fragment: '#06B6D4', // Cyan
+    portal: '#F97316', // Orange
   },
 } as const;
 
 /**
  * Dark theme configuration
  */
-export const DARK_THEME: Theme = {
-  primary: '#3B82F6',
-  secondary: '#8B5CF6',
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#DC2626',
-  info: '#3B82F6',
-  background: {
-    primary: '#111827',
-    secondary: '#1F2937',
-    tertiary: '#374151',
-  },
-  text: {
-    primary: '#F9FAFB',
-    secondary: '#D1D5DB',
-    muted: '#9CA3AF',
-  },
-  border: '#374151',
-};
+export const DARK_THEME: Theme = 'dark';
 
 /**
  * Light theme configuration
  */
-export const LIGHT_THEME: Theme = {
-  primary: '#2563EB',
-  secondary: '#7C3AED',
-  success: '#059669',
-  warning: '#D97706',
-  error: '#DC2626',
-  info: '#2563EB',
-  background: {
-    primary: '#FFFFFF',
-    secondary: '#F9FAFB',
-    tertiary: '#F3F4F6',
-  },
-  text: {
-    primary: '#111827',
-    secondary: '#4B5563',
-    muted: '#6B7280',
-  },
-  border: '#E5E7EB',
-};
+export const LIGHT_THEME: Theme = 'light';
 
 // ============================================================================
 // Storage Keys

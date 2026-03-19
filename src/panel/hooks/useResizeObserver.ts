@@ -41,15 +41,15 @@ export interface UseResizeObserverReturn {
 
 /**
  * Hook for observing element resizes using the ResizeObserver API
- * 
+ *
  * Provides reactive size information for an element, useful for
  * responsive layouts and canvas sizing.
- * 
+ *
  * @example
  * ```tsx
  * function ResizableChart() {
  *   const { size, ref } = useResizeObserver({ initialWidth: 300, initialHeight: 200 });
- *   
+ *
  *   return (
  *     <div ref={ref} style={{ width: '100%', height: '100%' }}>
  *       <svg width={size.width} height={size.height}>
@@ -59,23 +59,19 @@ export interface UseResizeObserverReturn {
  *   );
  * }
  * ```
- * 
+ *
  * @param options - Configuration options
  * @returns Object containing size information and ref
  */
 export function useResizeObserver(options: UseResizeObserverOptions = {}): UseResizeObserverReturn {
-  const { 
-    initialWidth = 0, 
-    initialHeight = 0, 
-    debounceMs = 0 
-  } = options;
-  
+  const { initialWidth = 0, initialHeight = 0, debounceMs = 0 } = options;
+
   const ref = useRef<HTMLElement>(null);
   const [size, setSize] = useState<ElementSize>({
     width: initialWidth,
     height: initialHeight,
   });
-  
+
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
 
@@ -88,7 +84,7 @@ export function useResizeObserver(options: UseResizeObserverOptions = {}): UseRe
       width: rect.width,
       height: rect.height,
     };
-    
+
     setSize((prevSize) => {
       // Only update if size actually changed
       if (prevSize.width !== newSize.width || prevSize.height !== newSize.height) {
@@ -101,25 +97,32 @@ export function useResizeObserver(options: UseResizeObserverOptions = {}): UseRe
   /**
    * Handle resize with optional debouncing
    */
-  const handleResize = useCallback((entries: ResizeObserverEntry[]): void => {
-    if (!entries.length) return;
-    
-    const entry = entries[0];
-    
-    if (debounceMs > 0) {
-      // Clear existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+  const handleResize = useCallback(
+    (entries: ResizeObserverEntry[]): void => {
+      if (!entries.length) return;
+
+      const entry = entries[0];
+
+      if (debounceMs > 0) {
+        // Clear existing timer
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+
+        // Set new timer
+        debounceTimerRef.current = setTimeout(() => {
+          if (entry) {
+            updateSize(entry.target);
+          }
+        }, debounceMs);
+      } else {
+        if (entry) {
+          updateSize(entry.target);
+        }
       }
-      
-      // Set new timer
-      debounceTimerRef.current = setTimeout(() => {
-        updateSize(entry.target);
-      }, debounceMs);
-    } else {
-      updateSize(entry.target);
-    }
-  }, [debounceMs, updateSize]);
+    },
+    [debounceMs, updateSize]
+  );
 
   /**
    * Manually recalculate size
@@ -140,7 +143,6 @@ export function useResizeObserver(options: UseResizeObserverOptions = {}): UseRe
 
     // Check for ResizeObserver support
     if (typeof ResizeObserver === 'undefined') {
-      console.warn('ResizeObserver is not supported in this browser');
       // Fallback to initial size
       return;
     }
@@ -148,7 +150,7 @@ export function useResizeObserver(options: UseResizeObserverOptions = {}): UseRe
     // Create observer
     observerRef.current = new ResizeObserver(handleResize);
     observerRef.current.observe(element);
-    
+
     // Initial measurement
     updateSize(element);
 
@@ -157,7 +159,7 @@ export function useResizeObserver(options: UseResizeObserverOptions = {}): UseRe
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      
+
       if (observerRef.current) {
         observerRef.current.disconnect();
       }

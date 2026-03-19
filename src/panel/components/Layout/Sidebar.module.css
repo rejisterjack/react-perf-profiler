@@ -32,7 +32,9 @@
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-md);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .searchContainer.focused {
@@ -69,7 +71,9 @@
   color: var(--text-tertiary);
   cursor: pointer;
   border-radius: var(--border-radius-sm);
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .clearButton:hover {

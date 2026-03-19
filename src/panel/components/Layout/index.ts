@@ -1,6 +1,6 @@
 /**
  * Layout Components Barrel Export
- * 
+ *
  * This file provides a centralized export for all layout-related components
  * in the React Perf Profiler panel.
  */
@@ -13,6 +13,3 @@ export { DetailPanel } from './DetailPanel';
 export { WelcomeScreen } from './WelcomeScreen';
 export { ViewModeToggle } from './ViewModeToggle';
 export { SettingsButton } from './SettingsButton';
-
-// Re-export types for consumers
-export type { PanelLayoutProps } from './PanelLayout';

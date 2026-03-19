@@ -63,9 +63,10 @@ describe('calculatePerformanceScore', () => {
       wastedRenders: 5,
       wastedRenderRate: 0.5,
       severity: 'warning',
-      recommendedAction: 'memo',
-      issues: [],
-      estimatedSavingsMs: 25,
+      averageWastedDuration: 5,
+      totalWastedTime: 25,
+      reasons: [{ type: 'parent-render' }],
+      recommendations: ['Wrap Test with React.memo() to prevent unnecessary re-renders'],
       wastedRenderDurations: [5, 5, 5, 5, 5],
     }];
     
@@ -100,8 +101,8 @@ describe('calculatePerformanceScore', () => {
 
   it('should sort issues by severity', () => {
     const commits = [
-      createMockCommit([createMockFiber('Critical', 200)]),
-      createMockCommit([createMockFiber('Warning', 50)]),
+      createMockCommit([createMockFiber('Warning', 51)]), // > 50ms = warning
+      createMockCommit([createMockFiber('Critical', 200)]), // > 100ms = critical
     ];
     
     const result = calculatePerformanceScore(commits, [], []);

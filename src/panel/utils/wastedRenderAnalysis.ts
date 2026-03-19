@@ -4,7 +4,7 @@
  */
 
 import type { CommitData, FiberData } from '../../content/types';
-import { shallowEqual, FiberNode } from './shallowEqual';
+import { shallowEqual, type FiberNode } from './shallowEqual';
 
 /** Reasons why a wasted render might have occurred */
 export type WastedRenderReason =
@@ -68,11 +68,11 @@ export interface WastedRenderConfig {
 /**
  * Analyzes commit history to detect wasted renders
  * A wasted render occurs when a component re-renders but props and state are unchanged
- * 
+ *
  * @param commitHistory - Array of commit data from React profiler
  * @param config - Optional analysis configuration
  * @returns Array of reports for components with wasted renders
- * 
+ *
  * @example
  * ```typescript
  * const reports = analyzeWastedRenders(commits, { threshold: 0.3 });
@@ -82,11 +82,7 @@ export function analyzeWastedRenders(
   commitHistory: CommitData[],
   config: WastedRenderConfig = {}
 ): WastedRenderReport[] {
-  const {
-    threshold = 0.2,
-    minRenderCount = 2,
-    minDuration = 0,
-  } = config;
+  const { threshold = 0.2, minRenderCount = 2, minDuration = 0 } = config;
 
   // Early return for empty history
   if (!commitHistory || commitHistory.length === 0) {
@@ -98,19 +94,19 @@ export function analyzeWastedRenders(
 
   // Process each commit
   for (let i = 0; i < commitHistory.length; i++) {
-    const commit = commitHistory[i];
-    const prevCommit = i > 0 ? commitHistory[i - 1] : null;
+    const commit = commitHistory[i]!;
+    const prevCommit = i > 0 ? commitHistory[i - 1]! : null;
 
     if (!commit.fibers) continue;
 
     // Create fiber lookup map for previous commit
-    const prevFiberMap = prevCommit
+    const prevFiberMap = prevCommit?.fibers
       ? buildFiberMap(prevCommit.fibers)
       : new Map<string, FiberData>();
 
     // Process each fiber in current commit
     for (let j = 0; j < commit.fibers.length; j++) {
-      const fiber = commit.fibers[j];
+      const fiber = commit.fibers[j]!;
       const displayName = fiber.displayName || 'Unknown';
 
       // Get or create session
@@ -137,7 +133,7 @@ export function analyzeWastedRenders(
         ...fiber,
         prevProps: prevFiber?.memoizedProps ?? null,
         prevState: prevFiber?.memoizedState ?? null,
-        hasContextChanged: detectContextChange(fiber, prevFiber),
+        hasContextChanged: detectContextChange(fiber, prevFiber ?? null),
       };
 
       // Record render
@@ -151,13 +147,16 @@ export function analyzeWastedRenders(
         session.wastedRenderDurations.push(fiber.actualDuration);
 
         // Determine reason
-        const reason = determineWastedRenderReason(fiberNode, prevFiber as FiberNode);
+        const reason = determineWastedRenderReason(
+          fiberNode,
+          prevFiber ? (prevFiber as FiberNode) : null
+        );
         session.wastedRenderReasons.push(reason);
       }
 
       // Update last known values
-      session.lastProps = fiber.memoizedProps;
-      session.lastState = fiber.memoizedState;
+      session.lastProps = fiber.memoizedProps ?? null;
+      session.lastState = fiber.memoizedState ?? null;
     }
   }
 
@@ -167,18 +166,16 @@ export function analyzeWastedRenders(
     // Filter by minimum render count
     if (session.totalRenders < minRenderCount) return;
 
-    const wastedRate = session.totalRenders > 0
-      ? session.wastedRenders / session.totalRenders
-      : 0;
+    const wastedRate = session.totalRenders > 0 ? session.wastedRenders / session.totalRenders : 0;
 
-    // Filter by threshold
-    if (wastedRate < threshold && session.wastedRenders === 0) return;
+    // Filter by threshold - include components that meet the threshold
+    // Components below threshold are filtered out regardless of wasted render count
+    if (wastedRate < threshold) return;
 
     // Calculate statistics
     const totalWastedTime = session.wastedRenderDurations.reduce((a, b) => a + b, 0);
-    const averageWastedDuration = session.wastedRenders > 0
-      ? totalWastedTime / session.wastedRenders
-      : 0;
+    const averageWastedDuration =
+      session.wastedRenders > 0 ? totalWastedTime / session.wastedRenders : 0;
 
     // Deduplicate reasons
     const uniqueReasons = deduplicateReasons(session.wastedRenderReasons);
@@ -196,11 +193,11 @@ export function analyzeWastedRenders(
     });
   });
 
-  // Sort by severity and wasted time
+  // Sort by severity (descending: critical > warning > info) and wasted time
   return reports.sort((a, b) => {
-    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    const severityOrder = { critical: 3, warning: 2, info: 1 };
     if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-      return severityOrder[a.severity] - severityOrder[b.severity];
+      return severityOrder[b.severity] - severityOrder[a.severity];
     }
     return b.totalWastedTime - a.totalWastedTime;
   });
@@ -212,7 +209,8 @@ export function analyzeWastedRenders(
 function buildFiberMap(fibers: FiberData[]): Map<string, FiberData> {
   const map = new Map<string, FiberData>();
   for (let i = 0; i < fibers.length; i++) {
-    map.set(fibers[i].id, fibers[i]);
+    const fiber = fibers[i]!;
+    map.set(fiber.id, fiber);
   }
   return map;
 }
@@ -220,8 +218,8 @@ function buildFiberMap(fibers: FiberData[]): Map<string, FiberData> {
 /**
  * Detects if context has changed for a fiber
  */
-function detectContextChange(current: FiberData, previous: FiberData | null): boolean {
-  if (!previous) return false;
+function detectContextChange(_current: FiberData, _previous: FiberData | null): boolean {
+  if (!_previous) return false;
   // Context changes are detected by React's flags
   // In real implementation, this would check fiber.dependencies
   return false;
@@ -238,16 +236,10 @@ function isWastedRender(fiber: FiberNode): boolean {
   }
 
   // Check props equality
-  const propsEqual = shallowEqual(
-    fiber.prevProps ?? {},
-    fiber.memoizedProps ?? {}
-  );
+  const propsEqual = shallowEqual(fiber.prevProps ?? {}, fiber.memoizedProps ?? {});
 
   // Check state equality
-  const stateEqual = shallowEqual(
-    { state: fiber.prevState },
-    { state: fiber.memoizedState }
-  );
+  const stateEqual = shallowEqual({ state: fiber.prevState }, { state: fiber.memoizedState });
 
   // Render is wasted if both props and state are equal and no context change
   return propsEqual && stateEqual && !fiber.hasContextChanged;
@@ -255,7 +247,7 @@ function isWastedRender(fiber: FiberNode): boolean {
 
 /**
  * Determines why a wasted render occurred
- * 
+ *
  * @param current - Current fiber node
  * @param previous - Previous fiber node
  * @returns Reason for the wasted render
@@ -268,16 +260,16 @@ export function determineWastedRenderReason(
     return { type: 'unknown' };
   }
 
-  // Check for force update (no state change but re-rendered)
-  if (current.memoizedState !== previous.memoizedState) {
-    // State changed, not a wasted render - shouldn't reach here
-    return { type: 'unknown' };
-  }
-
-  // Check for context change
+  // Check for context change first
   if (current.hasContextChanged) {
     // Try to identify which context
     return { type: 'context-change', contextName: 'unknown' };
+  }
+
+  // Check if state changed by comparing current state with previous state stored in the node
+  // If state changed, this isn't really a wasted render caused by parent
+  if (current.prevState !== null && current.memoizedState !== current.prevState) {
+    return { type: 'unknown' };
   }
 
   // Most common reason: parent re-rendered
@@ -286,7 +278,7 @@ export function determineWastedRenderReason(
 
 /**
  * Calculates severity based on wasted render rate and total renders
- * 
+ *
  * @param wastedRate - Percentage of renders that were wasted (0-1)
  * @param totalRenders - Total number of renders
  * @returns Severity level
@@ -308,17 +300,13 @@ export function calculateSeverity(
 
 /**
  * Generates optimization recommendations for wasted renders
- * 
+ *
  * @param session - Render session data
  * @returns Array of recommendation strings
  */
-export function generateWastedRenderRecommendations(
-  session: RenderSession
-): string[] {
+export function generateWastedRenderRecommendations(session: RenderSession): string[] {
   const recommendations: string[] = [];
-  const wastedRate = session.totalRenders > 0
-    ? session.wastedRenders / session.totalRenders
-    : 0;
+  const wastedRate = session.totalRenders > 0 ? session.wastedRenders / session.totalRenders : 0;
 
   if (wastedRate < 0.1) {
     return ['Component has minimal wasted renders. No action needed.'];
@@ -332,8 +320,7 @@ export function generateWastedRenderRecommendations(
   }
 
   // Recommend based on primary reason
-  const primaryReason = Array.from(reasonCounts.entries())
-    .sort((a, b) => b[1] - a[1])[0]?.[0];
+  const primaryReason = Array.from(reasonCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   switch (primaryReason) {
     case 'parent-render':
@@ -355,21 +342,19 @@ export function generateWastedRenderRecommendations(
       break;
 
     case 'force-update':
-      recommendations.push(
-        'Remove forceUpdate() calls and use state/props instead'
-      );
+      recommendations.push('Remove forceUpdate() calls and use state/props instead');
       break;
 
     default:
-      recommendations.push(
-        `Review ${session.componentName} for unnecessary re-renders`
-      );
+      recommendations.push(`Review ${session.componentName} for unnecessary re-renders`);
   }
 
   // Add performance-specific recommendations
-  const avgWastedDuration = session.wastedRenderDurations.length > 0
-    ? session.wastedRenderDurations.reduce((a, b) => a + b, 0) / session.wastedRenderDurations.length
-    : 0;
+  const avgWastedDuration =
+    session.wastedRenderDurations.length > 0
+      ? session.wastedRenderDurations.reduce((a, b) => a + b, 0) /
+        session.wastedRenderDurations.length
+      : 0;
 
   if (avgWastedDuration > 16) {
     recommendations.push(
@@ -388,9 +373,7 @@ function deduplicateReasons(reasons: WastedRenderReason[]): WastedRenderReason[]
   const unique: WastedRenderReason[] = [];
 
   for (const reason of reasons) {
-    const key = reason.type === 'context-change'
-      ? `context-${reason.contextName}`
-      : reason.type;
+    const key = reason.type === 'context-change' ? `context-${reason.contextName}` : reason.type;
 
     if (!seen.has(key)) {
       seen.add(key);

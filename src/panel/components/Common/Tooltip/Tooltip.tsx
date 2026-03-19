@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './Tooltip.module.css';
 
@@ -24,24 +24,24 @@ export const Tooltip: React.FC<TooltipProps> = ({
   placement = 'top',
   delay = 300,
   disabled = false,
-  maxWidth = 250
+  maxWidth = 250,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const calculatePosition = (): TooltipPosition => {
     if (!triggerRef.current || !tooltipRef.current) return { top: 0, left: 0 };
-    
+
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
     const margin = 8;
-    
+
     let top = 0;
     let left = 0;
-    
+
     switch (placement) {
       case 'top':
         top = triggerRect.top - tooltipRect.height - margin;
@@ -60,11 +60,11 @@ export const Tooltip: React.FC<TooltipProps> = ({
         left = triggerRect.left - tooltipRect.width - margin;
         break;
     }
-    
+
     // Viewport boundary checks
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
+
     if (left < 8) left = 8;
     if (left + tooltipRect.width > viewportWidth - 8) {
       left = viewportWidth - tooltipRect.width - 8;
@@ -73,18 +73,18 @@ export const Tooltip: React.FC<TooltipProps> = ({
     if (top + tooltipRect.height > viewportHeight - 8) {
       top = viewportHeight - tooltipRect.height - 8;
     }
-    
+
     return { top, left };
   };
-  
+
   const showTooltip = () => {
     if (disabled) return;
-    
+
     timeoutRef.current = setTimeout(() => {
       setIsVisible(true);
     }, delay);
   };
-  
+
   const hideTooltip = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -92,7 +92,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     }
     setIsVisible(false);
   };
-  
+
   useEffect(() => {
     if (isVisible) {
       // Recalculate position after tooltip becomes visible
@@ -100,18 +100,18 @@ export const Tooltip: React.FC<TooltipProps> = ({
         setPosition(calculatePosition());
       });
     }
-  }, [isVisible]);
-  
+  }, [isVisible, calculatePosition]);
+
   useEffect(() => {
     const handleScroll = () => {
       if (isVisible) {
         setPosition(calculatePosition());
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleScroll);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', handleScroll);
@@ -119,13 +119,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isVisible]);
-  
+  }, [isVisible, calculatePosition]);
+
   return (
     <>
       <div
         ref={triggerRef}
-        className={styles.tooltipTrigger}
+        className={styles["tooltipTrigger"]}
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
         onFocus={showTooltip}
@@ -133,25 +133,24 @@ export const Tooltip: React.FC<TooltipProps> = ({
       >
         {children}
       </div>
-      
-      {isVisible && createPortal(
-        <div
-          ref={tooltipRef}
-          className={`${styles.tooltip} ${styles[placement]}`}
-          style={{
-            top: position.top,
-            left: position.left,
-            maxWidth
-          }}
-          role="tooltip"
-        >
-          <div className={styles.tooltipContent}>
-            {content}
-          </div>
-          <div className={styles.tooltipArrow} />
-        </div>,
-        document.body
-      )}
+
+      {isVisible &&
+        createPortal(
+          <div
+            ref={tooltipRef}
+            className={`${styles["tooltip"]} ${styles[placement]}`}
+            style={{
+              top: position.top,
+              left: position.left,
+              maxWidth,
+            }}
+            role="tooltip"
+          >
+            <div className={styles["tooltipContent"]}>{content}</div>
+            <div className={styles["tooltipArrow"]} />
+          </div>,
+          document.body
+        )}
     </>
   );
 };

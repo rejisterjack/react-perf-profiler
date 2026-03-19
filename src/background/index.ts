@@ -9,7 +9,7 @@ import type { PortType } from './types';
 import { ConnectionManager } from './connectionManager';
 import { MessageRouter } from './messageRouter';
 import { SessionManager } from './sessionManager';
-import { LogLevel, BackgroundErrorCode } from './types';
+import { LogLevel } from './types';
 
 // ============================================================================
 // Global State
@@ -19,7 +19,7 @@ import { LogLevel, BackgroundErrorCode } from './types';
 const EXTENSION_VERSION = '1.0.0';
 
 /** Enable debug logging based on environment */
-const ENABLE_DEBUG_LOG = process.env.NODE_ENV !== 'production';
+const ENABLE_DEBUG_LOG = process.env['NODE_ENV'] !== 'production';
 
 /** Logger prefix for background script */
 const LOG_PREFIX = '[ReactPerfProfiler:Background]';
@@ -56,27 +56,27 @@ let messageRouter: MessageRouter;
  * @param message - Log message
  * @param data - Optional data to log
  */
-function log(
-  level: LogLevel,
-  message: string,
-  data?: Record<string, unknown>
-): void {
+function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
   const fullMessage = `${LOG_PREFIX} ${message}`;
   const logData = { timestamp: Date.now(), ...data };
 
   switch (level) {
     case LogLevel.DEBUG:
       if (ENABLE_DEBUG_LOG) {
+        // eslint-disable-next-line no-console
         console.debug(fullMessage, logData);
       }
       break;
     case LogLevel.INFO:
+      // eslint-disable-next-line no-console
       console.info(fullMessage, logData);
       break;
     case LogLevel.WARN:
+      // eslint-disable-next-line no-console
       console.warn(fullMessage, logData);
       break;
     case LogLevel.ERROR:
+      // eslint-disable-next-line no-console
       console.error(fullMessage, logData);
       break;
   }
@@ -93,28 +93,16 @@ function log(
 function initialize(): void {
   log(LogLevel.INFO, 'Initializing React Perf Profiler background service worker', {
     version: EXTENSION_VERSION,
-    environment: process.env.NODE_ENV,
+    environment: process.env['NODE_ENV'],
   });
 
   try {
     // Initialize managers
-    connectionManager = new ConnectionManager(
-      { enableLogging: ENABLE_DEBUG_LOG },
-      console
-    );
+    connectionManager = new ConnectionManager({ enableLogging: ENABLE_DEBUG_LOG }, console);
 
-    sessionManager = new SessionManager(
-      connectionManager,
-      console,
-      ENABLE_DEBUG_LOG
-    );
+    sessionManager = new SessionManager(connectionManager, console, ENABLE_DEBUG_LOG);
 
-    messageRouter = new MessageRouter(
-      connectionManager,
-      sessionManager,
-      console,
-      ENABLE_DEBUG_LOG
-    );
+    messageRouter = new MessageRouter(connectionManager, sessionManager, console, ENABLE_DEBUG_LOG);
 
     // Set up event listeners
     setupConnectionListeners();
@@ -230,10 +218,10 @@ function getTabIdFromPort(port: chrome.runtime.Port): number | null {
   // For DevTools connections, tab ID might be in the port name
   // Format: devtools-background-{tabId}
   const parts = port.name.split('-');
-  const lastPart = parts[parts.length - 1];
+  const lastPart = parts[parts.length - 1]!;
   const parsedTabId = parseInt(lastPart, 10);
 
-  if (!isNaN(parsedTabId)) {
+  if (!Number.isNaN(parsedTabId)) {
     return parsedTabId;
   }
 
@@ -246,11 +234,7 @@ function getTabIdFromPort(port: chrome.runtime.Port): number | null {
  * @param portType - Type of port that received the message
  * @param message - The received message
  */
-function handlePortMessage(
-  tabId: number,
-  portType: PortType,
-  message: unknown
-): void {
+function handlePortMessage(tabId: number, portType: PortType, message: unknown): void {
   log(LogLevel.DEBUG, 'Handling port message', {
     tabId,
     portType,
@@ -312,7 +296,7 @@ function setupMessageListeners(): void {
           handleGetActiveSessions(sendResponse);
           return true;
 
-        default:
+        default: {
           // For other messages, try to route them
           const tabId = sender.tab?.id;
           if (tabId !== undefined) {
@@ -325,6 +309,7 @@ function setupMessageListeners(): void {
             });
           }
           return false;
+        }
       }
     }
 
@@ -464,7 +449,7 @@ function setupTabListeners(): void {
       log(LogLevel.DEBUG, 'Tab URL changed', { tabId, url: changeInfo.url });
 
       const connection = connectionManager.getConnection(tabId);
-      if (connection && connection.isProfiling) {
+      if (connection?.isProfiling) {
         // Optional: Stop profiling on navigation
         log(LogLevel.INFO, 'Stopping profiling due to navigation', { tabId });
         sessionManager.stopSession(tabId);

@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { Icon, IconName } from '../Icon/Icon';
+import React, { type ReactNode } from 'react';
+import { Icon, type IconName } from '../Icon/Icon';
 import { Button } from '../Button/Button';
 import styles from './Panel.module.css';
 
@@ -28,25 +28,17 @@ export const Panel: React.FC<PanelProps> = ({
   className,
   headerClassName,
   bodyClassName,
-  footer
+  footer,
 }) => {
   return (
-    <div className={`${styles.panel} ${className || ''}`}>
+    <div className={`${styles["panel"]} ${className || ''}`}>
       {(title || actions || collapsible) && (
-        <div className={`${styles.header} ${headerClassName || ''}`}>
-          <div className={styles.headerLeft}>
-            {icon && (
-              <Icon 
-                name={icon} 
-                size={18} 
-                className={styles.headerIcon}
-              />
-            )}
-            {title && (
-              <h3 className={styles.title}>{title}</h3>
-            )}
+        <div className={`${styles["header"]} ${headerClassName || ''}`}>
+          <div className={styles["headerLeft"]}>
+            {icon && <Icon name={icon} size={18} className={styles["headerIcon"]} />}
+            {title && <h3 className={styles["title"]}>{title}</h3>}
           </div>
-          <div className={styles.headerRight}>
+          <div className={styles["headerRight"]}>
             {actions}
             {collapsible && (
               <Button
@@ -61,18 +53,12 @@ export const Panel: React.FC<PanelProps> = ({
           </div>
         </div>
       )}
-      
+
       {!collapsed && (
         <>
-          <div className={`${styles.body} ${bodyClassName || ''}`}>
-            {children}
-          </div>
-          
-          {footer && (
-            <div className={styles.footer}>
-              {footer}
-            </div>
-          )}
+          <div className={`${styles["body"]} ${bodyClassName || ''}`}>{children}</div>
+
+          {footer && <div className={styles["footer"]}>{footer}</div>}
         </>
       )}
     </div>
@@ -93,16 +79,16 @@ export const PanelSection: React.FC<PanelSectionProps> = ({
   children,
   className,
   collapsible = false,
-  defaultCollapsed = false
+  defaultCollapsed = false,
 }) => {
   const [collapsed, setCollapsed] = React.useState(defaultCollapsed);
-  
+
   return (
-    <div className={`${styles.section} ${className || ''}`}>
+    <div className={`${styles["section"]} ${className || ''}`}>
       {title && (
         <button
           type="button"
-          className={`${styles.sectionHeader} ${collapsible ? styles.collapsible : ''}`}
+          className={`${styles["sectionHeader"]} ${collapsible ? styles["collapsible"] : ''}`}
           onClick={collapsible ? () => setCollapsed(!collapsed) : undefined}
           aria-expanded={collapsible ? !collapsed : undefined}
         >
@@ -110,18 +96,14 @@ export const PanelSection: React.FC<PanelSectionProps> = ({
             <Icon
               name={collapsed ? 'chevron-right' : 'chevron-down'}
               size={14}
-              className={styles.sectionIcon}
+              className={styles["sectionIcon"]}
             />
           )}
-          <h4 className={styles.sectionTitle}>{title}</h4>
+          <h4 className={styles["sectionTitle"]}>{title}</h4>
         </button>
       )}
-      
-      {(!collapsible || !collapsed) && (
-        <div className={styles.sectionContent}>
-          {children}
-        </div>
-      )}
+
+      {(!collapsible || !collapsed) && <div className={styles["sectionContent"]}>{children}</div>}
     </div>
   );
 };

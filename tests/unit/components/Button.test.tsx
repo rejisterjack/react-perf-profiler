@@ -11,37 +11,40 @@ describe('Button', () => {
   it('should apply default variant and size', () => {
     render(<Button>Test</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('button', 'secondary', 'md');
+    // Check for CSS module classes (hashed in production, clean in tests)
+    expect(button.className).toMatch(/button/);
+    expect(button.className).toMatch(/secondary/);
+    expect(button.className).toMatch(/md/);
   });
 
   it('should apply primary variant', () => {
     render(<Button variant="primary">Test</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('primary');
+    expect(button.className).toMatch(/primary/);
   });
 
   it('should apply danger variant', () => {
     render(<Button variant="danger">Delete</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('danger');
+    expect(button.className).toMatch(/danger/);
   });
 
   it('should apply ghost variant', () => {
     render(<Button variant="ghost">Cancel</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('ghost');
+    expect(button.className).toMatch(/ghost/);
   });
 
   it('should apply small size', () => {
     render(<Button size="sm">Small</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('sm');
+    expect(button.className).toMatch(/sm/);
   });
 
   it('should apply large size', () => {
     render(<Button size="lg">Large</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('lg');
+    expect(button.className).toMatch(/lg/);
   });
 
   it('should be disabled when disabled prop is true', () => {
@@ -59,7 +62,9 @@ describe('Button', () => {
 
   it('should show spinner when loading', () => {
     render(<Button loading>Loading</Button>);
-    expect(document.querySelector('.spinner')).toBeInTheDocument();
+    // The spinner is a span with class containing 'spinner'
+    const button = screen.getByRole('button');
+    expect(button.querySelector('[class*="spinner"]')).toBeInTheDocument();
   });
 
   it('should forward ref', () => {

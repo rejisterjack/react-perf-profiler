@@ -32,15 +32,15 @@ export interface UseProfilerReturn {
 
 /**
  * Hook for controlling the React Perf Profiler
- * 
+ *
  * Provides access to profiler state and control functions. Automatically
  * syncs with the connection store to send control messages to the content script.
- * 
+ *
  * @example
  * ```tsx
  * function ProfilerControls() {
  *   const { isRecording, startRecording, stopRecording, commits } = useProfiler();
- *   
+ *
  *   return (
  *     <div>
  *       <button onClick={isRecording ? stopRecording : startRecording}>
@@ -51,20 +51,13 @@ export interface UseProfilerReturn {
  *   );
  * }
  * ```
- * 
+ *
  * @returns Object containing profiler state and control functions
  */
 export function useProfiler(): UseProfilerReturn {
-  const { 
-    isRecording, 
-    commits, 
-    startRecording, 
-    stopRecording, 
-    clearData, 
-    exportData, 
-    importData 
-  } = useProfilerStore();
-  
+  const { isRecording, commits, startRecording, stopRecording, clearData, exportData, importData } =
+    useProfilerStore();
+
   const { isConnected } = useConnectionStore();
 
   /**

@@ -4,10 +4,11 @@
  * Supports zoom/pan, filtering, and detailed tooltips
  */
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import { analysisWorker } from '@/panel/workers/workerClient';
+import { generateTimeline } from '@/panel/utils/timelineGenerator';
 import type { TimelineData, TimelineEvent } from '@/panel/utils/timelineGenerator';
 import styles from './Timeline.module.css';
 
@@ -32,7 +33,7 @@ const MARGIN = { top: 20, right: 30, bottom: 50, left: 70 };
 export const Timeline: React.FC = () => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const { commits } = useProfilerStore();
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 300 });
@@ -71,19 +72,16 @@ export const Timeline: React.FC = () => {
     }
 
     setIsLoading(true);
-    analysisWorker
-      .generateTimeline(commits, {
+    try {
+      const data = generateTimeline(commits, {
         onlyWasted: filterWasted,
         minDuration: 0,
-      })
-      .then((data) => {
-        setTimelineData(data);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Failed to generate timeline:', error);
-        setIsLoading(false);
       });
+      setTimelineData(data);
+    } catch (_error) {
+    } finally {
+      setIsLoading(false);
+    }
   }, [commits, filterWasted]);
 
   // Show tooltip
@@ -111,7 +109,10 @@ export const Timeline: React.FC = () => {
   const resetZoom = useCallback(() => {
     if (svgRef.current && zoomRef.current) {
       const svg = d3.select(svgRef.current);
-      svg.transition().duration(750).call(zoomRef.current.transform as any, d3.zoomIdentity);
+      svg
+        .transition()
+        .duration(750)
+        .call(zoomRef.current.transform as any, d3.zoomIdentity);
     }
   }, []);
 
@@ -127,9 +128,7 @@ export const Timeline: React.FC = () => {
     const innerHeight = height - MARGIN.top - MARGIN.bottom;
 
     // Create main group
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+    const g = svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
 
     // Calculate domains
     const timeExtent = d3.extent(filteredEvents, (d) => d.timestamp) as [number, number];
@@ -137,7 +136,10 @@ export const Timeline: React.FC = () => {
 
     // Create scales
     const xScale = d3.scaleLinear().domain(timeExtent).range([0, innerWidth]);
-    const yScale = d3.scaleLinear().domain([0, durationExtent[1] * 1.1]).range([innerHeight, 0]);
+    const yScale = d3
+      .scaleLinear()
+      .domain([0, durationExtent[1] * 1.1])
+      .range([innerHeight, 0]);
 
     // Create axes
     const xAxis = d3
@@ -145,27 +147,23 @@ export const Timeline: React.FC = () => {
       .tickFormat((d) => `${(((d as number) - timeExtent[0]) / 1000).toFixed(1)}s`)
       .ticks(10);
 
-    const yAxis = d3.axisLeft(yScale).tickFormat((d) => `${d}ms`).ticks(5);
-
     // Add axes groups
     const xAxisGroup = g
       .append('g')
-      .attr('class', styles.axis)
+      .attr('class', styles["axis"]!)
       .attr('transform', `translate(0,${innerHeight})`)
       .call(xAxis);
 
-    const yAxisGroup = g.append('g').attr('class', styles.axis).call(yAxis);
-
     // Add axis labels
     g.append('text')
-      .attr('class', styles.axisLabel)
+      .attr('class', styles["axisLabel"]!)
       .attr('x', innerWidth / 2)
       .attr('y', innerHeight + 40)
       .attr('text-anchor', 'middle')
       .text('Time (seconds)');
 
     g.append('text')
-      .attr('class', styles.axisLabel)
+      .attr('class', styles["axisLabel"]!)
       .attr('transform', 'rotate(-90)')
       .attr('x', -innerHeight / 2)
       .attr('y', -50)
@@ -175,7 +173,7 @@ export const Timeline: React.FC = () => {
     // Add grid lines
     const gridX = g
       .append('g')
-      .attr('class', styles.grid)
+      .attr('class', styles["grid"]!)
       .attr('transform', `translate(0,${innerHeight})`)
       .call(
         d3
@@ -183,11 +181,6 @@ export const Timeline: React.FC = () => {
           .tickSize(-innerHeight)
           .tickFormat(() => '')
       );
-
-    const gridY = g
-      .append('g')
-      .attr('class', styles.grid)
-      .call(d3.axisLeft(yScale).tickSize(-innerWidth).tickFormat(() => ''));
 
     // Create clip path for zooming
     svg
@@ -206,7 +199,7 @@ export const Timeline: React.FC = () => {
       .selectAll('circle')
       .data(filteredEvents)
       .join('circle')
-      .attr('class', styles.dot)
+      .attr('class', styles["dot"]!)
       .attr('cx', (d) => xScale(d.timestamp))
       .attr('cy', (d) => yScale(d.duration))
       .attr('r', (d) => (d.type === 'wasted-render' ? 5 : 4))
@@ -216,7 +209,7 @@ export const Timeline: React.FC = () => {
         d3.select(this).attr('r', 8).attr('opacity', 1);
         showTooltip(event as unknown as MouseEvent, d);
       })
-      .on('mouseout', function (event, d) {
+      .on('mouseout', function (_event, d) {
         d3.select(this)
           .attr('r', d.type === 'wasted-render' ? 5 : 4)
           .attr('opacity', 0.7);
@@ -263,8 +256,8 @@ export const Timeline: React.FC = () => {
 
   if (commits.length === 0) {
     return (
-      <div className={styles.empty}>
-        <div className={styles.emptyIcon}>📈</div>
+      <div className={styles["empty"]}>
+        <div className={styles["emptyIcon"]}>📈</div>
         <p>Record some commits to see timeline</p>
       </div>
     );
@@ -272,8 +265,8 @@ export const Timeline: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className={styles.loading}>
-        <div className={styles.spinner} />
+      <div className={styles["loading"]}>
+        <div className={styles["spinner"]} />
         <p>Generating timeline...</p>
       </div>
     );
@@ -288,11 +281,11 @@ export const Timeline: React.FC = () => {
     : null;
 
   return (
-    <div ref={containerRef} className={styles.timelineContainer}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>Timeline</h3>
-        <div className={styles.controls}>
-          <label className={styles.filterLabel}>
+    <div ref={containerRef} className={styles["timelineContainer"]}>
+      <div className={styles["header"]}>
+        <h3 className={styles["title"]}>Timeline</h3>
+        <div className={styles["controls"]}>
+          <label className={styles["filterLabel"]}>
             <input
               type="checkbox"
               checked={filterWasted}
@@ -300,47 +293,45 @@ export const Timeline: React.FC = () => {
             />
             <span>Wasted renders only</span>
           </label>
-          <button className={styles.resetButton} onClick={resetZoom}>
+          <button className={styles["resetButton"]} onClick={resetZoom}>
             Reset Zoom
           </button>
         </div>
       </div>
 
       {stats && (
-        <div className={styles.stats}>
-          <div className={styles.statItem}>
-            <span className={styles.statValue}>{stats.totalRenders}</span>
-            <span className={styles.statLabel}>Renders</span>
+        <div className={styles["stats"]}>
+          <div className={styles["statItem"]}>
+            <span className={styles["statValue"]}>{stats.totalRenders}</span>
+            <span className={styles["statLabel"]}>Renders</span>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statValue} style={{ color: 'var(--danger)' }}>
+          <div className={styles["statItem"]}>
+            <span className={styles["statValue"]} style={{ color: 'var(--danger)' }}>
               {stats.wastedRenders}
             </span>
-            <span className={styles.statLabel}>Wasted</span>
+            <span className={styles["statLabel"]}>Wasted</span>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statValue}>
-              {(stats.timeRange / 1000).toFixed(1)}s
-            </span>
-            <span className={styles.statLabel}>Duration</span>
+          <div className={styles["statItem"]}>
+            <span className={styles["statValue"]}>{(stats.timeRange / 1000).toFixed(1)}s</span>
+            <span className={styles["statLabel"]}>Duration</span>
           </div>
         </div>
       )}
 
-      <div className={styles.legend}>
-        <div className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ background: '#0e639c' }} />
+      <div className={styles["legend"]}>
+        <div className={styles["legendItem"]}>
+          <span className={styles["legendDot"]} style={{ background: '#0e639c' }} />
           <span>Normal Render</span>
         </div>
-        <div className={styles.legendItem}>
-          <span className={styles.legendDot} style={{ background: '#f14c4c' }} />
+        <div className={styles["legendItem"]}>
+          <span className={styles["legendDot"]} style={{ background: '#f14c4c' }} />
           <span>Wasted Render</span>
         </div>
       </div>
 
       <svg
         ref={svgRef}
-        className={styles.svg}
+        className={styles["svg"]}
         width={dimensions.width}
         height={dimensions.height}
       />
@@ -360,29 +351,29 @@ const Tooltip: React.FC<{ tooltip: TooltipState }> = ({ tooltip }) => {
 
   return (
     <div
-      className={styles.tooltip}
+      className={styles["tooltip"]}
       style={{
         left: tooltip.x,
         top: tooltip.y,
       }}
     >
-      <div className={styles.tooltipHeader}>{data.componentName}</div>
-      <div className={styles.tooltipContent}>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Duration:</span>
-          <span className={styles.tooltipValue}>{data.duration.toFixed(2)}ms</span>
+      <div className={styles["tooltipHeader"]}>{data.componentName}</div>
+      <div className={styles["tooltipContent"]}>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Duration:</span>
+          <span className={styles["tooltipValue"]}>{data.duration.toFixed(2)}ms</span>
         </div>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Type:</span>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Type:</span>
           <span
-            className={styles.badge}
+            className={styles["badge"]}
             data-type={data.type === 'wasted-render' ? 'wasted' : 'render'}
           >
             {data.type === 'wasted-render' ? 'Wasted' : 'Render'}
           </span>
         </div>
         {data.details.isWasted && (
-          <div className={styles.tooltipHint}>
+          <div className={styles["tooltipHint"]}>
             Props/state unchanged but component re-rendered
           </div>
         )}

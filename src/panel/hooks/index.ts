@@ -1,11 +1,11 @@
 /**
  * Custom React hooks for React Perf Profiler
  * @module panel/hooks
- * 
+ *
  * This module provides a collection of custom React hooks for managing
  * profiler state, analyzing component performance, and handling UI concerns
  * like virtualization and responsive design.
- * 
+ *
  * @example
  * ```tsx
  * import { useProfiler, useComponentData, useVirtualList } from '@/panel/hooks';
@@ -26,35 +26,35 @@ export type { UseAnalysisReturn } from './useAnalysis';
 
 // Virtual list for performance
 export { useVirtualList } from './useVirtualList';
-export type { 
-  UseVirtualListOptions, 
-  UseVirtualListReturn, 
-  VirtualItem 
+export type {
+  UseVirtualListOptions,
+  UseVirtualListReturn,
+  VirtualItem,
 } from './useVirtualList';
 
 // Element resize observation
 export { useResizeObserver } from './useResizeObserver';
-export type { 
-  UseResizeObserverOptions, 
-  UseResizeObserverReturn, 
-  ElementSize 
+export type {
+  UseResizeObserverOptions,
+  UseResizeObserverReturn,
+  ElementSize,
 } from './useResizeObserver';
 
 // Debounce utilities
-export { 
-  useDebounce, 
-  useDebouncedCallback, 
-  useDebounceState 
+export {
+  useDebounce,
+  useDebouncedCallback,
+  useDebounceState,
 } from './useDebounce';
 export type { DebounceOptions } from './useDebounce';
 
 // Local storage persistence
-export { 
-  useLocalStorage, 
+export {
+  useLocalStorage,
   useLocalStorageObject,
-  LocalStorageError 
+  LocalStorageError,
 } from './useLocalStorage';
-export type { 
-  UseLocalStorageOptions, 
-  UseLocalStorageReturn 
+export type {
+  UseLocalStorageOptions,
+  UseLocalStorageReturn,
 } from './useLocalStorage';

@@ -5,34 +5,29 @@
   "description": "Chrome DevTools extension for profiling React component performance",
   "author": "React Perf Profiler Team",
   "homepage_url": "https://github.com/react-perf-profiler/react-perf-profiler",
-  
-  "permissions": [
-    "activeTab",
-    "scripting"
-  ],
-  
-  "host_permissions": [
-    "<all_urls>"
-  ],
-  
+
+  "permissions": ["activeTab", "scripting"],
+
+  "host_permissions": ["<all_urls>"],
+
   "background": {
-    "service_worker": "background/index.ts",
+    "service_worker": "src/background/index.ts",
     "type": "module"
   },
-  
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/index.ts"],
+      "js": ["src/content/index.ts"],
       "run_at": "document_start",
       "all_frames": true
     }
   ],
-  
-  "devtools_page": "devtools/index.html",
-  
+
+  "devtools_page": "src/devtools/index.html",
+
   "action": {
-    "default_popup": "popup/index.html",
+    "default_popup": "src/popup/index.html",
     "default_title": "React Perf Profiler",
     "default_icon": {
       "16": "icons/icon16.svg",
@@ -41,26 +36,21 @@
       "128": "icons/icon128.svg"
     }
   },
-  
+
   "icons": {
     "16": "icons/icon16.svg",
     "32": "icons/icon32.svg",
     "48": "icons/icon48.svg",
     "128": "icons/icon128.svg"
   },
-  
+
   "web_accessible_resources": [
     {
-      "resources": [
-        "bridge.js",
-        "injected.js",
-        "panel.html",
-        "panel.js"
-      ],
+      "resources": ["bridge.js", "injected.js", "panel.html", "panel.js"],
       "matches": ["<all_urls>"]
     }
   ],
-  
+
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

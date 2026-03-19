@@ -5,11 +5,7 @@
  */
 
 import { MessageTypeEnum } from '@/shared/constants';
-import type {
-  ExtensionMessage,
-  CommitData,
-  ProfilerConfig,
-} from '@/shared/types';
+import type { ExtensionMessage, CommitData, ProfilerConfig } from '@/shared/types';
 import type { ConnectionManager } from './connectionManager';
 import type { SessionManager } from './sessionManager';
 import type { PortType } from './types';
@@ -176,18 +172,30 @@ export class MessageRouter {
    * @param tabId - Chrome tab ID
    * @param message - The message
    */
-  private handleStartProfiling(
-    source: PortType,
-    tabId: number,
-    message: ExtensionMessage
-  ): void {
+  private handleStartProfiling(source: PortType, tabId: number, message: ExtensionMessage): void {
     this.log(LogLevel.INFO, 'Starting profiling session', { tabId, source });
 
     // Get config from message if provided
     const config = (message.payload as { config?: Partial<ProfilerConfig> } | undefined)?.config;
 
     // Start the session
-    const result = this.sessionManager.startSession(tabId);
+    let result: ReturnType<SessionManager['startSession']>;
+    try {
+      result = this.sessionManager.startSession(tabId);
+    } catch (error) {
+      this.log(LogLevel.ERROR, 'Failed to start profiling session', {
+        tabId,
+        error,
+      });
+      this.sendError(
+        source,
+        tabId,
+        error instanceof Error ? error.message : 'Failed to start session',
+        error
+      );
+      return;
+    }
+
     if (!result.success) {
       this.log(LogLevel.ERROR, 'Failed to start profiling session', {
         tabId,
@@ -217,11 +225,7 @@ export class MessageRouter {
    * @param tabId - Chrome tab ID
    * @param message - The message
    */
-  private handleStopProfiling(
-    source: PortType,
-    tabId: number,
-    message: ExtensionMessage
-  ): void {
+  private handleStopProfiling(source: PortType, tabId: number, _message: ExtensionMessage): void {
     this.log(LogLevel.INFO, 'Stopping profiling session', { tabId, source });
 
     // Stop the session and get the data
@@ -247,11 +251,7 @@ export class MessageRouter {
    * @param tabId - Chrome tab ID
    * @param message - The message containing commit data
    */
-  private handleCommitMessage(
-    source: PortType,
-    tabId: number,
-    message: ExtensionMessage
-  ): void {
+  private handleCommitMessage(_source: PortType, tabId: number, message: ExtensionMessage): void {
     const commit = (message.payload as { commit?: CommitData } | undefined)?.commit;
 
     if (!commit) {
@@ -286,11 +286,7 @@ export class MessageRouter {
    * @param tabId - Chrome tab ID
    * @param message - The message
    */
-  private handleGetDataMessage(
-    source: PortType,
-    tabId: number,
-    message: ExtensionMessage
-  ): void {
+  private handleGetDataMessage(source: PortType, tabId: number, _message: ExtensionMessage): void {
     const commits = this.sessionManager.getSessionData(tabId);
     const connection = this.connectionManager.getConnection(tabId);
 
@@ -316,8 +312,9 @@ export class MessageRouter {
   private handleClearDataMessage(
     source: PortType,
     tabId: number,
-    message: ExtensionMessage
+    _message: ExtensionMessage
   ): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     this.log(LogLevel.INFO, 'Clearing session data', { tabId, source });
 
     this.sessionManager.clearSession(tabId);

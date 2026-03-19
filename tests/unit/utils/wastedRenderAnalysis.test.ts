@@ -98,9 +98,10 @@ describe('analyzeWastedRenders', () => {
       createMockCommit({ commitId: 'commit-2', fibers: [fiber2] }),
     ];
 
-    const reports = analyzeWastedRenders(commits);
+    // Use threshold of 0 to ensure component is included in results
+    const reports = analyzeWastedRenders(commits, { threshold: 0 });
     
-    // Should still have a report but with 0 wasted renders
+    // Should have a report with 0 wasted renders since props changed
     expect(reports[0].wastedRenders).toBe(0);
   });
 
@@ -108,14 +109,14 @@ describe('analyzeWastedRenders', () => {
     const fiber1 = createMockFiber({
       id: 'fiber-1',
       displayName: 'TestComponent',
-      memoizedProps: { text: 'hello' },
+      memoizedProps: { text: 'same' },
       actualDuration: 1,
     });
     
     const fiber2 = createMockFiber({
       id: 'fiber-1',
       displayName: 'TestComponent',
-      memoizedProps: { text: 'world' },
+      memoizedProps: { text: 'same' },
       actualDuration: 1,
     });
 
@@ -164,53 +165,59 @@ describe('analyzeWastedRenders', () => {
       createMockCommit({ commitId: 'commit-2', fibers: [fiber2] }),
     ];
 
-    const reports = analyzeWastedRenders(commits, { minDuration: 0.1 });
+    // Use threshold of 0 to ensure component is included in results
+    const reports = analyzeWastedRenders(commits, { minDuration: 0.1, threshold: 0 });
+    // Renders are below minDuration so they shouldn't count as wasted
     expect(reports[0].wastedRenders).toBe(0);
   });
 
   it('should sort reports by severity', () => {
-    const criticalFiber1 = createMockFiber({
-      id: 'fiber-1',
-      displayName: 'CriticalComponent',
-      memoizedProps: { text: 'same' },
-      actualDuration: 5,
-    });
+    // Critical component: high wasted rate (100%) with many renders
+    const criticalFibers = Array.from({ length: 10 }, (_, i) =>
+      createMockFiber({
+        id: 'fiber-1',
+        displayName: 'CriticalComponent',
+        memoizedProps: { text: 'same' },
+        actualDuration: 5,
+      })
+    );
     
-    const criticalFiber2 = createMockFiber({
-      id: 'fiber-1',
-      displayName: 'CriticalComponent',
-      memoizedProps: { text: 'same' },
-      actualDuration: 5,
-    });
-    
-    const infoFiber1 = createMockFiber({
-      id: 'fiber-2',
-      displayName: 'InfoComponent',
-      memoizedProps: { text: 'same' },
-      actualDuration: 0.1,
-    });
-    
-    const infoFiber2 = createMockFiber({
-      id: 'fiber-2',
-      displayName: 'InfoComponent',
-      memoizedProps: { text: 'same' },
-      actualDuration: 0.1,
-    });
+    // Info component: low wasted rate with few renders
+    // 3 renders, but with different props so 0 wasted = 0% rate = info
+    const infoFibers = Array.from({ length: 3 }, (_, i) =>
+      createMockFiber({
+        id: 'fiber-2',
+        displayName: 'InfoComponent',
+        memoizedProps: { text: `value-${i}` }, // Different props each time
+        actualDuration: 0.1,
+      })
+    );
 
     const commits = [
       createMockCommit({
         commitId: 'commit-1',
-        fibers: [criticalFiber1, infoFiber1],
+        fibers: [criticalFibers[0], infoFibers[0]],
       }),
       createMockCommit({
         commitId: 'commit-2',
-        fibers: [criticalFiber2, infoFiber2],
+        fibers: [criticalFibers[1], infoFibers[1]],
       }),
+      createMockCommit({
+        commitId: 'commit-3',
+        fibers: [criticalFibers[2], infoFibers[2]],
+      }),
+      ...criticalFibers.slice(3).map((f, i) =>
+        createMockCommit({
+          commitId: `commit-${i + 4}`,
+          fibers: [f],
+        })
+      ),
     ];
 
-    const reports = analyzeWastedRenders(commits);
+    // Use threshold of 0 to ensure both components are included
+    const reports = analyzeWastedRenders(commits, { threshold: 0 });
     
-    // Critical should come first
+    // Critical should come first (higher severity)
     expect(reports[0].severity).toBe('critical');
     expect(reports[1].severity).toBe('info');
   });

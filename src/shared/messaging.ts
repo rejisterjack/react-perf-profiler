@@ -6,16 +6,14 @@
 import type {
   ExtensionMessage,
   MessageType,
-  TypedExtensionMessage,
   CommitData,
   ComponentMetrics,
   WastedRenderReport,
   AnalysisSummary,
   ProfilerConfig,
   DataFilters,
-  Severity,
 } from './types';
-import { MessageTypeEnum, PortNameEnum, SEVERITY_THRESHOLDS } from './constants';
+import { MessageTypeEnum, PortNameEnum } from './constants';
 
 // ============================================================================
 // Port Names
@@ -108,21 +106,14 @@ export interface PortConnectionManager {
   /** Check if connected to a port */
   isConnected: (portName: PortName, tabId?: number) => boolean;
   /** Send a message through a port */
-  postMessage: (
-    portName: PortName,
-    message: ExtensionMessage,
-    tabId?: number
-  ) => void;
+  postMessage: (portName: PortName, message: ExtensionMessage, tabId?: number) => void;
   /** Register a listener for port messages */
   onMessage: (
     portName: PortName,
     listener: (message: ExtensionMessage, port: chrome.runtime.Port) => void
   ) => () => void;
   /** Register a listener for port disconnections */
-  onDisconnect: (
-    portName: PortName,
-    listener: (port: chrome.runtime.Port) => void
-  ) => () => void;
+  onDisconnect: (portName: PortName, listener: (port: chrome.runtime.Port) => void) => () => void;
 }
 
 // ============================================================================
@@ -288,10 +279,7 @@ export function createStopProfilingMessage(
 /**
  * Create a CLEAR_DATA message
  */
-export function createClearDataMessage(
-  preserveConfig = true,
-  tabId?: number
-): ExtensionMessage {
+export function createClearDataMessage(preserveConfig = true, tabId?: number): ExtensionMessage {
   return {
     ...createBaseMessage(MessageTypeEnum.CLEAR_DATA),
     payload: { preserveConfig } satisfies ClearDataPayload,
@@ -443,7 +431,7 @@ export function validateNumberInRange(
   min: number,
   max: number
 ): ValidationResult {
-  if (typeof value !== 'number' || isNaN(value)) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
     return invalidResult(`${fieldName} must be a number`);
   }
   if (value < min || value > max) {
@@ -456,7 +444,7 @@ export function validateNumberInRange(
  * Validate that a value is a valid timestamp
  */
 export function validateTimestamp(value: unknown, fieldName: string): ValidationResult {
-  if (typeof value !== 'number' || isNaN(value)) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
     return invalidResult(`${fieldName} must be a number`);
   }
   // Reasonable timestamp range: 2020-01-01 to 2030-12-31
@@ -483,8 +471,8 @@ export function validateBaseMessage(message: unknown): ValidationResult {
   }
 
   const validTypes = Object.values(MessageTypeEnum);
-  if (!validTypes.includes(msg.type as MessageTypeEnum)) {
-    return invalidResult(`Invalid message type: ${msg.type}`);
+  if (!validTypes.includes(msg["type"] as MessageTypeEnum)) {
+    return invalidResult(`Invalid message type: ${msg["type"]}`);
   }
 
   return VALID_RESULT;
@@ -504,11 +492,11 @@ export function validateCommitPayload(payload: unknown): ValidationResult {
     return invalidResult('Commit payload must have a commit property');
   }
 
-  const commit = p.commit as Record<string, unknown>;
+  const commit = p["commit"] as Record<string, unknown>;
   const validations = [
-    validateNonEmptyString(commit.id, 'commit.id'),
-    validateTimestamp(commit.timestamp, 'commit.timestamp'),
-    validateNumberInRange(commit.duration, 'commit.duration', 0, 60000),
+    validateNonEmptyString(commit["id"], 'commit["id"]'),
+    validateTimestamp(commit["timestamp"], 'commit["timestamp"]'),
+    validateNumberInRange(commit["duration"], 'commit["duration"]', 0, 60000),
   ];
 
   return combineResults(...validations);
@@ -525,12 +513,12 @@ export function validateStartProfilingPayload(payload: unknown): ValidationResul
   const p = payload as Record<string, unknown>;
   const validations: ValidationResult[] = [];
 
-  if (p.timestamp !== undefined) {
-    validations.push(validateTimestamp(p.timestamp, 'timestamp'));
+  if (p["timestamp"] !== undefined) {
+    validations.push(validateTimestamp(p["timestamp"], 'timestamp'));
   }
 
-  if (p.config !== undefined) {
-    if (typeof p.config !== 'object' || p.config === null) {
+  if (p["config"] !== undefined) {
+    if (typeof p["config"] !== 'object' || p["config"] === null) {
       validations.push(invalidResult('config must be an object'));
     }
   }
@@ -549,16 +537,16 @@ export function validateStopProfilingPayload(payload: unknown): ValidationResult
   const p = payload as Record<string, unknown>;
   const validations: ValidationResult[] = [];
 
-  if (p.totalCommits !== undefined) {
-    validations.push(validateNumberInRange(p.totalCommits, 'totalCommits', 0, Infinity));
+  if (p["totalCommits"] !== undefined) {
+    validations.push(validateNumberInRange(p["totalCommits"], 'totalCommits', 0, Infinity));
   }
 
-  if (p.totalDuration !== undefined) {
-    validations.push(validateNumberInRange(p.totalDuration, 'totalDuration', 0, Infinity));
+  if (p["totalDuration"] !== undefined) {
+    validations.push(validateNumberInRange(p["totalDuration"], 'totalDuration', 0, Infinity));
   }
 
-  if (p.timestamp !== undefined) {
-    validations.push(validateTimestamp(p.timestamp, 'timestamp'));
+  if (p["timestamp"] !== undefined) {
+    validations.push(validateTimestamp(p["timestamp"], 'timestamp'));
   }
 
   return combineResults(...validations);
@@ -575,16 +563,16 @@ export function validateAnalysisCompletePayload(payload: unknown): ValidationRes
   const p = payload as Record<string, unknown>;
   const validations: ValidationResult[] = [];
 
-  if (!Array.isArray(p.reports)) {
+  if (!Array.isArray(p["reports"])) {
     validations.push(invalidResult('reports must be an array'));
   }
 
-  if (typeof p.summary !== 'object' || p.summary === null) {
+  if (typeof p["summary"] !== 'object' || p["summary"] === null) {
     validations.push(invalidResult('summary must be an object'));
   }
 
-  if (p.timestamp !== undefined) {
-    validations.push(validateTimestamp(p.timestamp, 'timestamp'));
+  if (p["timestamp"] !== undefined) {
+    validations.push(validateTimestamp(p["timestamp"], 'timestamp'));
   }
 
   return combineResults(...validations);
@@ -601,19 +589,19 @@ export function validateErrorPayload(payload: unknown): ValidationResult {
   const p = payload as Record<string, unknown>;
   const validations: ValidationResult[] = [];
 
-  validations.push(validateNonEmptyString(p.code, 'code'));
-  validations.push(validateNonEmptyString(p.message, 'message'));
+  validations.push(validateNonEmptyString(p["code"], 'code'));
+  validations.push(validateNonEmptyString(p["message"], 'message'));
 
-  if (p.stack !== undefined && typeof p.stack !== 'string') {
+  if (p["stack"] !== undefined && typeof p["stack"] !== 'string') {
     validations.push(invalidResult('stack must be a string'));
   }
 
-  if (p.source !== undefined && typeof p.source !== 'string') {
+  if (p["source"] !== undefined && typeof p["source"] !== 'string') {
     validations.push(invalidResult('source must be a string'));
   }
 
-  if (p.timestamp !== undefined) {
-    validations.push(validateTimestamp(p.timestamp, 'timestamp'));
+  if (p["timestamp"] !== undefined) {
+    validations.push(validateTimestamp(p["timestamp"], 'timestamp'));
   }
 
   return combineResults(...validations);
@@ -633,7 +621,7 @@ export function validateMessage(message: unknown): ValidationResult {
   const msg = message as ExtensionMessage;
 
   // Type-specific payload validation
-  switch (msg.type) {
+  switch (msg["type"]) {
     case MessageTypeEnum.COMMIT:
       if (msg.payload === undefined) {
         return invalidResult('COMMIT message must have a payload');
@@ -677,9 +665,7 @@ export function validateMessage(message: unknown): ValidationResult {
 /**
  * Send a message to the background script
  */
-export function sendToBackground<T = unknown>(
-  message: ExtensionMessage
-): Promise<T> {
+export function sendToBackground<T = unknown>(message: ExtensionMessage): Promise<T> {
   return new Promise((resolve, reject) => {
     try {
       chrome.runtime.sendMessage(message, (response) => {
@@ -698,10 +684,7 @@ export function sendToBackground<T = unknown>(
 /**
  * Send a message to a content script in a specific tab
  */
-export function sendToContent<T = unknown>(
-  tabId: number,
-  message: ExtensionMessage
-): Promise<T> {
+export function sendToContent<T = unknown>(tabId: number, message: ExtensionMessage): Promise<T> {
   return new Promise((resolve, reject) => {
     try {
       chrome.tabs.sendMessage(tabId, message, (response) => {
@@ -779,10 +762,7 @@ export async function pingBackground(timeoutMs = 5000): Promise<boolean> {
 /**
  * Wait for extension to become available
  */
-export function waitForExtension(
-  maxAttempts = 10,
-  intervalMs = 500
-): Promise<void> {
+export function waitForExtension(maxAttempts = 10, intervalMs = 500): Promise<void> {
   return new Promise((resolve, reject) => {
     let attempts = 0;
 

@@ -10,17 +10,29 @@ import type { PanelMessage } from '@/shared/types';
 /**
  * State interface for the connection store
  */
-interface ConnectionState {
+export interface ConnectionState {
   /** Whether connected to the content script */
   isConnected: boolean;
   /** Chrome runtime port for communication */
   port: chrome.runtime.Port | null;
   /** Connection error message if any */
   error: string | null;
+  /** Last error message (alias for error) */
+  lastError: string | null;
   /** Last successful ping timestamp */
   lastPing: number;
+  /** Pending messages waiting for connection (alias for pendingMessages) */
+  messageQueue: PanelMessage[];
   /** Pending messages waiting for connection */
   pendingMessages: PanelMessage[];
+  /** Set of message handlers */
+  messageHandlers: Set<(message: PanelMessage) => void>;
+  /** Number of reconnection attempts */
+  retryCount: number;
+  /** Whether currently attempting to reconnect */
+  isReconnecting: boolean;
+  /** Current tab ID */
+  tabId: number | null;
 }
 
 /**
@@ -33,12 +45,26 @@ interface ConnectionActions {
   disconnect: () => void;
   /** Send a message to the content script */
   sendMessage: (message: PanelMessage) => void;
+  /** Send a typed message to the content script */
+  sendTypedMessage: <T extends PanelMessage>(message: T) => void;
+  /** Handle incoming message from content script */
+  handleMessage: (message: PanelMessage) => void;
+  /** Register a message handler (alias for addMessageHandler) */
+  onMessage: (handler: (message: PanelMessage) => void) => () => void;
+  /** Send a ping to check connection */
+  ping: () => void;
+  /** Attempt to reconnect with exponential backoff */
+  reconnect: () => Promise<void>;
   /** Set connection status */
   setConnected: (connected: boolean) => void;
   /** Set connection error */
   setError: (error: string | null) => void;
   /** Process any pending messages */
   flushPendingMessages: () => void;
+  /** Add a message handler and return unsubscribe function */
+  addMessageHandler: (handler: (message: PanelMessage) => void) => () => void;
+  /** Clear the last error */
+  clearError: () => void;
 }
 
 /**
@@ -58,105 +84,259 @@ export const useConnectionStore = create<ConnectionStore>()(
       isConnected: false,
       port: null,
       error: null,
+      lastError: null,
       lastPing: 0,
+      messageQueue: [],
       pendingMessages: [],
+      messageHandlers: new Set(),
+      retryCount: 0,
+      isReconnecting: false,
+      tabId: null,
 
       // Actions
       connect: () => {
-        const { port } = get();
-        
+        const { port, isConnected } = get();
+
+        // Don't connect if already connected
+        if (isConnected && port) {
+          return;
+        }
+
         // Disconnect existing port if any
         if (port) {
           port.disconnect();
         }
 
-        try {
-          // Create new connection to background script
-          const newPort = chrome.runtime.connect({
-            name: 'react-perf-profiler-panel',
-          });
+        // Get current tab ID first
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (chrome.runtime.lastError) {
+            set({
+              error: chrome.runtime.lastError.message,
+              lastError: chrome.runtime.lastError.message,
+            });
+            return;
+          }
 
-          // Handle connection establishment
-          newPort.onMessage.addListener((message: PanelMessage) => {
-            switch (message.type) {
-              case 'CONNECTION_STATUS':
-                set({
-                  isConnected: message.payload.connected,
-                  lastPing: Date.now(),
-                  error: null,
-                });
-                
-                // Flush pending messages once connected
-                if (message.payload.connected) {
-                  get().flushPendingMessages();
-                }
-                break;
-                
-              case 'COMMIT_DATA':
-                // Commit data is handled by the profiler store
-                // This is just to acknowledge receipt
-                break;
-                
-              case 'ERROR':
-                set({ error: message.payload.message });
-                break;
-            }
-          });
+          if (!tabs || tabs.length === 0 || !tabs[0]?.id) {
+            set({
+              error: 'Could not determine current tab',
+              lastError: 'Could not determine current tab',
+            });
+            return;
+          }
 
-          // Handle disconnection
-          newPort.onDisconnect.addListener(() => {
-            const error = chrome.runtime.lastError;
+          const currentTabId = tabs[0]?.id;
+          set({ tabId: currentTabId });
+
+          try {
+            // Create new connection to background script
+            const newPort = chrome.runtime.connect({
+              name: 'react-perf-profiler-panel',
+            });
+
+            // Handle connection establishment
+            newPort.onMessage.addListener((message: PanelMessage) => {
+              switch (message.type) {
+                case 'CONNECTION_STATUS':
+                  set({
+                    isConnected: message.payload.connected,
+                    lastPing: Date.now(),
+                    error: null,
+                  });
+
+                  // Flush pending messages once connected
+                  if (message.payload.connected) {
+                    get().flushPendingMessages();
+                  }
+                  break;
+
+                case 'COMMIT_DATA':
+                  // Commit data is handled by the profiler store
+                  // This is just to acknowledge receipt
+                  break;
+
+                case 'ERROR':
+                  set({ error: message.payload.message, lastError: message.payload.message });
+                  break;
+              }
+            });
+
+            // Handle disconnection
+            newPort.onDisconnect.addListener(() => {
+              const error = chrome.runtime.lastError;
+              const errorMsg = error?.message || 'Connection lost';
+              set({
+                isConnected: false,
+                port: null,
+                error: errorMsg,
+                lastError: errorMsg,
+              });
+            });
+
+            set({ port: newPort, error: null, isConnected: true });
+
+            // Flush pending messages immediately after connection
+            get().flushPendingMessages();
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Failed to connect';
             set({
               isConnected: false,
               port: null,
-              error: error?.message || 'Connection lost',
+              error: errorMsg,
+              lastError: errorMsg,
             });
-          });
-
-          set({ port: newPort, error: null });
-        } catch (error) {
-          set({
-            isConnected: false,
-            port: null,
-            error: error instanceof Error ? error.message : 'Failed to connect',
-          });
-        }
+          }
+        });
       },
 
       disconnect: () => {
         const { port } = get();
-        
+
         if (port) {
           port.disconnect();
         }
-        
+
         set({
           isConnected: false,
           port: null,
           error: null,
+          lastError: null,
           pendingMessages: [],
+          messageQueue: [],
+          retryCount: 0,
+          isReconnecting: false,
+          tabId: null,
         });
       },
 
       sendMessage: (message) => {
         const { port, isConnected, pendingMessages } = get();
-        
+
+        // Add timestamp and messageId to the message
+        const enrichedMessage = {
+          ...message,
+          timestamp: Date.now(),
+          messageId: Math.random().toString(36).substring(2, 15),
+        };
+
         if (port && isConnected) {
           try {
-            port.postMessage(message);
+            port.postMessage(enrichedMessage);
           } catch (error) {
             // Message failed, add to pending
+            const newQueue = [...pendingMessages, message];
             set({
-              pendingMessages: [...pendingMessages, message],
+              pendingMessages: newQueue,
+              messageQueue: newQueue,
               isConnected: false,
               error: error instanceof Error ? error.message : 'Failed to send message',
+              lastError: error instanceof Error ? error.message : 'Failed to send message',
             });
           }
         } else {
           // Not connected, queue message
+          const newQueue = [...pendingMessages, message];
           set({
-            pendingMessages: [...pendingMessages, message],
+            pendingMessages: newQueue,
+            messageQueue: newQueue,
           });
+        }
+      },
+
+      sendTypedMessage: (message) => {
+        get().sendMessage(message);
+      },
+
+      handleMessage: (message) => {
+        const { messageHandlers } = get();
+
+        // Notify all registered handlers
+        messageHandlers.forEach((handler) => {
+          try {
+            handler(message);
+          } catch {
+            // Ignore handler errors
+          }
+        });
+
+        // Handle specific message types
+        switch (message.type) {
+          case 'CONNECTION_STATUS':
+            set({ lastPing: Date.now() });
+            break;
+          case 'PONG':
+            set({ isConnected: true, retryCount: 0, lastPing: Date.now() });
+            break;
+          case 'ERROR':
+            if ('payload' in message && message.payload && typeof message.payload === 'object') {
+              const errorMsg = (message.payload as { message?: string }).message || 'Unknown error';
+              set({ error: errorMsg, lastError: errorMsg });
+            }
+            break;
+        }
+      },
+
+      onMessage: (handler) => {
+        return get().addMessageHandler(handler);
+      },
+
+      ping: () => {
+        const { port, isConnected } = get();
+
+        if (port && isConnected) {
+          try {
+            port.postMessage({
+              type: 'PING',
+              timestamp: Date.now(),
+              messageId: Math.random().toString(36).substring(2, 15),
+            });
+          } catch (error) {
+            // Ping failed
+            const errorMsg = error instanceof Error ? error.message : 'Ping failed';
+            set({
+              isConnected: false,
+              error: `${errorMsg} - connection lost`,
+              lastError: `${errorMsg} - connection lost`,
+            });
+          }
+        }
+      },
+
+      reconnect: async () => {
+        const { isConnected, isReconnecting, retryCount } = get();
+
+        if (isConnected || isReconnecting) {
+          return;
+        }
+
+        // Max retries check (5)
+        if (retryCount >= 5) {
+          return;
+        }
+
+        set({ isReconnecting: true });
+
+        try {
+          // Exponential backoff delay: min(30000, 2^retryCount * 1000)
+          const delay = Math.min(30000, 2 ** retryCount * 1000);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
+          get().connect();
+
+          // Wait a bit for connection
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          if (!get().isConnected) {
+            throw new Error('Reconnection failed');
+          }
+
+          // Reset retry count on success
+          set({ retryCount: 0 });
+        } catch {
+          // Increment retry count on failure
+          set({ retryCount: retryCount + 1 });
+        } finally {
+          set({ isReconnecting: false });
         }
       },
 
@@ -165,25 +345,44 @@ export const useConnectionStore = create<ConnectionStore>()(
       },
 
       setError: (error) => {
-        set({ error });
+        set({ error, lastError: error });
       },
 
       flushPendingMessages: () => {
-        const { port, pendingMessages } = get();
-        
-        if (!port || pendingMessages.length === 0) return;
-        
+        const { port, pendingMessages, messageQueue } = get();
+
+        if (!port) return;
+
+        // Merge both queues (they should be aliases but may diverge in tests)
+        const messagesToFlush = pendingMessages.length > 0 ? pendingMessages : messageQueue;
+
+        if (messagesToFlush.length === 0) return;
+
         const failedMessages: PanelMessage[] = [];
-        
-        pendingMessages.forEach((message) => {
+
+        messagesToFlush.forEach((message) => {
           try {
             port.postMessage(message);
           } catch {
             failedMessages.push(message);
           }
         });
-        
-        set({ pendingMessages: failedMessages });
+
+        set({ pendingMessages: failedMessages, messageQueue: failedMessages });
+      },
+
+      addMessageHandler: (handler) => {
+        const { messageHandlers } = get();
+        messageHandlers.add(handler);
+
+        // Return unsubscribe function
+        return () => {
+          messageHandlers.delete(handler);
+        };
+      },
+
+      clearError: () => {
+        set({ error: null, lastError: null });
       },
     }),
     { name: 'ConnectionStore' }

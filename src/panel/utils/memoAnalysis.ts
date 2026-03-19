@@ -3,7 +3,7 @@
  * Detects prop stability issues and evaluates memoization strategies
  */
 
-import type { CommitData, FiberData } from '../../content/types';
+import type { CommitData } from '../../content/types';
 
 /** Snapshot of a prop value at a specific time */
 export interface PropValueSnapshot {
@@ -104,7 +104,7 @@ export interface MemoAnalysisConfig {
 /**
  * Analyzes prop stability across commits
  * Tracks how often each prop changes and whether it's properly memoized
- * 
+ *
  * @param componentName - Name of component to analyze
  * @param commits - Array of commit data
  * @returns Array of prop stability analyses
@@ -121,6 +121,7 @@ export function analyzePropStability(
   const propHistoryMap = new Map<string, PropValueSnapshot[]>();
 
   for (const commit of commits) {
+    if (!commit.fibers) continue;
     for (const fiber of commit.fibers) {
       if (fiber.displayName !== componentName) continue;
 
@@ -169,7 +170,7 @@ export function analyzePropStability(
 /**
  * Detects if a prop is properly memoized
  * Checks for reference stability patterns characteristic of useCallback/useMemo
- * 
+ *
  * @param history - Array of prop value snapshots
  * @returns True if the prop appears to be memoized
  */
@@ -183,6 +184,8 @@ export function detectMemoization(history: PropValueSnapshot[]): boolean {
   for (let i = 1; i < history.length; i++) {
     const prev = history[i - 1];
     const curr = history[i];
+
+    if (!prev || !curr) continue;
 
     // Skip if values are different (memoization wouldn't help)
     if (prev.value !== curr.value) continue;
@@ -199,7 +202,7 @@ export function detectMemoization(history: PropValueSnapshot[]): boolean {
 
 /**
  * Calculates the optimal memo hit rate achievable
- * 
+ *
  * @param currentMetrics - Current component metrics
  * @param issues - Identified memoization issues
  * @returns Optimal hit rate (0-1)
@@ -210,18 +213,13 @@ export function calculateOptimalHitRate(
 ): number {
   if (!currentMetrics.isMemoized) {
     // If not memoized, optimal rate depends on how many renders could be avoided
-    return Math.min(0.9, 1 - (issues.length * 0.15));
+    return Math.min(0.9, 1 - issues.length * 0.15);
   }
 
   // Calculate potential improvement from fixing issues
-  const fixableImpact = issues
-    .filter(i => i.impact > 0.3)
-    .reduce((sum, i) => sum + i.impact, 0);
+  const fixableImpact = issues.filter((i) => i.impact > 0.3).reduce((sum, i) => sum + i.impact, 0);
 
-  const optimalRate = Math.min(
-    0.95,
-    currentMetrics.memoHitRate + fixableImpact * 0.5
-  );
+  const optimalRate = Math.min(0.95, currentMetrics.memoHitRate + fixableImpact * 0.5);
 
   return optimalRate;
 }
@@ -229,7 +227,7 @@ export function calculateOptimalHitRate(
 /**
  * Main memoization effectiveness analysis function
  * Analyzes all components in the commit history
- * 
+ *
  * @param commits - Array of commit data
  * @param componentMetrics - Metrics for each component
  * @param config - Optional analysis configuration
@@ -240,11 +238,7 @@ export function analyzeMemoEffectiveness(
   componentMetrics: ComponentMetrics[],
   config: MemoAnalysisConfig = {}
 ): MemoEffectivenessReport[] {
-  const {
-    minRenders = 3,
-    effectivenessThreshold = 0.7,
-    stabilityThreshold = 0.2,
-  } = config;
+  const { minRenders = 3, effectivenessThreshold = 0.7, stabilityThreshold = 0.2 } = config;
 
   if (!commits || commits.length === 0 || componentMetrics.length === 0) {
     return [];
@@ -351,7 +345,6 @@ function detectMemoIssues(
   // Check if component should have memo
   const hasUnstableProps = issues.length > 0;
   const hasManyRenders = metrics.renderCount > 10;
-  const lowHitRate = metrics.memoHitRate < 0.3;
 
   if (!metrics.isMemoized && hasUnstableProps && hasManyRenders) {
     issues.push({
@@ -369,7 +362,7 @@ function detectMemoIssues(
 
 /**
  * Generates specific recommendations based on identified issues
- * 
+ *
  * @param issues - Identified memoization issues
  * @param component - Component metrics
  * @returns Array of recommendation strings
@@ -390,28 +383,32 @@ export function generateMemoRecommendations(
   }
 
   // Group issues by type
-  const callbackIssues = issues.filter(i => i.type === 'unstable-callback');
-  const objectIssues = issues.filter(i => i.type === 'unstable-object' || i.type === 'inline-object');
-  const arrayIssues = issues.filter(i => i.type === 'unstable-array' || i.type === 'inline-array');
-  const missingMemo = issues.find(i => i.type === 'missing-memo');
+  const callbackIssues = issues.filter((i) => i.type === 'unstable-callback');
+  const objectIssues = issues.filter(
+    (i) => i.type === 'unstable-object' || i.type === 'inline-object'
+  );
+  const arrayIssues = issues.filter(
+    (i) => i.type === 'unstable-array' || i.type === 'inline-array'
+  );
+  const missingMemo = issues.find((i) => i.type === 'missing-memo');
 
   // Generate recommendations
   if (callbackIssues.length > 0) {
-    const props = callbackIssues.map(i => i.propName).join(', ');
+    const props = callbackIssues.map((i) => i.propName).join(', ');
     recommendations.push(
       `Wrap callback props (${props}) with useCallback() using stable dependencies`
     );
   }
 
   if (objectIssues.length > 0) {
-    const props = objectIssues.map(i => i.propName).join(', ');
+    const props = objectIssues.map((i) => i.propName).join(', ');
     recommendations.push(
       `Memoize object props (${props}) with useMemo() or extract to module scope`
     );
   }
 
   if (arrayIssues.length > 0) {
-    const props = arrayIssues.map(i => i.propName).join(', ');
+    const props = arrayIssues.map((i) => i.propName).join(', ');
     recommendations.push(
       `Memoize array props (${props}) with useMemo() to maintain reference stability`
     );
@@ -424,11 +421,11 @@ export function generateMemoRecommendations(
   }
 
   // Add performance estimate
-  const potentialImprovement = Math.round((component.memoHitRate - issues.length * 0.15) * 100);
+  // Calculate optimal hit rate to determine potential improvement
+  const optimalHitRate = calculateOptimalHitRate(component, issues);
+  const potentialImprovement = Math.round((optimalHitRate - component.memoHitRate) * 100);
   if (potentialImprovement > 30) {
-    recommendations.push(
-      `Expected improvement: ~${potentialImprovement}% reduction in renders`
-    );
+    recommendations.push(`Expected improvement: ~${potentialImprovement}% reduction in renders`);
   }
 
   return recommendations;
@@ -473,7 +470,9 @@ function calculateChangeFrequency(history: PropValueSnapshot[]): number {
 
   let changes = 0;
   for (let i = 1; i < history.length; i++) {
-    if (history[i].value !== history[i - 1].value) {
+    const curr = history[i];
+    const prev = history[i - 1];
+    if (curr && prev && curr.value !== prev.value) {
       changes++;
     }
   }

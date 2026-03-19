@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import { Icon, IconName } from '../Common/Icon/Icon';
+import { Icon, type IconName } from '../Common/Icon/Icon';
 import styles from './ViewModeToggle.module.css';
 
 // =============================================================================
@@ -47,10 +47,7 @@ export const ViewModeToggle: React.FC = () => {
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
 
@@ -77,11 +74,7 @@ export const ViewModeToggle: React.FC = () => {
   const hasData = commits.length > 0;
 
   return (
-    <div 
-      className={styles.viewModeToggle}
-      role="radiogroup"
-      aria-label="View mode"
-    >
+    <div className={styles["viewModeToggle"]} role="radiogroup" aria-label="View mode">
       {VIEW_MODES.map(({ mode, label, icon, shortcut }) => {
         const isActive = viewMode === mode;
         const isDisabled = !hasData && mode !== 'analysis';
@@ -89,16 +82,16 @@ export const ViewModeToggle: React.FC = () => {
         return (
           <button
             key={mode}
-            className={`${styles.modeButton} ${isActive ? styles.active : ''} ${isDisabled ? styles.disabled : ''}`}
+            className={`${styles["modeButton"]} ${isActive ? styles["active"] : ''} ${isDisabled ? styles["disabled"] : ''}`}
             onClick={() => handleModeChange(mode)}
             disabled={isDisabled}
             role="radio"
             aria-checked={isActive}
             title={`${label} (${shortcut})${isDisabled ? ' - Start recording to enable' : ''}`}
           >
-            <Icon name={icon} size="sm" />
-            <span className={styles.label}>{label}</span>
-            <kbd className={styles.shortcut}>{shortcut}</kbd>
+            <Icon name={icon} size={16} />
+            <span className={styles["label"]}>{label}</span>
+            <kbd className={styles["shortcut"]}>{shortcut}</kbd>
           </button>
         );
       })}

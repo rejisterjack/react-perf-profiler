@@ -40,16 +40,6 @@ export const selectSelectedComponent: ProfilerStoreSelector<string | null> = (st
 /** Select the filter text */
 export const selectFilterText: ProfilerStoreSelector<string> = (state) => state.filterText;
 
-/** Select severity filters */
-export const selectSeverityFilter: ProfilerStoreSelector<('critical' | 'warning' | 'info')[]> = (
-  state
-) => state.severityFilter || [];
-
-/** Select component type filter */
-export const selectComponentTypeFilter: ProfilerStoreSelector<'memoized' | 'unmemoized' | 'all'> = (
-  state
-) => state.componentTypeFilter || 'all';
-
 /** Select wasted render reports */
 export const selectWastedRenderReports: ProfilerStoreSelector<WastedRenderReport[]> = (state) =>
   state.wastedRenderReports;
@@ -77,20 +67,18 @@ export const selectSelectedCommit = createSelector(
   [selectCommits, selectSelectedCommitId],
   (commits, selectedCommitId): CommitData | null => {
     if (!selectedCommitId) return null;
-    return commits.find((commit) => commit.id === selectedCommitId) || null;
+    const found = commits.find((commit) => commit.id === selectedCommitId);
+    return found ?? null;
   }
 );
 
 /**
  * Select the last/most recent commit
  */
-export const selectLastCommit = createSelector(
-  [selectCommits],
-  (commits): CommitData | null => {
-    if (commits.length === 0) return null;
-    return commits[commits.length - 1];
-  }
-);
+export const selectLastCommit = createSelector([selectCommits], (commits): CommitData | null => {
+  if (commits.length === 0) return null;
+  return commits[commits.length - 1] ?? null;
+});
 
 /**
  * Select component data for the currently selected component
@@ -100,7 +88,7 @@ export const selectSelectedComponentData = createSelector(
   [selectCommits, selectSelectedComponent],
   (commits, componentName): ComponentData | null => {
     if (!componentName) return null;
-    
+
     const componentData: ComponentData = {
       name: componentName,
       renderCount: 0,
@@ -113,20 +101,21 @@ export const selectSelectedComponentData = createSelector(
       commitIds: [],
       severity: 'none',
     };
-    
+
     let totalDuration = 0;
-    
+
     for (const commit of commits) {
-      for (const node of commit.nodes) {
+      const nodes = commit.nodes ?? [];
+      for (const node of nodes) {
         if (node.displayName === componentName) {
           componentData.renderCount++;
           totalDuration += node.actualDuration;
           componentData.commitIds.push(commit.id);
-          
+
           if (node.isMemoized) {
             componentData.isMemoized = true;
           }
-          
+
           // Simple wasted render detection
           if (node.actualDuration < 0.1) {
             componentData.wastedRenders++;
@@ -134,14 +123,14 @@ export const selectSelectedComponentData = createSelector(
         }
       }
     }
-    
+
     if (componentData.renderCount === 0) return null;
-    
+
     componentData.totalDuration = totalDuration;
     componentData.averageDuration = totalDuration / componentData.renderCount;
     componentData.wastedRenderRate =
       (componentData.wastedRenders / componentData.renderCount) * 100;
-    
+
     // Determine severity
     if (componentData.wastedRenderRate > 50) {
       componentData.severity = 'critical';
@@ -150,7 +139,7 @@ export const selectSelectedComponentData = createSelector(
     } else if (componentData.wastedRenderRate > 5) {
       componentData.severity = 'info';
     }
-    
+
     return componentData;
   }
 );
@@ -159,31 +148,23 @@ export const selectSelectedComponentData = createSelector(
  * Select filtered commits based on current filters
  */
 export const selectFilteredCommits = createSelector(
-  [selectCommits, selectFilterText, selectSeverityFilter, selectComponentTypeFilter],
-  (commits, filterText, severityFilter, componentTypeFilter): FilteredCommit[] => {
+  [selectCommits, selectFilterText],
+  (commits, filterText): FilteredCommit[] => {
     const normalizedFilter = filterText.toLowerCase().trim();
-    
+
     return commits.map((commit) => {
-      let visibleNodes = commit.nodes;
-      
+      let visibleNodes = commit.nodes ?? [];
+
       // Apply text filter
       if (normalizedFilter) {
         visibleNodes = visibleNodes.filter((node) =>
           node.displayName?.toLowerCase().includes(normalizedFilter)
         );
       }
-      
-      // Apply component type filter
-      if (componentTypeFilter !== 'all') {
-        visibleNodes = visibleNodes.filter((node) => {
-          const isMemoized = node.isMemoized;
-          return componentTypeFilter === 'memoized' ? isMemoized : !isMemoized;
-        });
-      }
-      
+
       // Commit is visible if it has any visible nodes
       const visible = visibleNodes.length > 0;
-      
+
       return {
         commit,
         visible,
@@ -199,29 +180,25 @@ export const selectFilteredCommits = createSelector(
 export const selectVisibleCommits = createSelector(
   [selectFilteredCommits],
   (filteredCommits): CommitData[] => {
-    return filteredCommits
-      .filter((fc) => fc.visible)
-      .map((fc) => fc.commit);
+    return filteredCommits.filter((fc) => fc.visible).map((fc) => fc.commit);
   }
 );
 
 /**
  * Select all unique component names from commits
  */
-export const selectAllComponentNames = createSelector(
-  [selectCommits],
-  (commits): string[] => {
-    const names = new Set<string>();
-    for (const commit of commits) {
-      for (const node of commit.nodes) {
-        if (node.displayName) {
-          names.add(node.displayName);
-        }
+export const selectAllComponentNames = createSelector([selectCommits], (commits): string[] => {
+  const names = new Set<string>();
+  for (const commit of commits) {
+    const nodes = commit.nodes ?? [];
+    for (const node of nodes) {
+      if (node.displayName) {
+        names.add(node.displayName);
       }
     }
-    return Array.from(names).sort();
   }
-);
+  return Array.from(names).sort();
+});
 
 /**
  * Select filtered component names based on text filter
@@ -242,12 +219,13 @@ export const selectAllComponentData = createSelector(
   [selectCommits],
   (commits): Map<string, ComponentData> => {
     const componentMap = new Map<string, ComponentData>();
-    
+
     for (const commit of commits) {
-      for (const node of commit.nodes) {
+      const nodes = commit.nodes ?? [];
+      for (const node of nodes) {
         const name = node.displayName;
         if (!name) continue;
-        
+
         let data = componentMap.get(name);
         if (!data) {
           data = {
@@ -264,26 +242,26 @@ export const selectAllComponentData = createSelector(
           };
           componentMap.set(name, data);
         }
-        
+
         data.renderCount++;
         data.totalDuration += node.actualDuration;
         data.commitIds.push(commit.id);
-        
+
         if (node.isMemoized) {
           data.isMemoized = true;
         }
-        
+
         if (node.actualDuration < 0.1) {
           data.wastedRenders++;
         }
       }
     }
-    
+
     // Calculate averages and severity
     for (const data of componentMap.values()) {
       data.averageDuration = data.totalDuration / data.renderCount;
       data.wastedRenderRate = (data.wastedRenders / data.renderCount) * 100;
-      
+
       if (data.wastedRenderRate > 50) {
         data.severity = 'critical';
       } else if (data.wastedRenderRate > 20) {
@@ -292,7 +270,7 @@ export const selectAllComponentData = createSelector(
         data.severity = 'info';
       }
     }
-    
+
     return componentMap;
   }
 );
@@ -301,38 +279,29 @@ export const selectAllComponentData = createSelector(
  * Select filtered component data based on all filters
  */
 export const selectFilteredComponentData = createSelector(
-  [selectAllComponentData, selectFilterText, selectSeverityFilter, selectComponentTypeFilter],
-  (componentMap, filterText, severityFilter, componentTypeFilter): ComponentData[] => {
+  [selectAllComponentData, selectFilterText],
+  (componentMap, filterText): ComponentData[] => {
     let components = Array.from(componentMap.values());
-    
+
     // Apply text filter
     if (filterText.trim()) {
       const normalizedFilter = filterText.toLowerCase().trim();
-      components = components.filter((c) =>
-        c.name.toLowerCase().includes(normalizedFilter)
-      );
+      components = components.filter((c) => c.name.toLowerCase().includes(normalizedFilter));
     }
-    
-    // Apply severity filter
-    if (severityFilter && severityFilter.length > 0) {
-      components = components.filter((c) => {
-        if (c.severity === 'none') return false;
-        return severityFilter.includes(c.severity);
-      });
-    }
-    
-    // Apply component type filter
-    if (componentTypeFilter !== 'all') {
-      components = components.filter((c) =>
-        componentTypeFilter === 'memoized' ? c.isMemoized : !c.isMemoized
-      );
-    }
-    
+
     // Sort by severity (critical first) then by wasted render rate
     return components.sort((a, b) => {
-      const severityOrder = { critical: 0, warning: 1, info: 2, none: 3 };
+      const severityOrder: Record<string, number> = {
+        critical: 0,
+        high: 0,
+        warning: 1,
+        medium: 1,
+        info: 2,
+        low: 2,
+        none: 3,
+      };
       if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-        return severityOrder[a.severity] - severityOrder[b.severity];
+        return (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3);
       }
       return b.wastedRenderRate - a.wastedRenderRate;
     });
@@ -345,7 +314,7 @@ export const selectFilteredComponentData = createSelector(
 export const selectCriticalIssuesCount = createSelector(
   [selectWastedRenderReports],
   (reports): number => {
-    return reports.filter((r) => r.severity === 'critical').length;
+    return reports.filter((r) => r.severity === 'critical' || r.severity === 'high').length;
   }
 );
 
@@ -355,7 +324,7 @@ export const selectCriticalIssuesCount = createSelector(
 export const selectWarningIssuesCount = createSelector(
   [selectWastedRenderReports],
   (reports): number => {
-    return reports.filter((r) => r.severity === 'warning').length;
+    return reports.filter((r) => r.severity === 'medium').length;
   }
 );
 
@@ -366,9 +335,9 @@ export const selectIssuesCountBySeverity = createSelector(
   [selectWastedRenderReports],
   (reports): { critical: number; warning: number; info: number } => {
     return {
-      critical: reports.filter((r) => r.severity === 'critical').length,
-      warning: reports.filter((r) => r.severity === 'warning').length,
-      info: reports.filter((r) => r.severity === 'info').length,
+      critical: reports.filter((r) => r.severity === 'critical' || r.severity === 'high').length,
+      warning: reports.filter((r) => r.severity === 'medium').length,
+      info: reports.filter((r) => r.severity === 'low').length,
     };
   }
 );
@@ -381,29 +350,26 @@ export const selectTreeData = createSelector(
   [selectSelectedCommit, selectExpandedNodes, selectFilterText],
   (selectedCommit, expandedNodes, filterText): TreeNode[] => {
     if (!selectedCommit) return [];
-    
+
     const nodes: TreeNode[] = [];
     const normalizedFilter = filterText.toLowerCase().trim();
-    
-    function processNode(
-      fiber: FiberNode,
-      depth: number,
-      parentId: string | null
-    ): string {
+
+    function processNode(fiber: FiberNode, depth: number, parentId: string | null): string {
+      if (!selectedCommit) return '';
       const nodeId = `${selectedCommit.id}-${fiber.id}`;
       const hasChildren = fiber.children && fiber.children.length > 0;
       const isExpanded = expandedNodes.has(nodeId);
-      
+
       // Check if node matches filter
-      const matchesFilter = !normalizedFilter ||
-        fiber.displayName?.toLowerCase().includes(normalizedFilter);
-      
+      const matchesFilter =
+        !normalizedFilter || fiber.displayName?.toLowerCase().includes(normalizedFilter);
+
       // Calculate severity
       let severity: 'critical' | 'warning' | 'info' | 'none' = 'none';
       if (fiber.actualDuration < 0.1) {
         severity = 'info';
       }
-      
+
       const treeNode: TreeNode = {
         id: nodeId,
         name: fiber.displayName || 'Unknown',
@@ -420,16 +386,17 @@ export const selectTreeData = createSelector(
         childIds: [],
         fiberId: fiber.id,
       };
-      
+
       // Only add if it matches filter or has children that might match
       if (matchesFilter || hasChildren) {
         nodes.push(treeNode);
-        
+
         // Process children if expanded or no filter
         if (hasChildren && (isExpanded || !normalizedFilter)) {
+          const nodes = selectedCommit?.nodes ?? [];
           for (const childId of fiber.children) {
             // Find the child node in the commit
-            const childFiber = selectedCommit.nodes.find(n => n.id === childId);
+            const childFiber = nodes.find((n) => n.id === childId);
             if (childFiber) {
               const childNodeId = processNode(childFiber, depth + 1, nodeId);
               treeNode.childIds.push(childNodeId);
@@ -437,18 +404,19 @@ export const selectTreeData = createSelector(
           }
         }
       }
-      
+
       return nodeId;
     }
-    
+
     // Start processing from root
-    if (selectedCommit.rootId) {
-      const rootFiber = selectedCommit.nodes.find(n => n.id === selectedCommit.rootId);
+    if (selectedCommit?.rootId) {
+      const nodes = selectedCommit.nodes ?? [];
+      const rootFiber = nodes.find((n) => n.id === selectedCommit.rootId);
       if (rootFiber) {
         processNode(rootFiber, 0, null);
       }
     }
-    
+
     return nodes;
   }
 );
@@ -459,53 +427,59 @@ export const selectTreeData = createSelector(
  */
 export const selectTimelineData = createSelector(
   [selectCommits],
-  (commits): Array<{
+  (
+    commits
+  ): Array<{
     id: string;
     timestamp: number;
     duration: number;
     componentCount: number;
     totalRenderTime: number;
   }> => {
-    return commits.map((commit) => ({
-      id: commit.id,
-      timestamp: commit.timestamp,
-      duration: commit.duration || 0,
-      componentCount: commit.nodes.length,
-      totalRenderTime: commit.nodes.reduce(
-        (sum, node) => sum + node.actualDuration,
-        0
-      ),
-    }));
+    return commits.map((commit) => {
+      const nodes = commit.nodes ?? [];
+      return {
+        id: commit.id,
+        timestamp: commit.timestamp,
+        duration: commit.duration || 0,
+        componentCount: nodes.length,
+        totalRenderTime: nodes.reduce((sum, node) => sum + node.actualDuration, 0),
+      };
+    });
   }
 );
+
+/**
+ * Local flamegraph node type for selectors
+ */
+interface LocalFlamegraphNode {
+  id: string;
+  name: string;
+  value: number;
+  children: LocalFlamegraphNode[];
+  depth: number;
+}
 
 /**
  * Select flamegraph data for flamegraph view
  */
 export const selectFlamegraphData = createSelector(
   [selectSelectedCommit],
-  (commit) => {
+  (commit): LocalFlamegraphNode | null => {
     if (!commit) return null;
-    
-    interface FlamegraphNode {
-      id: string;
-      name: string;
-      value: number;
-      children: FlamegraphNode[];
-      depth: number;
-    }
-    
-    function buildFlamegraphNode(fiber: FiberNode, depth: number): FlamegraphNode {
-      const children: FlamegraphNode[] = [];
-      
+
+    function buildFlamegraphNode(fiber: FiberNode, depth: number): LocalFlamegraphNode {
+      const children: LocalFlamegraphNode[] = [];
+
       // Find child nodes
-      for (const childId of fiber.children || []) {
-        const childFiber = commit.nodes.find(n => n.id === childId);
+      for (const childId of fiber.children ?? []) {
+        const nodes = commit?.nodes ?? [];
+        const childFiber = nodes.find((n) => n.id === childId);
         if (childFiber) {
           children.push(buildFlamegraphNode(childFiber, depth + 1));
         }
       }
-      
+
       return {
         id: String(fiber.id),
         name: fiber.displayName || 'Unknown',
@@ -514,8 +488,9 @@ export const selectFlamegraphData = createSelector(
         depth,
       };
     }
-    
-    const rootFiber = commit.nodes.find(n => n.id === commit.rootId);
+
+    const nodes = commit.nodes ?? [];
+    const rootFiber = nodes.find((n) => n.id === commit.rootId);
     return rootFiber ? buildFlamegraphNode(rootFiber, 0) : null;
   }
 );
@@ -536,26 +511,27 @@ export const selectSessionStats = createSelector(
         componentsWithIssues: 0,
       };
     }
-    
+
     const uniqueComponents = new Set<string>();
     let totalRenderTime = 0;
     let totalCommitDuration = 0;
-    
+
     for (const commit of commits) {
       totalCommitDuration += commit.duration || 0;
-      for (const node of commit.nodes) {
+      const nodes = commit.nodes ?? [];
+      for (const node of nodes) {
         if (node.displayName) {
           uniqueComponents.add(node.displayName);
         }
         totalRenderTime += node.actualDuration;
       }
     }
-    
+
     const totalWastedRenders = wastedRenderReports.reduce(
       (sum, r) => sum + (r.wastedRenders || 0),
       0
     );
-    
+
     return {
       totalCommits: commits.length,
       totalComponents: uniqueComponents.size,
@@ -577,13 +553,11 @@ export const selectors = {
   selectSelectedCommitId,
   selectSelectedComponent,
   selectFilterText,
-  selectSeverityFilter,
-  selectComponentTypeFilter,
   selectWastedRenderReports,
   selectExpandedNodes,
   selectViewMode,
   selectIsDetailPanelOpen,
-  
+
   // Derived selectors
   selectSelectedCommit,
   selectLastCommit,

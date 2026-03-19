@@ -51,7 +51,12 @@ const getInitialState = () => ({
 
 describe('settingsStore', () => {
   beforeEach(() => {
-    useSettingsStore.setState(getInitialState(), true);
+    // Reset state while preserving methods
+    const currentState = useSettingsStore.getState();
+    useSettingsStore.setState({
+      ...currentState,
+      ...getInitialState(),
+    });
     Object.keys(mockStorage).forEach(key => delete mockStorage[key]);
     vi.clearAllMocks();
   });

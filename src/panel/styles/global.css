@@ -5,40 +5,40 @@
   --bg-tertiary: #2d2d30;
   --bg-hover: #2a2d2e;
   --bg-active: #37373d;
-  
+
   --text-primary: #d4d4d4;
   --text-secondary: #9cdcfe;
   --text-muted: #808080;
-  
+
   --border-color: #3c3c3c;
   --border-light: #454545;
-  
+
   --primary: #0e639c;
   --primary-hover: #1177bb;
   --success: #4ec9b0;
   --warning: #cca700;
   --error: #f14c4c;
   --info: #75beff;
-  
+
   /* Severity colors */
   --severity-critical: #f14c4c;
   --severity-warning: #cca700;
   --severity-info: #75beff;
-  
+
   /* Spacing */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
   --spacing-lg: 16px;
   --spacing-xl: 24px;
-  
+
   /* Font sizes */
   --font-xs: 10px;
   --font-sm: 11px;
   --font-md: 12px;
   --font-lg: 14px;
   --font-xl: 16px;
-  
+
   /* Sidebar */
   --sidebar-width: 280px;
   --detail-panel-width: 320px;

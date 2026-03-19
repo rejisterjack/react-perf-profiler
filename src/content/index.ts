@@ -11,7 +11,7 @@ const BRIDGE_SCRIPT_URL = chrome.runtime.getURL('bridge.js');
 // State
 let port: chrome.runtime.Port | null = null;
 let isBridgeInjected = false;
-let pendingMessages: any[] = [];
+const pendingMessages: any[] = [];
 
 // Message source identifiers
 const BRIDGE_SOURCE = 'react-perf-profiler-bridge';
@@ -21,20 +21,19 @@ const CONTENT_SOURCE = 'react-perf-profiler-content';
  * Initialize the content script
  */
 function init(): void {
-  console.log('[React Perf Profiler] Content script initialized');
-  
+
   // Inject the bridge script into the page context
   injectBridgeScript();
-  
+
   // Set up listener for messages from the injected bridge
   setupBridgeListener();
-  
+
   // Connect to background service worker
   connectToBackground();
-  
+
   // Handle cleanup on page unload
   window.addEventListener('beforeunload', cleanup);
-  
+
   // Handle visibility change (pause/resume)
   document.addEventListener('visibilitychange', handleVisibilityChange);
 }
@@ -45,37 +44,34 @@ function init(): void {
  */
 function injectBridgeScript(): void {
   if (isBridgeInjected) {
-    console.log('[React Perf Profiler] Bridge already injected');
     return;
   }
-  
+
   try {
     const script = document.createElement('script');
     script.src = BRIDGE_SCRIPT_URL;
     script.type = 'text/javascript';
     script.async = true;
-    
+
     script.onload = () => {
-      console.log('[React Perf Profiler] Bridge script loaded');
       isBridgeInjected = true;
-      
+
       // Send any pending messages
       while (pendingMessages.length > 0) {
         const msg = pendingMessages.shift();
         sendToBridge(msg);
       }
     };
-    
-    script.onerror = (error) => {
-      console.error('[React Perf Profiler] Failed to load bridge script:', error);
+
+    script.onerror = (_error) => {
       reportError('Failed to load bridge script');
     };
-    
+
     // Inject at document start for earliest access to React
     const target = document.head || document.documentElement;
     if (target) {
       target.appendChild(script);
-      
+
       // Remove the script element after injection (the code will remain)
       // Use setTimeout to ensure script has loaded
       setTimeout(() => {
@@ -92,8 +88,7 @@ function injectBridgeScript(): void {
         });
       }
     }
-  } catch (error) {
-    console.error('[React Perf Profiler] Error injecting bridge:', error);
+  } catch (_error) {
     reportError('Failed to inject bridge script');
   }
 }
@@ -112,16 +107,16 @@ function setupBridgeListener(): void {
 function handleBridgeMessage(event: MessageEvent): void {
   // Security: Only accept messages from the same window
   if (event.source !== window) return;
-  
+
   const message = event.data as BridgeMessage;
-  
+
   // Check if it's a message from our bridge
   if (!message || typeof message !== 'object') return;
   if (message.source !== BRIDGE_SOURCE) return;
   if (!message.payload) return;
-  
+
   const { type, data, error } = message.payload;
-  
+
   // Route message to background script
   switch (type) {
     case 'COMMIT':
@@ -131,31 +126,26 @@ function handleBridgeMessage(event: MessageEvent): void {
         payload: data,
       });
       break;
-      
+
     case 'INIT':
-      console.log('[React Perf Profiler] Bridge initialized:', data);
       // Forward to background
       sendToBackground({
         type: 'INIT',
         payload: data,
       });
       break;
-      
+
     case 'ERROR':
-      console.error('[React Perf Profiler] Bridge error:', error);
       reportError(error || 'Unknown bridge error');
       break;
-      
+
     case 'START':
-      console.log('[React Perf Profiler] Profiling started');
       break;
-      
+
     case 'STOP':
-      console.log('[React Perf Profiler] Profiling stopped');
       break;
-      
+
     default:
-      console.warn('[React Perf Profiler] Unknown bridge message type:', type);
   }
 }
 
@@ -166,15 +156,14 @@ function handleBridgeMessage(event: MessageEvent): void {
 function connectToBackground(): void {
   try {
     port = chrome.runtime.connect({ name: 'react-perf-profiler' });
-    
+
     port.onMessage.addListener((message: BackgroundMessage) => {
       handleBackgroundMessage(message);
     });
-    
+
     port.onDisconnect.addListener(() => {
-      console.log('[React Perf Profiler] Port disconnected');
       port = null;
-      
+
       // Attempt to reconnect after a delay
       setTimeout(() => {
         if (!port) {
@@ -182,17 +171,13 @@ function connectToBackground(): void {
         }
       }, 1000);
     });
-    
-    console.log('[React Perf Profiler] Connected to background');
-    
+
     // Send initial ping
     sendToBackground({
       type: 'PING',
       payload: { url: window.location.href },
     });
-    
-  } catch (error) {
-    console.error('[React Perf Profiler] Failed to connect to background:', error);
+  } catch (_error) {
   }
 }
 
@@ -201,16 +186,16 @@ function connectToBackground(): void {
  */
 function handleBackgroundMessage(message: BackgroundMessage): void {
   if (!message || !message.type) return;
-  
+
   switch (message.type) {
     case 'START_PROFILING':
       sendToBridge({ type: 'START' });
       break;
-      
+
     case 'STOP_PROFILING':
       sendToBridge({ type: 'STOP' });
       break;
-      
+
     case 'PING':
       // Respond to keep connection alive
       sendToBackground({
@@ -218,9 +203,8 @@ function handleBackgroundMessage(message: BackgroundMessage): void {
         payload: { active: true },
       });
       break;
-      
+
     default:
-      console.warn('[React Perf Profiler] Unknown background message:', message.type);
   }
 }
 
@@ -233,13 +217,13 @@ function sendToBridge(payload: any): void {
     source: CONTENT_SOURCE,
     payload,
   };
-  
+
   if (!isBridgeInjected) {
     // Queue message until bridge is ready
     pendingMessages.push(payload);
     return;
   }
-  
+
   window.postMessage(message, '*');
 }
 
@@ -248,14 +232,12 @@ function sendToBridge(payload: any): void {
  */
 function sendToBackground(message: Omit<BackgroundMessage, 'tabId'>): void {
   if (!port) {
-    console.warn('[React Perf Profiler] No port to background');
     return;
   }
-  
+
   try {
     port.postMessage(message);
-  } catch (error) {
-    console.error('[React Perf Profiler] Error sending to background:', error);
+  } catch (_error) {
   }
 }
 
@@ -275,12 +257,8 @@ function reportError(error: string): void {
  */
 function handleVisibilityChange(): void {
   if (document.hidden) {
-    // Page is hidden, can pause non-essential operations
-    console.log('[React Perf Profiler] Page hidden');
   } else {
-    // Page is visible again
-    console.log('[React Perf Profiler] Page visible');
-    
+
     // Ensure connection is alive
     if (!port) {
       connectToBackground();
@@ -292,23 +270,22 @@ function handleVisibilityChange(): void {
  * Clean up resources on disconnect/unload
  */
 function cleanup(): void {
-  console.log('[React Perf Profiler] Cleaning up content script');
-  
+
   // Remove event listeners
   window.removeEventListener('message', handleBridgeMessage);
   window.removeEventListener('beforeunload', cleanup);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
-  
+
   // Disconnect from background
   if (port) {
     try {
       port.disconnect();
-    } catch (e) {
+    } catch (_e) {
       // Ignore disconnect errors
     }
     port = null;
   }
-  
+
   // Send cleanup message to bridge
   sendToBridge({ type: 'STOP' });
 }
@@ -335,7 +312,7 @@ if (document.readyState === 'loading') {
 // Also try to initialize immediately (for document_start)
 try {
   init();
-} catch (e) {
+} catch (_e) {
   // Ignore errors, will retry on DOMContentLoaded
 }
 

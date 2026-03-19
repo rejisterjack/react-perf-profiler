@@ -87,10 +87,7 @@ export type PortConnectionHandler = (
 /**
  * Port disconnection handler type
  */
-export type PortDisconnectionHandler = (
-  tabId: number,
-  portType: PortType
-) => void;
+export type PortDisconnectionHandler = (tabId: number, portType: PortType) => void;
 
 /**
  * Connection manager configuration
@@ -110,7 +107,7 @@ export interface ConnectionManagerConfig {
 export const DEFAULT_CONNECTION_MANAGER_CONFIG: ConnectionManagerConfig = {
   maxTrackedTabs: 100,
   cleanupIntervalMs: 30000,
-  enableLogging: process.env.NODE_ENV !== 'production',
+  enableLogging: process.env['NODE_ENV'] !== 'production',
 };
 
 /**

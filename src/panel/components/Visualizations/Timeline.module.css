@@ -47,7 +47,7 @@
   user-select: none;
 }
 
-.filterLabel input[type='checkbox'] {
+.filterLabel input[type="checkbox"] {
   width: 16px;
   height: 16px;
   accent-color: var(--primary);
@@ -261,13 +261,13 @@
   border-radius: var(--border-radius-sm);
 }
 
-.badge[data-type='render'] {
+.badge[data-type="render"] {
   background: rgba(14, 99, 156, 0.2);
   color: #60a5fa;
   border: 1px solid rgba(14, 99, 156, 0.4);
 }
 
-.badge[data-type='wasted'] {
+.badge[data-type="wasted"] {
   background: rgba(241, 76, 76, 0.2);
   color: #f87171;
   border: 1px solid rgba(241, 76, 76, 0.4);

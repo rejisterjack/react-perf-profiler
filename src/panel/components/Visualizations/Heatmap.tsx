@@ -4,7 +4,8 @@
  * Helps identify "hot" components that render frequently or take long
  */
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import styles from './Heatmap.module.css';
@@ -73,7 +74,7 @@ export const Heatmap: React.FC = () => {
     const componentMap = new Map<string, HeatmapCell>();
 
     for (const commit of commits) {
-      for (const fiber of commit.fibers || []) {
+      for (const fiber of commit.nodes || []) {
         const name = fiber.displayName;
         if (!name) continue;
 
@@ -94,12 +95,12 @@ export const Heatmap: React.FC = () => {
         cell.totalDuration += fiber.actualDuration;
 
         // Simple wasted render detection
-        if (fiber.actualDuration < 0.1 && fiber.selfBaseDuration === fiber.treeBaseDuration) {
+        if (fiber.actualDuration < 0.1 && fiber.baseDuration === fiber.actualDuration) {
           cell.wastedRenders++;
         }
 
         // Check if memoized
-        if (fiber.tag === 14 || fiber.tag === 15) {
+        if (fiber.isMemoized) {
           cell.isMemoized = true;
         }
       }
@@ -192,9 +193,7 @@ export const Heatmap: React.FC = () => {
     const colorScale = getColorScale();
 
     // Create main group
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+    const g = svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
 
     // Create scales
     const yScale = d3
@@ -202,8 +201,6 @@ export const Heatmap: React.FC = () => {
       .domain(filteredData.map((d) => d.componentName))
       .range([0, innerHeight])
       .padding(0.1);
-
-    const xScale = d3.scaleLinear().domain([0, 100]).range([0, innerWidth]);
 
     // Create cells
     const cells = g
@@ -215,7 +212,7 @@ export const Heatmap: React.FC = () => {
     // Add main heatmap bars
     cells
       .append('rect')
-      .attr('class', styles.heatmapCell)
+      .attr('class', styles["heatmapCell"]!)
       .attr('x', 0)
       .attr('y', 0)
       .attr('width', innerWidth)
@@ -246,7 +243,7 @@ export const Heatmap: React.FC = () => {
     cells
       .filter((d) => d.isMemoized)
       .append('rect')
-      .attr('class', styles.memoIndicator)
+      .attr('class', styles["memoIndicator"]!)
       .attr('x', innerWidth - 8)
       .attr('y', 2)
       .attr('width', 6)
@@ -255,16 +252,16 @@ export const Heatmap: React.FC = () => {
 
     // Add Y axis (component names)
     g.append('g')
-      .attr('class', styles.axis)
+      .attr('class', styles["axis"]!)
       .call(d3.axisLeft(yScale).tickSize(0))
       .selectAll('text')
-      .attr('class', styles.yAxisLabel)
+      .attr('class', styles["yAxisLabel"]!)
       .style('text-anchor', 'end');
 
     // Add value labels on cells
     cells
       .append('text')
-      .attr('class', styles.valueLabel)
+      .attr('class', styles["valueLabel"]!)
       .attr('x', innerWidth - 15)
       .attr('y', yScale.bandwidth() / 2)
       .attr('dy', '0.35em')
@@ -286,19 +283,11 @@ export const Heatmap: React.FC = () => {
     const legendWidth = 150;
     const legendHeight = 12;
 
-    const legendScale = d3
-      .scaleLinear()
-      .domain(colorScale.domain())
-      .range([0, legendWidth]);
+    const legendScale = d3.scaleLinear().domain(colorScale.domain()).range([0, legendWidth]);
 
-    const legendAxis = d3
-      .axisBottom(legendScale)
-      .ticks(3)
-      .tickSize(legendHeight);
+    const legendAxis = d3.axisBottom(legendScale).ticks(3).tickSize(legendHeight);
 
-    const legend = svg
-      .append('g')
-      .attr('transform', `translate(${width - legendWidth - 20}, 20)`);
+    const legend = svg.append('g').attr('transform', `translate(${width - legendWidth - 20}, 20)`);
 
     // Create gradient for legend
     const defs = svg.append('defs');
@@ -328,49 +317,49 @@ export const Heatmap: React.FC = () => {
 
     legend
       .append('g')
-      .attr('class', styles.legendAxis)
+      .attr('class', styles["legendAxis"]!)
       .attr('transform', `translate(0,${legendHeight})`)
       .call(legendAxis);
   }, [filteredData, dimensions, colorMode, getColorScale, showTooltip, hideTooltip]);
 
   if (commits.length === 0) {
     return (
-      <div className={styles.empty}>
-        <div className={styles.emptyIcon}>🔥</div>
+      <div className={styles["empty"]}>
+        <div className={styles["emptyIcon"]}>🔥</div>
         <p>Record commits to see component heatmap</p>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className={styles.container}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>Component Heatmap</h3>
-        <div className={styles.controls}>
+    <div ref={containerRef} className={styles["container"]}>
+      <div className={styles["header"]}>
+        <h3 className={styles["title"]}>Component Heatmap</h3>
+        <div className={styles["controls"]}>
           <input
             type="text"
-            className={styles.searchInput}
+            className={styles["searchInput"]}
             placeholder="Filter components..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
           />
-          <div className={styles.modeButtons}>
+          <div className={styles["modeButtons"]}>
             <button
-              className={`${styles.modeButton} ${colorMode === 'count' ? styles.active : ''}`}
+              className={`${styles["modeButton"]} ${colorMode === 'count' ? styles["active"] : ''}`}
               onClick={() => setColorMode('count')}
               title="Render Count"
             >
               Count
             </button>
             <button
-              className={`${styles.modeButton} ${colorMode === 'duration' ? styles.active : ''}`}
+              className={`${styles["modeButton"]} ${colorMode === 'duration' ? styles["active"] : ''}`}
               onClick={() => setColorMode('duration')}
               title="Total Duration"
             >
               Duration
             </button>
             <button
-              className={`${styles.modeButton} ${colorMode === 'wasted' ? styles.active : ''}`}
+              className={`${styles["modeButton"]} ${colorMode === 'wasted' ? styles["active"] : ''}`}
               onClick={() => setColorMode('wasted')}
               title="Wasted Renders"
             >
@@ -380,31 +369,31 @@ export const Heatmap: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.legend}>
-        <div className={styles.legendInfo}>
-          <span className={styles.legendText}>
+      <div className={styles["legend"]}>
+        <div className={styles["legendInfo"]}>
+          <span className={styles["legendText"]}>
             Showing top {filteredData.length} of {heatmapData.length} components
           </span>
           {colorMode === 'count' && (
-            <span className={styles.legendDesc}>Darker = more renders</span>
+            <span className={styles["legendDesc"]}>Darker = more renders</span>
           )}
           {colorMode === 'duration' && (
-            <span className={styles.legendDesc}>Darker = longer duration</span>
+            <span className={styles["legendDesc"]}>Darker = longer duration</span>
           )}
           {colorMode === 'wasted' && (
-            <span className={styles.legendDesc}>Darker = more wasted</span>
+            <span className={styles["legendDesc"]}>Darker = more wasted</span>
           )}
         </div>
-        <div className={styles.legendItem}>
-          <span className={styles.memoIndicator} />
+        <div className={styles["legendItem"]}>
+          <span className={styles["memoIndicator"]} />
           <span>Memoized</span>
         </div>
       </div>
 
-      <div className={styles.chartContainer}>
+      <div className={styles["chartContainer"]}>
         <svg
           ref={svgRef}
-          className={styles.svg}
+          className={styles["svg"]}
           width={dimensions.width}
           height={dimensions.height}
         />
@@ -418,47 +407,40 @@ export const Heatmap: React.FC = () => {
 /**
  * Tooltip component for heatmap cells
  */
-const Tooltip: React.FC<{ tooltip: TooltipState; colorMode: ColorMode }> = ({
-  tooltip,
-  colorMode,
-}) => {
+const Tooltip: React.FC<{ tooltip: TooltipState; colorMode: ColorMode }> = ({ tooltip }) => {
   if (!tooltip.visible || !tooltip.data) return null;
 
   const { data } = tooltip;
 
   return (
     <div
-      className={styles.tooltip}
+      className={styles["tooltip"]}
       style={{
         left: tooltip.x,
         top: tooltip.y,
       }}
     >
-      <div className={styles.tooltipHeader}>
+      <div className={styles["tooltipHeader"]}>
         {data.componentName}
-        {data.isMemoized && <span className={styles.memoBadge}>Memoized</span>}
+        {data.isMemoized && <span className={styles["memoBadge"]}>Memoized</span>}
       </div>
-      <div className={styles.tooltipContent}>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Render Count:</span>
-          <span className={styles.tooltipValue}>{data.renderCount}</span>
+      <div className={styles["tooltipContent"]}>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Render Count:</span>
+          <span className={styles["tooltipValue"]}>{data.renderCount}</span>
         </div>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Total Duration:</span>
-          <span className={styles.tooltipValue}>
-            {data.totalDuration.toFixed(2)}ms
-          </span>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Total Duration:</span>
+          <span className={styles["tooltipValue"]}>{data.totalDuration.toFixed(2)}ms</span>
         </div>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Average:</span>
-          <span className={styles.tooltipValue}>
-            {data.averageDuration.toFixed(2)}ms
-          </span>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Average:</span>
+          <span className={styles["tooltipValue"]}>{data.averageDuration.toFixed(2)}ms</span>
         </div>
         {data.wastedRenders > 0 && (
-          <div className={styles.tooltipRow}>
-            <span className={styles.tooltipLabel}>Wasted Renders:</span>
-            <span className={`${styles.tooltipValue} ${styles.wastedValue}`}>
+          <div className={styles["tooltipRow"]}>
+            <span className={styles["tooltipLabel"]}>Wasted Renders:</span>
+            <span className={`${styles["tooltipValue"]} ${styles["wastedValue"]}`}>
               {data.wastedRenders}
             </span>
           </div>

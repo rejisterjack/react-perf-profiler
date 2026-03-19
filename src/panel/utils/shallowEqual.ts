@@ -23,12 +23,12 @@ export interface ShallowEqualOptions {
 /**
  * Deeply optimized shallow equality check for objects
  * Uses early returns and avoids creating intermediate arrays for speed
- * 
+ *
  * @param a - First object to compare
  * @param b - Second object to compare
  * @param options - Optional configuration for comparison
  * @returns True if objects are shallowly equal
- * 
+ *
  * @example
  * ```typescript
  * shallowEqual({ a: 1, b: 2 }, { a: 1, b: 2 }) // true
@@ -71,16 +71,16 @@ export function shallowEqual<T extends Record<string, any>>(
 
   // Check each key in a exists in b with same value
   for (let i = 0; i < keysA.length; i++) {
-    const key = keysA[i];
+    const key = keysA[i]!;
 
     // Skip ignored keys
     if (ignoreSet?.has(key)) continue;
 
     // Check key exists in b
-    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+    if (!Object.hasOwn(b, key)) return false;
 
-    const valA = a[key];
-    const valB = b[key];
+    const valA = a[key]!;
+    const valB = b[key]!;
 
     // Skip function comparison if configured
     if (ignoreFunctions && typeof valA === 'function' && typeof valB === 'function') {
@@ -97,11 +97,11 @@ export function shallowEqual<T extends Record<string, any>>(
 /**
  * Shallow equality check for arrays
  * Compares length and each element by reference
- * 
+ *
  * @param a - First array to compare
  * @param b - Second array to compare
  * @returns True if arrays are shallowly equal
- * 
+ *
  * @example
  * ```typescript
  * shallowEqualArrays([1, 2, 3], [1, 2, 3]) // true
@@ -132,12 +132,12 @@ export function shallowEqualArrays<T>(
 /**
  * Compare specific props between two objects
  * Useful for checking only the props that affect a component's output
- * 
+ *
  * @param prev - Previous props object
  * @param next - Next props object
  * @param propNames - Array of prop names to compare (compares all if not provided)
  * @returns True if specified props are equal
- * 
+ *
  * @example
  * ```typescript
  * shallowEqualProps(
@@ -163,11 +163,11 @@ export function shallowEqualProps(
 
   // Compare each specified prop
   for (let i = 0; i < keysToCheck.length; i++) {
-    const key = keysToCheck[i];
+    const key = keysToCheck[i]!;
 
     // Check if key exists in both
-    const hasPrev = Object.prototype.hasOwnProperty.call(prev, key);
-    const hasNext = Object.prototype.hasOwnProperty.call(next, key);
+    const hasPrev = Object.hasOwn(prev, key);
+    const hasNext = Object.hasOwn(next, key);
 
     if (hasPrev !== hasNext) return false;
     if (hasPrev && prev[key] !== next[key]) return false;

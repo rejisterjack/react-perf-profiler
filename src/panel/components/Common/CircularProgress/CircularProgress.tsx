@@ -1,9 +1,9 @@
-import React from 'react';
+import type React from 'react';
 import styles from './CircularProgress.module.css';
 
 export type CircularProgressColor = 'default' | 'primary' | 'success' | 'warning' | 'error';
 
-export export interface CircularProgressProps {
+export interface CircularProgressProps {
   /** Progress value (0-100) */
   value: number;
   /** Size of the progress circle in pixels */
@@ -28,25 +28,19 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
 }) => {
   // Clamp value between 0 and 100
   const clampedValue = Math.max(0, Math.min(100, value));
-  
+
   // Calculate circle geometry
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (clampedValue / 100) * circumference;
-  
+
   // Center coordinates
   const center = size / 2;
-  
-  const classNames = [
-    styles.container,
-    styles[color],
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+
+  const classNames = [styles["container"], styles[color], className].filter(Boolean).join(' ');
 
   return (
-    <div 
+    <div
       className={classNames}
       style={{ width: size, height: size }}
       role="progressbar"
@@ -54,12 +48,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className={styles.svg}
-      >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={styles["svg"]}>
         {/* Background circle */}
         <circle
           cx={center}
@@ -67,9 +56,9 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           r={radius}
           fill="none"
           strokeWidth={strokeWidth}
-          className={styles.background}
+          className={styles["background"]}
         />
-        
+
         {/* Progress circle */}
         <circle
           cx={center}
@@ -80,19 +69,15 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          className={styles.progress}
+          className={styles["progress"]}
           style={{
             transform: 'rotate(-90deg)',
             transformOrigin: '50% 50%',
           }}
         />
       </svg>
-      
-      {showLabel && (
-        <span className={styles.label}>
-          {Math.round(clampedValue)}
-        </span>
-      )}
+
+      {showLabel && <span className={styles["label"]}>{Math.round(clampedValue)}</span>}
     </div>
   );
 };

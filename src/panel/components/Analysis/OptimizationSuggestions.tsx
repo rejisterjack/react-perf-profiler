@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { WastedRenderReport, MemoEffectivenessReport } from '@/shared/types';
+import type React from 'react';
+import { useMemo } from 'react';
+import type { WastedRenderReport, MemoEffectivenessReport } from '@/shared/types';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './OptimizationSuggestions.module.css';
 
@@ -24,7 +25,7 @@ export const OptimizationSuggestions: React.FC<OptimizationSuggestionsProps> = (
 }) => {
   const suggestions = useMemo(() => {
     const result: Suggestion[] = [];
-    
+
     // Generate suggestions from wasted render reports
     wastedReports.forEach((report) => {
       if (report.severity === 'critical') {
@@ -39,7 +40,7 @@ export const OptimizationSuggestions: React.FC<OptimizationSuggestionsProps> = (
         });
       }
     });
-    
+
     // Generate suggestions from memo effectiveness reports
     memoReports.forEach((report) => {
       if (!report.isEffective && report.issues.length > 0) {
@@ -55,7 +56,7 @@ export const OptimizationSuggestions: React.FC<OptimizationSuggestionsProps> = (
         });
       }
     });
-    
+
     // Sort by severity
     const severityOrder = { critical: 0, warning: 1, info: 2 };
     return result.sort((a, b) => severityOrder[a.type] - severityOrder[b.type]);
@@ -63,65 +64,64 @@ export const OptimizationSuggestions: React.FC<OptimizationSuggestionsProps> = (
 
   if (suggestions.length === 0) {
     return (
-      <div className={styles.suggestions}>
-        <div className={styles.header}>
+      <div className={styles["suggestions"]}>
+        <div className={styles["header"]}>
           <h3>
-            <Icon name="check" />
+            <Icon name="check" size={16} />
             Optimization Suggestions
           </h3>
         </div>
-        <div className={styles.allGood}>
-          <div className={styles.successIcon}>
-            <Icon name="check" size="xl" />
+        <div className={styles["allGood"]}>
+          <div className={styles["successIcon"]}>
+            <Icon name="check" size={24} />
           </div>
           <h4>All Good!</h4>
-          <p>No optimization suggestions at this time. Your React components are performing well.</p>
+          <p>
+            No optimization suggestions at this time. Your React components are performing well.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.suggestions}>
-      <div className={styles.header}>
+    <div className={styles["suggestions"]}>
+      <div className={styles["header"]}>
         <h3>
-          <Icon name="performance" />
+          <Icon name="performance" size={16} />
           Optimization Suggestions
         </h3>
-        <span className={styles.count}>
+        <span className={styles["count"]}>
           {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
         </span>
       </div>
-      
-      <ul className={styles.list}>
+
+      <ul className={styles["list"]}>
         {suggestions.map((suggestion) => (
-          <li
-            key={suggestion.id}
-            className={`${styles.suggestion} ${styles[suggestion.type]}`}
-          >
-            <div className={styles.suggestionHeader}>
-              <div className={styles.iconWrapper}>
-                <Icon name={getIconName(suggestion.type)} size="sm" />
+          <li key={suggestion.id} className={`${styles["suggestion"]} ${styles[suggestion.type]}`}>
+            <div className={styles["suggestionHeader"]}>
+              <div className={styles["iconWrapper"]}>
+                <Icon name={getIconName(suggestion.type)} size={16} />
               </div>
-              <div className={styles.titleWrapper}>
+              <div className={styles["titleWrapper"]}>
                 <h4>{suggestion.title}</h4>
-                <code className={styles.component}>{suggestion.component}</code>
+                <code className={styles["component"]}>{suggestion.component}</code>
               </div>
-              <span className={`${styles.badge} ${styles[suggestion.type]}`}>
+              <span className={`${styles["badge"]} ${styles[suggestion.type]}`}>
                 {suggestion.type}
               </span>
             </div>
-            
-            <p className={styles.description}>{suggestion.description}</p>
-            
+
+            <p className={styles["description"]}>{suggestion.description}</p>
+
             {suggestion.codeExample && (
-              <pre className={styles.code}>
+              <pre className={styles["code"]}>
                 <code>{suggestion.codeExample}</code>
               </pre>
             )}
-            
-            <div className={styles.impact}>
-              <Icon name="time" size="xs" />
+
+            <div className={styles["impact"]}>
+              <Icon name="time" size={12} />
               <span>Estimated impact: {suggestion.estimatedImpact}</span>
             </div>
           </li>

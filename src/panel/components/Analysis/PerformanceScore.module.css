@@ -152,12 +152,12 @@
   .categories {
     grid-template-columns: 1fr;
   }
-  
+
   .summary {
     flex-wrap: wrap;
     gap: var(--spacing-4);
   }
-  
+
   .statValue {
     font-size: var(--font-size-lg);
   }
@@ -167,7 +167,7 @@
   .scoreCard {
     padding: var(--spacing-4);
   }
-  
+
   .header {
     flex-direction: column;
     gap: var(--spacing-4);

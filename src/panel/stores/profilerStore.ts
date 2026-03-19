@@ -4,14 +4,12 @@
  */
 
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
 import type {
   CommitData,
   AnalysisResult,
   WastedRenderReport,
   MemoReport,
   ProfilerConfig,
-  ComponentMetrics,
 } from '@/shared/types';
 
 /**
@@ -101,6 +99,8 @@ export type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis';
 export interface ProfilerState {
   /** Whether currently recording profiling data */
   isRecording: boolean;
+  /** Recording start time */
+  recordingStartTime: number | null;
   /** Recording duration in milliseconds */
   recordingDuration: number;
   /** Array of captured commits */
@@ -117,6 +117,8 @@ export interface ProfilerState {
   selectedCommitId: string | null;
   /** Currently selected component name */
   selectedComponent: string | null;
+  /** Alias for selectedComponent - component name currently selected */
+  selectedComponentName: string | null;
   /** Time travel position (index into commits) */
   timeTravelIndex: number | null;
   /** Current view mode */
@@ -135,6 +137,16 @@ export interface ProfilerState {
   componentData: Map<string, ComponentData>;
   /** Whether detail panel is open */
   isDetailPanelOpen: boolean;
+  /** Width of the sidebar in pixels */
+  sidebarWidth: number;
+  /** Whether detail panel is open (alias) */
+  detailPanelOpen: boolean;
+  /** Width of the detail panel in pixels */
+  detailPanelWidth: number;
+  /** Filter for component types */
+  componentTypeFilter: 'all' | 'memoized' | 'unmemoized';
+  /** Filter for severity levels */
+  severityFilter: ('critical' | 'warning' | 'info')[];
 }
 
 /**
@@ -149,6 +161,8 @@ interface ProfilerActions {
   clearData: () => void;
   /** Add a new commit to the store */
   addCommit: (commit: CommitData) => void;
+  /** Add multiple commits to the store */
+  addCommits: (commits: CommitData[]) => void;
   /** Set analysis results */
   setAnalysisResults: (results: AnalysisResult) => void;
   /** Set wasted render reports */
@@ -181,12 +195,39 @@ interface ProfilerActions {
   runAnalysis: () => Promise<void>;
   /** Toggle detail panel */
   toggleDetailPanel: () => void;
+  /** Set sidebar width */
+  setSidebarWidth: (width: number) => void;
+  /** Set detail panel width */
+  setDetailPanelWidth: (width: number) => void;
+  /** Set component type filter */
+  setComponentTypeFilter: (filter: 'all' | 'memoized' | 'unmemoized') => void;
+  /** Set severity filter */
+  setSeverityFilter: (filter: ('critical' | 'warning' | 'info')[]) => void;
+  /** Expand all nodes (alias) */
+  expandAllNodes: () => void;
+  /** Collapse all nodes (alias) */
+  collapseAllNodes: () => void;
+  /** Toggle node expanded state */
+  toggleNodeExpanded: (nodeId: string) => void;
 }
 
 /**
  * Combined store type
  */
 export type ProfilerStore = ProfilerState & ProfilerActions;
+
+/**
+ * Selector for tree data
+ */
+export const selectTreeData = (state: ProfilerState) => state.componentData;
+
+/**
+ * Selector for the currently selected commit
+ */
+export const selectSelectedCommit = (state: ProfilerState) => {
+  if (!state.selectedCommitId) return null;
+  return state.commits.find((c) => c.id === state.selectedCommitId) || null;
+};
 
 /** Default profiler configuration */
 const defaultConfig: ProfilerConfig = {
@@ -196,256 +237,349 @@ const defaultConfig: ProfilerConfig = {
   enableTimeTravel: true,
 };
 
+/** Maximum commits limit */
+const MAX_COMMITS = 500;
+
+/** Minimum sidebar width */
+const MIN_SIDEBAR_WIDTH = 180;
+
+/** Maximum sidebar width */
+const MAX_SIDEBAR_WIDTH = 600;
+
+// Store implementation
+const storeImplementation = (set: any, get: any): ProfilerStore => ({
+  // State
+  isRecording: false,
+  recordingStartTime: null,
+  recordingDuration: 0,
+  commits: [],
+  analysisResults: null,
+  wastedRenderReports: [],
+  memoReports: [],
+  config: defaultConfig,
+  selectedCommitId: null,
+  selectedComponent: null,
+  selectedComponentName: null,
+  timeTravelIndex: null,
+  viewMode: 'tree',
+  filterText: '',
+  expandedNodes: new Set<string>(),
+  isAnalyzing: false,
+  analysisError: null,
+  performanceScore: null,
+  componentData: new Map<string, ComponentData>(),
+  isDetailPanelOpen: true,
+  sidebarWidth: 280,
+  detailPanelOpen: true,
+  detailPanelWidth: 400,
+  componentTypeFilter: 'all',
+  severityFilter: ['critical', 'warning', 'info'],
+
+  // Actions
+  startRecording: () => {
+    set({
+      isRecording: true,
+      recordingStartTime: Date.now(),
+      recordingDuration: 0,
+      commits: [],
+      wastedRenderReports: [],
+      memoReports: [],
+      analysisResults: null,
+    });
+  },
+
+  stopRecording: () => {
+    const { recordingStartTime } = get();
+    const duration = recordingStartTime ? Date.now() - recordingStartTime : 0;
+    set({ isRecording: false, recordingDuration: duration });
+  },
+
+  clearData: () => {
+    set({
+      commits: [],
+      analysisResults: null,
+      wastedRenderReports: [],
+      memoReports: [],
+      selectedCommitId: null,
+      selectedComponent: null,
+      selectedComponentName: null,
+      timeTravelIndex: null,
+      performanceScore: null,
+      componentData: new Map<string, ComponentData>(),
+      expandedNodes: new Set<string>(),
+      analysisError: null,
+      recordingDuration: 0,
+      recordingStartTime: null,
+    });
+  },
+
+  addCommit: (commit: CommitData) => {
+    const { commits } = get();
+    const newCommits = [...commits, commit];
+
+    // Enforce max commits limit of 500
+    if (newCommits.length > MAX_COMMITS) {
+      newCommits.shift();
+    }
+
+    set({ commits: newCommits });
+  },
+
+  addCommits: (commitsToAdd: CommitData[]) => {
+    const { commits } = get();
+    const newCommits = [...commits, ...commitsToAdd];
+
+    // Enforce max commits limit of 500, keeping most recent
+    if (newCommits.length > MAX_COMMITS) {
+      newCommits.splice(0, newCommits.length - MAX_COMMITS);
+    }
+
+    set({ commits: newCommits });
+  },
+
+  setAnalysisResults: (results: AnalysisResult) => {
+    set({
+      analysisResults: results,
+      wastedRenderReports: results.wastedRenderReports,
+      memoReports: results.memoReports,
+    });
+  },
+
+  setWastedRenderReports: (reports: WastedRenderReport[]) => {
+    set({ wastedRenderReports: reports });
+  },
+
+  setMemoReports: (reports: MemoReport[]) => {
+    set({ memoReports: reports });
+  },
+
+  exportData: () => {
+    const { commits, recordingDuration } = get();
+    const data = {
+      version: 1,
+      commits,
+      recordingDuration,
+    };
+    return JSON.stringify(data);
+  },
+
+  importData: (json: string) => {
+    try {
+      const data = JSON.parse(json);
+
+      set({
+        commits: data.commits || [],
+        recordingDuration: data.recordingDuration || 0,
+        selectedCommitId: null,
+        selectedComponent: null,
+        selectedComponentName: null,
+        timeTravelIndex: null,
+        analysisError: null,
+      });
+    } catch (error) {
+      set({
+        analysisError: error instanceof Error ? error.message : 'Invalid JSON data',
+      });
+    }
+  },
+
+  updateConfig: (newConfig: Partial<ProfilerConfig>) => {
+    set((state: ProfilerState) => ({
+      config: { ...state.config, ...newConfig },
+    }));
+  },
+
+  selectCommit: (commitId: string | null) => {
+    set({ selectedCommitId: commitId });
+  },
+
+  selectComponent: (componentName: string | null) => {
+    set({
+      selectedComponent: componentName,
+      selectedComponentName: componentName,
+      detailPanelOpen: componentName !== null,
+    });
+  },
+
+  setTimeTravelIndex: (index: number | null) => {
+    set({ timeTravelIndex: index });
+  },
+
+  toggleNode: (nodeId: string) => {
+    const { expandedNodes } = get();
+    const newExpanded = new Set(expandedNodes);
+    if (newExpanded.has(nodeId)) {
+      newExpanded.delete(nodeId);
+    } else {
+      newExpanded.add(nodeId);
+    }
+    set({ expandedNodes: newExpanded });
+  },
+
+  expandAll: () => {
+    set({ expandedNodes: new Set<string>() });
+  },
+
+  collapseAll: () => {
+    set({ expandedNodes: new Set<string>() });
+  },
+
+  setFilterText: (text: string) => {
+    set({ filterText: text });
+  },
+
+  setViewMode: (mode: ViewMode) => {
+    set({ viewMode: mode });
+  },
+
+  runAnalysis: async () => {
+    set({ isAnalyzing: true, analysisError: null });
+
+    // Allow state update to propagate before starting analysis
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      const { commits } = get();
+
+      // Check if there are commits to analyze
+      if (commits.length === 0) {
+        set({
+          isAnalyzing: false,
+          analysisError: 'No commits to analyze',
+        });
+        return;
+      }
+
+      // Simulate analysis - in real implementation, this would use the worker
+      const wastedReports: WastedRenderReport[] = [];
+      const memoReports: MemoReport[] = [];
+
+      // Aggregate component data
+      const componentMap = new Map<string, ComponentData>();
+
+      for (const commit of commits) {
+        for (const node of commit.nodes ?? []) {
+          const name = node.displayName;
+          if (!name) continue;
+
+          let data = componentMap.get(name);
+          if (!data) {
+            data = {
+              name,
+              renderCount: 0,
+              wastedRenders: 0,
+              wastedRenderRate: 0,
+              averageDuration: 0,
+              totalDuration: 0,
+              isMemoized: node.isMemoized,
+              memoHitRate: 0,
+              commitIds: [],
+              severity: 'none',
+            };
+            componentMap.set(name, data);
+          }
+
+          data.renderCount++;
+          data.totalDuration += node.actualDuration;
+          data.commitIds.push(commit.id);
+        }
+      }
+
+      // Calculate averages
+      for (const data of componentMap.values()) {
+        data.averageDuration = data.totalDuration / data.renderCount;
+      }
+
+      // Calculate performance score
+      const totalComponents = componentMap.size;
+      const totalRenderTime = Array.from(componentMap.values()).reduce(
+        (sum, c) => sum + c.totalDuration,
+        0
+      );
+      const avgRenderTime = totalComponents > 0 ? totalRenderTime / totalComponents : 0;
+
+      const performanceScore: PerformanceMetrics = {
+        score: Math.max(0, Math.min(100, 100 - avgRenderTime * 5)),
+        averageRenderTime: avgRenderTime,
+        wastedRenderRate: 0,
+        averageMemoHitRate: 0,
+        totalComponents,
+      };
+
+      set({
+        isAnalyzing: false,
+        performanceScore,
+        componentData: componentMap,
+        wastedRenderReports: wastedReports,
+        memoReports: memoReports,
+      });
+    } catch (error) {
+      set({
+        isAnalyzing: false,
+        analysisError: error instanceof Error ? error.message : 'Analysis failed',
+      });
+    }
+  },
+
+  toggleDetailPanel: () => {
+    set((state: ProfilerState) => ({
+      isDetailPanelOpen: !state.isDetailPanelOpen,
+      detailPanelOpen: !state.detailPanelOpen,
+    }));
+  },
+
+  setSidebarWidth: (width: number) => {
+    // Constrain width between min and max values
+    const constrainedWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, width));
+    set({ sidebarWidth: constrainedWidth });
+  },
+
+  setDetailPanelWidth: (width: number) => {
+    set({ detailPanelWidth: width });
+  },
+
+  setComponentTypeFilter: (filter: 'all' | 'memoized' | 'unmemoized') => {
+    set({ componentTypeFilter: filter });
+  },
+
+  setSeverityFilter: (filter: ('critical' | 'warning' | 'info')[]) => {
+    set({ severityFilter: filter });
+  },
+
+  expandAllNodes: () => {
+    const { commits } = get();
+    const allNodeIds = new Set<string>();
+
+    for (const commit of commits) {
+      for (const node of commit.nodes ?? []) {
+        if (node.id) {
+          allNodeIds.add(node.id);
+        }
+      }
+    }
+
+    set({ expandedNodes: allNodeIds });
+  },
+
+  collapseAllNodes: () => {
+    set({ expandedNodes: new Set<string>() });
+  },
+
+  toggleNodeExpanded: (nodeId: string) => {
+    const { expandedNodes } = get();
+    const newExpanded = new Set(expandedNodes);
+    if (newExpanded.has(nodeId)) {
+      newExpanded.delete(nodeId);
+    } else {
+      newExpanded.add(nodeId);
+    }
+    set({ expandedNodes: newExpanded });
+  },
+});
+
 /**
  * Zustand store for managing profiler state
  * @example
  * const { isRecording, commits, startRecording } = useProfilerStore();
  */
-export const useProfilerStore = create<ProfilerStore>()(
-  devtools(
-    persist(
-      (set, get) => ({
-        // State
-        isRecording: false,
-        recordingDuration: 0,
-        commits: [],
-        analysisResults: null,
-        wastedRenderReports: [],
-        memoReports: [],
-        config: defaultConfig,
-        selectedCommitId: null,
-        selectedComponent: null,
-        timeTravelIndex: null,
-        viewMode: 'tree',
-        filterText: '',
-        expandedNodes: new Set<string>(),
-        isAnalyzing: false,
-        analysisError: null,
-        performanceScore: null,
-        componentData: new Map<string, ComponentData>(),
-        isDetailPanelOpen: true,
-
-        // Actions
-        startRecording: () => {
-          set({ isRecording: true, recordingDuration: 0 });
-        },
-
-        stopRecording: () => {
-          set({ isRecording: false });
-        },
-
-        clearData: () => {
-          set({
-            commits: [],
-            analysisResults: null,
-            wastedRenderReports: [],
-            memoReports: [],
-            selectedCommitId: null,
-            selectedComponent: null,
-            timeTravelIndex: null,
-            performanceScore: null,
-            componentData: new Map<string, ComponentData>(),
-            expandedNodes: new Set<string>(),
-            analysisError: null,
-          });
-        },
-
-        addCommit: (commit) => {
-          const { commits, config } = get();
-          const newCommits = [...commits, commit];
-          
-          // Enforce max commits limit using circular buffer
-          if (newCommits.length > config.maxCommits) {
-            newCommits.shift();
-          }
-          
-          set({ commits: newCommits });
-        },
-
-        setAnalysisResults: (results) => {
-          set({
-            analysisResults: results,
-            wastedRenderReports: results.wastedRenderReports,
-            memoReports: results.memoReports,
-          });
-        },
-
-        setWastedRenderReports: (reports) => {
-          set({ wastedRenderReports: reports });
-        },
-
-        setMemoReports: (reports) => {
-          set({ memoReports: reports });
-        },
-
-        exportData: () => {
-          const { commits, analysisResults, config } = get();
-          const data = {
-            version: '1.0.0',
-            exportedAt: Date.now(),
-            commits,
-            analysisResults,
-            config,
-          };
-          return JSON.stringify(data, null, 2);
-        },
-
-        importData: (json) => {
-          try {
-            const data = JSON.parse(json);
-            
-            if (!data.commits || !Array.isArray(data.commits)) {
-              throw new Error('Invalid data format: commits array missing');
-            }
-            
-            set({
-              commits: data.commits,
-              analysisResults: data.analysisResults || null,
-              selectedCommitId: null,
-              selectedComponent: null,
-              timeTravelIndex: null,
-            });
-          } catch (error) {
-            console.error('Failed to import profiler data:', error);
-            throw error;
-          }
-        },
-
-        updateConfig: (newConfig) => {
-          set((state) => ({
-            config: { ...state.config, ...newConfig },
-          }));
-        },
-
-        selectCommit: (commitId) => {
-          set({ selectedCommitId: commitId });
-        },
-
-        selectComponent: (componentName) => {
-          set({ selectedComponent: componentName });
-        },
-
-        setTimeTravelIndex: (index) => {
-          set({ timeTravelIndex: index });
-        },
-
-        toggleNode: (nodeId) => {
-          const { expandedNodes } = get();
-          const newExpanded = new Set(expandedNodes);
-          if (newExpanded.has(nodeId)) {
-            newExpanded.delete(nodeId);
-          } else {
-            newExpanded.add(nodeId);
-          }
-          set({ expandedNodes: newExpanded });
-        },
-
-        expandAll: () => {
-          // Expand all nodes - would need to know all node IDs
-          // This is a placeholder implementation
-          set({ expandedNodes: new Set<string>() });
-        },
-
-        collapseAll: () => {
-          set({ expandedNodes: new Set<string>() });
-        },
-
-        setFilterText: (text) => {
-          set({ filterText: text });
-        },
-
-        setViewMode: (mode) => {
-          set({ viewMode: mode });
-        },
-
-        runAnalysis: async () => {
-          set({ isAnalyzing: true, analysisError: null });
-          
-          try {
-            // Simulate analysis - in real implementation, this would use the worker
-            const { commits } = get();
-            
-            // Simple analysis to generate mock results
-            const wastedReports: WastedRenderReport[] = [];
-            const memoReports: MemoReport[] = [];
-            
-            // Aggregate component data
-            const componentMap = new Map<string, ComponentData>();
-            
-            for (const commit of commits) {
-              for (const node of commit.nodes) {
-                const name = node.displayName;
-                if (!name) continue;
-                
-                let data = componentMap.get(name);
-                if (!data) {
-                  data = {
-                    name,
-                    renderCount: 0,
-                    wastedRenders: 0,
-                    wastedRenderRate: 0,
-                    averageDuration: 0,
-                    totalDuration: 0,
-                    isMemoized: node.isMemoized,
-                    memoHitRate: 0,
-                    commitIds: [],
-                    severity: 'none',
-                  };
-                  componentMap.set(name, data);
-                }
-                
-                data.renderCount++;
-                data.totalDuration += node.actualDuration;
-                data.commitIds.push(commit.id);
-              }
-            }
-            
-            // Calculate averages
-            for (const data of componentMap.values()) {
-              data.averageDuration = data.totalDuration / data.renderCount;
-            }
-            
-            // Calculate performance score
-            const totalComponents = componentMap.size;
-            const totalRenderTime = Array.from(componentMap.values())
-              .reduce((sum, c) => sum + c.totalDuration, 0);
-            const avgRenderTime = totalComponents > 0 ? totalRenderTime / totalComponents : 0;
-            
-            const performanceScore: PerformanceMetrics = {
-              score: Math.max(0, Math.min(100, 100 - avgRenderTime * 5)),
-              averageRenderTime: avgRenderTime,
-              wastedRenderRate: 0,
-              averageMemoHitRate: 0,
-              totalComponents,
-            };
-            
-            set({
-              isAnalyzing: false,
-              performanceScore,
-              componentData: componentMap,
-              wastedRenderReports: wastedReports,
-              memoReports: memoReports,
-            });
-          } catch (error) {
-            set({
-              isAnalyzing: false,
-              analysisError: error instanceof Error ? error.message : 'Analysis failed',
-            });
-          }
-        },
-
-        toggleDetailPanel: () => {
-          set((state) => ({ isDetailPanelOpen: !state.isDetailPanelOpen }));
-        },
-      }),
-      {
-        name: 'react-perf-profiler-storage',
-        partialize: (state) => ({
-          config: state.config,
-          viewMode: state.viewMode,
-        }),
-      }
-    ),
-    { name: 'ProfilerStore' }
-  )
-);
+export const useProfilerStore = create<ProfilerStore>(storeImplementation);

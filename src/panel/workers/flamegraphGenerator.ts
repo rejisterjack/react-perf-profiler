@@ -72,10 +72,10 @@ export interface FlamegraphConfig {
 
 /** Color palette for different render durations */
 const DURATION_COLORS = {
-  fast: '#4caf50',      // < 1ms - Green
-  normal: '#2196f3',    // 1-5ms - Blue
-  slow: '#ff9800',      // 5-16ms - Orange
-  verySlow: '#f44336',  // > 16ms - Red
+  fast: '#4caf50', // < 1ms - Green
+  normal: '#2196f3', // 1-5ms - Blue
+  slow: '#ff9800', // 5-16ms - Orange
+  verySlow: '#f44336', // > 16ms - Red
 };
 
 /** Color palette for component types */
@@ -96,11 +96,11 @@ const TYPE_COLORS = {
 /**
  * Converts commit data to flamegraph format
  * Creates a hierarchical structure suitable for D3 visualization
- * 
+ *
  * @param commit - Commit data from React profiler
  * @param config - Optional configuration
  * @returns Flamegraph data structure
- * 
+ *
  * @example
  * ```typescript
  * const flamegraph = generateFlamegraphData(commit);
@@ -111,23 +111,14 @@ export function generateFlamegraphData(
   commit: CommitData,
   config: FlamegraphConfig = {}
 ): FlamegraphData {
-  const {
-    maxDepth = 50,
-    includeHostComponents = false,
-    colorScheme = 'duration',
-  } = config;
+  const { maxDepth = 50, includeHostComponents = false, colorScheme = 'duration' } = config;
 
   if (!commit.rootFiber) {
     throw new Error('Commit has no root fiber');
   }
 
   // Convert root fiber to hierarchy
-  const root = convertFiberToHierarchy(
-    commit.rootFiber,
-    0,
-    maxDepth,
-    includeHostComponents
-  );
+  const root = convertFiberToHierarchy(commit.rootFiber, 0, maxDepth, includeHostComponents);
 
   // Calculate node statistics
   const stats = calculateStats(root);
@@ -141,14 +132,14 @@ export function generateFlamegraphData(
     totalDuration: root.cumulativeDuration,
     nodeCount: stats.nodeCount,
     timestamp: commit.timestamp,
-    commitId: commit.commitId,
+    commitId: commit.id,
   };
 }
 
 /**
  * Transforms a fiber node into a flamegraph node
  * Recursively processes children to build the hierarchy
- * 
+ *
  * @param fiber - Fiber node from React
  * @param depth - Current depth in the tree
  * @param maxDepth - Maximum depth to traverse
@@ -178,7 +169,7 @@ export function convertFiberToHierarchy(
 
   // Recursively process children if within depth limit
   if (depth < maxDepth && fiber.child) {
-    let child = fiber.child;
+    let child: FiberData | null = fiber.child;
     while (child) {
       // Skip host components if not included
       if (!includeHostComponents && isHostComponent(child)) {
@@ -186,12 +177,7 @@ export function convertFiberToHierarchy(
         continue;
       }
 
-      const childNode = convertFiberToHierarchy(
-        child,
-        depth + 1,
-        maxDepth,
-        includeHostComponents
-      );
+      const childNode = convertFiberToHierarchy(child, depth + 1, maxDepth, includeHostComponents);
       node.children.push(childNode);
       child = child.sibling;
     }
@@ -203,15 +189,12 @@ export function convertFiberToHierarchy(
 /**
  * Calculates color for a node based on its duration relative to parent
  * Used for heat map visualization
- * 
+ *
  * @param node - Flamegraph node
  * @param parent - Parent node (for relative calculation)
  * @returns CSS color string
  */
-export function calculateNodeColor(
-  node: FlamegraphNode,
-  parent: FlamegraphNode | null
-): string {
+export function calculateNodeColor(node: FlamegraphNode, parent: FlamegraphNode | null): string {
   // If no parent, use absolute duration scale
   if (!parent) {
     return getDurationColor(node.selfDuration);
@@ -234,15 +217,12 @@ export function calculateNodeColor(
 /**
  * Filters out components below a duration threshold
  * Removes nodes that are too small to be significant
- * 
+ *
  * @param root - Root flamegraph node
  * @param threshold - Minimum duration threshold (ms)
  * @returns Filtered root node
  */
-export function filterSmallNodes(
-  root: FlamegraphNode,
-  threshold: number
-): FlamegraphNode {
+export function filterSmallNodes(root: FlamegraphNode, threshold: number): FlamegraphNode {
   // If node is below threshold, mark as invisible
   if (root.selfDuration < threshold) {
     return {
@@ -254,8 +234,8 @@ export function filterSmallNodes(
 
   // Filter children recursively
   const filteredChildren = root.children
-    .map(child => filterSmallNodes(child, threshold))
-    .filter(child => child.visible);
+    .map((child) => filterSmallNodes(child, threshold))
+    .filter((child) => child.visible);
 
   return {
     ...root,
@@ -300,7 +280,7 @@ function calculateStats(root: FlamegraphNode): { maxDepth: number; nodeCount: nu
   function traverse(node: FlamegraphNode, currentDepth: number) {
     nodeCount++;
     maxDepth = Math.max(maxDepth, currentDepth);
-    
+
     for (const child of node.children) {
       traverse(child, currentDepth + 1);
     }
@@ -352,7 +332,7 @@ function getDurationColor(duration: number): string {
  */
 function getSelfTimeColor(selfDuration: number, parentDuration: number): string {
   if (parentDuration === 0) return DURATION_COLORS.fast;
-  
+
   const ratio = selfDuration / parentDuration;
   if (ratio < 0.2) return DURATION_COLORS.fast;
   if (ratio < 0.5) return DURATION_COLORS.normal;
@@ -365,7 +345,7 @@ function getSelfTimeColor(selfDuration: number, parentDuration: number): string 
  */
 function getTypeColor(fiber: FiberData): string {
   const tag = fiber.tag;
-  
+
   switch (tag) {
     case 0: // FunctionComponent
       return TYPE_COLORS.function;
@@ -390,15 +370,12 @@ function getTypeColor(fiber: FiberData): string {
 /**
  * Finds a node by name in the flamegraph
  * Useful for highlighting specific components
- * 
+ *
  * @param root - Root flamegraph node
  * @param name - Component name to find
  * @returns Array of matching nodes
  */
-export function findNodesByName(
-  root: FlamegraphNode,
-  name: string
-): FlamegraphNode[] {
+export function findNodesByName(root: FlamegraphNode, name: string): FlamegraphNode[] {
   const results: FlamegraphNode[] = [];
 
   function traverse(node: FlamegraphNode) {
@@ -417,7 +394,7 @@ export function findNodesByName(
 /**
  * Aggregates nodes by component name
  * Useful for identifying frequently rendering components
- * 
+ *
  * @param root - Root flamegraph node
  * @returns Map of component names to aggregated data
  */

@@ -194,11 +194,11 @@
   .header {
     padding: var(--spacing-3) var(--spacing-4);
   }
-  
+
   .item {
     padding: var(--spacing-3) var(--spacing-4);
   }
-  
+
   .itemHeader {
     flex-wrap: wrap;
     gap: var(--spacing-2);

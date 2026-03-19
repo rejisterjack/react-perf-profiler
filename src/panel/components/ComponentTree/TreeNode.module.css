@@ -66,7 +66,9 @@
   cursor: pointer;
   border-radius: 3px;
   flex-shrink: 0;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .toggle:hover:not(:disabled) {
@@ -110,7 +112,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-primary, #cccccc);
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
 }
 
@@ -140,7 +142,7 @@
   font-size: 11px;
   font-weight: 600;
   border-radius: 9px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Badge variants */
@@ -172,7 +174,7 @@
 
 /* Depth indicator (optional visual guide) */
 .node::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -192,12 +194,12 @@
   .node {
     border-bottom: 1px solid var(--border-color, #6e6e6e);
   }
-  
+
   .node.selected {
     outline: 2px solid var(--focus-ring, #007acc);
     outline-offset: -2px;
   }
-  
+
   .badge {
     border: 1px solid currentColor;
   }
@@ -217,11 +219,11 @@
     border-left: 1px solid #ccc;
     break-inside: avoid;
   }
-  
+
   .toggle {
     display: none;
   }
-  
+
   .badge {
     border: 1px solid #999;
   }

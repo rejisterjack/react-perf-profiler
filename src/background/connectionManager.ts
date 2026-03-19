@@ -4,9 +4,9 @@
  * @module background/connectionManager
  */
 
-import { PortNameEnum, DEFAULT_PROFILER_CONFIG } from '@/shared/constants';
+import { DEFAULT_PROFILER_CONFIG } from '@/shared/constants';
 import type { ProfilerConfig } from '@/shared/types';
-import type { TabConnection, PortType, SessionStatus } from './types';
+import type { TabConnection, PortType } from './types';
 import {
   LogLevel,
   BackgroundErrorCode,
@@ -14,13 +14,6 @@ import {
   type ConnectionManagerConfig,
   DEFAULT_CONNECTION_MANAGER_CONFIG,
 } from './types';
-
-/** Maps PortType to the corresponding PortNameEnum value */
-const PORT_TYPE_TO_NAME: Record<PortType, PortNameEnum> = {
-  content: PortNameEnum.CONTENT_BACKGROUND,
-  devtools: PortNameEnum.DEVTOOLS_BACKGROUND,
-  popup: PortNameEnum.POPUP_BACKGROUND,
-};
 
 /**
  * Manages Chrome extension port connections for all tabs
@@ -44,10 +37,7 @@ export class ConnectionManager {
    * @param config - Optional configuration overrides
    * @param logger - Optional custom logger (defaults to console)
    */
-  constructor(
-    config: Partial<ConnectionManagerConfig> = {},
-    logger: Console = console
-  ) {
+  constructor(config: Partial<ConnectionManagerConfig> = {}, logger: Console = console) {
     this.config = { ...DEFAULT_CONNECTION_MANAGER_CONFIG, ...config };
     this.logger = logger;
     this.startCleanupInterval();
@@ -114,7 +104,7 @@ export class ConnectionManager {
       }
 
       // Store the port
-      connection[portKey] = port;
+      connection[portKey as 'contentPort' | 'devtoolsPort' | 'popupPort'] = port;
 
       // Set up disconnect handler
       port.onDisconnect.addListener(() => {
@@ -158,19 +148,19 @@ export class ConnectionManager {
     if (!connection) return;
 
     const portKey = this.getPortKey(portType);
-    const port = connection[portKey];
+    const port = connection[portKey] as chrome.runtime.Port | null;
 
     if (port) {
       try {
         port.disconnect();
-      } catch (error) {
+      } catch (err) {
         this.log(LogLevel.WARN, `Error disconnecting ${portType} port for tab ${tabId}`, {
           tabId,
           portType,
-          error,
+          error: err,
         });
       }
-      connection[portKey] = null;
+      connection[portKey as 'contentPort' | 'devtoolsPort' | 'popupPort'] = null;
     }
 
     this.log(LogLevel.INFO, `Disconnected ${portType} port for tab ${tabId}`, {
@@ -189,11 +179,7 @@ export class ConnectionManager {
    * @param message - Message to send
    * @returns Result indicating success or failure
    */
-  broadcastToPort<T>(
-    tabId: number,
-    portType: PortType,
-    message: T
-  ): BackgroundResult<void> {
+  broadcastToPort<T>(tabId: number, portType: PortType, message: T): BackgroundResult<void> {
     const connection = this.connections.get(tabId);
     if (!connection) {
       return {
@@ -207,7 +193,7 @@ export class ConnectionManager {
     }
 
     const portKey = this.getPortKey(portType);
-    const port = connection[portKey];
+    const port = connection[portKey] as chrome.runtime.Port | null;
 
     if (!port) {
       return {
@@ -223,17 +209,17 @@ export class ConnectionManager {
     try {
       port.postMessage(message);
       return { success: true };
-    } catch (error) {
+    } catch (err) {
       this.log(LogLevel.ERROR, `Failed to broadcast to ${portType} for tab ${tabId}`, {
         tabId,
         portType,
-        error,
+        error: err,
       });
       return {
         success: false,
         error: {
           code: BackgroundErrorCode.BROADCAST_FAILED,
-          message: `Failed to broadcast to ${portType}: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Failed to broadcast to ${portType}: ${err instanceof Error ? err.message : String(err)}`,
           tabId,
         },
       };
@@ -369,7 +355,7 @@ export class ConnectionManager {
     if (!connection) return;
 
     const portKey = this.getPortKey(portType);
-    connection[portKey] = null;
+    connection[portKey as 'contentPort' | 'devtoolsPort' | 'popupPort'] = null;
 
     this.log(LogLevel.INFO, `${portType} port disconnected for tab ${tabId}`, {
       tabId,

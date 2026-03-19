@@ -38,7 +38,16 @@ const getInitialState = () => ({
 
 describe('connectionStore', () => {
   beforeEach(() => {
-    useConnectionStore.setState(getInitialState(), true);
+    // Reset state without replacing (preserve methods)
+    const currentState = useConnectionStore.getState();
+    const initialState = getInitialState();
+    useConnectionStore.setState({
+      ...currentState,
+      ...initialState,
+      // Ensure both queue arrays are reset
+      messageQueue: [],
+      pendingMessages: [],
+    });
     vi.clearAllMocks();
   });
 
@@ -91,7 +100,8 @@ describe('connectionStore', () => {
 
     it('should send queued messages after connection', () => {
       const queuedMessage = { type: 'TEST', payload: {} };
-      useConnectionStore.setState({ messageQueue: [queuedMessage] });
+      // Set both messageQueue and pendingMessages (they are aliases)
+      useConnectionStore.setState({ messageQueue: [queuedMessage], pendingMessages: [queuedMessage] });
 
       mockTabsQuery.mockImplementation((query, callback) => {
         callback([{ id: 123 }]);

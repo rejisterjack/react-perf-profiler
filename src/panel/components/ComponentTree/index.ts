@@ -1,12 +1,12 @@
 /**
  * ComponentTree Module
- * 
+ *
  * Exports all component tree view components, types, and utilities.
- * 
+ *
  * @example
  * ```tsx
  * import { TreeView, TreeSearch, type TreeNodeProps } from './ComponentTree';
- * 
+ *
  * function MyPanel() {
  *   return (
  *     <>

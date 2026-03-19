@@ -4,10 +4,11 @@
  * Includes bar charts for render counts and line charts for duration trends
  */
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import type { CommitData } from '@/content/types';
+
 import styles from './MetricsChart.module.css';
 
 type ChartType = 'renders' | 'duration' | 'components';
@@ -72,13 +73,13 @@ export const MetricsChart: React.FC = () => {
 
       switch (chartType) {
         case 'renders':
-          value = commit.fibers?.length || 0;
+          value = commit.nodes?.length || 0;
           break;
         case 'duration':
           value = commit.duration;
           break;
         case 'components':
-          value = new Set(commit.fibers?.map((f) => f.displayName)).size;
+          value = new Set(commit.nodes?.map((f) => f.displayName)).size;
           break;
         default:
           value = 0;
@@ -87,7 +88,7 @@ export const MetricsChart: React.FC = () => {
       return {
         timestamp: commit.timestamp,
         value,
-        commitId: commit.commitId,
+        commitId: commit.id,
       };
     });
 
@@ -161,9 +162,7 @@ export const MetricsChart: React.FC = () => {
     const config = getChartConfig(chartType);
 
     // Create main group
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+    const g = svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
 
     // Create scales
     const xScale = d3
@@ -180,13 +179,13 @@ export const MetricsChart: React.FC = () => {
 
     // Add axes
     g.append('g')
-      .attr('class', styles.axis)
+      .attr('class', styles["axis"]!)
       .attr('transform', `translate(0,${innerHeight})`)
       .call(
         d3
           .axisBottom(xScale)
           .tickFormat((d) => {
-            const timestamp = parseInt(d as string);
+            const timestamp = parseInt(d as string, 10);
             const firstTimestamp = chartData[0]?.timestamp || timestamp;
             return `${((timestamp - firstTimestamp) / 1000).toFixed(1)}s`;
           })
@@ -199,20 +198,18 @@ export const MetricsChart: React.FC = () => {
           )
       );
 
-    g.append('g')
-      .attr('class', styles.axis)
-      .call(d3.axisLeft(yScale).ticks(5));
+    g.append('g').attr('class', styles["axis"]!).call(d3.axisLeft(yScale).ticks(5));
 
     // Add axis labels
     g.append('text')
-      .attr('class', styles.axisLabel)
+      .attr('class', styles["axisLabel"]!)
       .attr('x', innerWidth / 2)
       .attr('y', innerHeight + 40)
       .attr('text-anchor', 'middle')
       .text('Time (seconds)');
 
     g.append('text')
-      .attr('class', styles.axisLabel)
+      .attr('class', styles["axisLabel"]!)
       .attr('transform', 'rotate(-90)')
       .attr('x', -innerHeight / 2)
       .attr('y', -50)
@@ -221,8 +218,13 @@ export const MetricsChart: React.FC = () => {
 
     // Add grid lines
     g.append('g')
-      .attr('class', styles.grid)
-      .call(d3.axisLeft(yScale).tickSize(-innerWidth).tickFormat(() => ''));
+      .attr('class', styles["grid"]!)
+      .call(
+        d3
+          .axisLeft(yScale)
+          .tickSize(-innerWidth)
+          .tickFormat(() => '')
+      );
 
     // Create gradient for area fill
     const gradient = svg
@@ -234,16 +236,24 @@ export const MetricsChart: React.FC = () => {
       .attr('x2', '0%')
       .attr('y2', '100%');
 
-    gradient.append('stop').attr('offset', '0%').attr('stop-color', config.color).attr('stop-opacity', 0.3);
+    gradient
+      .append('stop')
+      .attr('offset', '0%')
+      .attr('stop-color', config.color)
+      .attr('stop-opacity', 0.3);
 
-    gradient.append('stop').attr('offset', '100%').attr('stop-color', config.color).attr('stop-opacity', 0.05);
+    gradient
+      .append('stop')
+      .attr('offset', '100%')
+      .attr('stop-color', config.color)
+      .attr('stop-opacity', 0.05);
 
     // Add bars
     const bars = g
       .selectAll('rect')
       .data(chartData)
       .join('rect')
-      .attr('class', styles.bar)
+      .attr('class', styles["bar"]!)
       .attr('x', (d) => xScale(d.timestamp.toString()) || 0)
       .attr('y', innerHeight)
       .attr('width', xScale.bandwidth())
@@ -270,7 +280,7 @@ export const MetricsChart: React.FC = () => {
     // Add average line
     const average = d3.mean(chartData, (d) => d.value) || 0;
     g.append('line')
-      .attr('class', styles.averageLine)
+      .attr('class', styles["averageLine"]!)
       .attr('x1', 0)
       .attr('x2', innerWidth)
       .attr('y1', yScale(average))
@@ -278,7 +288,7 @@ export const MetricsChart: React.FC = () => {
 
     // Add average label
     g.append('text')
-      .attr('class', styles.averageLabel)
+      .attr('class', styles["averageLabel"]!)
       .attr('x', innerWidth - 5)
       .attr('y', yScale(average) - 5)
       .attr('text-anchor', 'end')
@@ -287,8 +297,8 @@ export const MetricsChart: React.FC = () => {
 
   if (commits.length === 0) {
     return (
-      <div className={styles.empty}>
-        <div className={styles.emptyIcon}>📊</div>
+      <div className={styles["empty"]}>
+        <div className={styles["emptyIcon"]}>📊</div>
         <p>Record commits to see metrics</p>
       </div>
     );
@@ -307,24 +317,24 @@ export const MetricsChart: React.FC = () => {
   }, [chartData]);
 
   return (
-    <div ref={containerRef} className={styles.container}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>Performance Metrics</h3>
-        <div className={styles.chartControls}>
+    <div ref={containerRef} className={styles["container"]}>
+      <div className={styles["header"]}>
+        <h3 className={styles["title"]}>Performance Metrics</h3>
+        <div className={styles["chartControls"]}>
           <button
-            className={`${styles.chartButton} ${chartType === 'renders' ? styles.active : ''}`}
+            className={`${styles["chartButton"]} ${chartType === 'renders' ? styles["active"] : ''}`}
             onClick={() => setChartType('renders')}
           >
             Renders
           </button>
           <button
-            className={`${styles.chartButton} ${chartType === 'duration' ? styles.active : ''}`}
+            className={`${styles["chartButton"]} ${chartType === 'duration' ? styles["active"] : ''}`}
             onClick={() => setChartType('duration')}
           >
             Duration
           </button>
           <button
-            className={`${styles.chartButton} ${chartType === 'components' ? styles.active : ''}`}
+            className={`${styles["chartButton"]} ${chartType === 'components' ? styles["active"] : ''}`}
             onClick={() => setChartType('components')}
           >
             Components
@@ -333,29 +343,29 @@ export const MetricsChart: React.FC = () => {
       </div>
 
       {stats && (
-        <div className={styles.stats}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Total</span>
-            <span className={styles.statValue}>{stats.total.toFixed(0)}</span>
+        <div className={styles["stats"]}>
+          <div className={styles["statItem"]}>
+            <span className={styles["statLabel"]}>Total</span>
+            <span className={styles["statValue"]}>{stats.total.toFixed(0)}</span>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Average</span>
-            <span className={styles.statValue}>{stats.average.toFixed(1)}</span>
+          <div className={styles["statItem"]}>
+            <span className={styles["statLabel"]}>Average</span>
+            <span className={styles["statValue"]}>{stats.average.toFixed(1)}</span>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Max</span>
-            <span className={styles.statValue}>{stats.max.toFixed(1)}</span>
+          <div className={styles["statItem"]}>
+            <span className={styles["statLabel"]}>Max</span>
+            <span className={styles["statValue"]}>{stats.max.toFixed(1)}</span>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Min</span>
-            <span className={styles.statValue}>{stats.min.toFixed(1)}</span>
+          <div className={styles["statItem"]}>
+            <span className={styles["statLabel"]}>Min</span>
+            <span className={styles["statValue"]}>{stats.min.toFixed(1)}</span>
           </div>
         </div>
       )}
 
       <svg
         ref={svgRef}
-        className={styles.svg}
+        className={styles["svg"]}
         width={dimensions.width}
         height={dimensions.height}
       />
@@ -375,23 +385,21 @@ const Tooltip: React.FC<{ tooltip: TooltipState }> = ({ tooltip }) => {
 
   return (
     <div
-      className={styles.tooltip}
+      className={styles["tooltip"]}
       style={{
         left: tooltip.x,
         top: tooltip.y,
       }}
     >
-      <div className={styles.tooltipHeader}>{label}</div>
-      <div className={styles.tooltipContent}>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Time:</span>
-          <span className={styles.tooltipValue}>
-            {(data.timestamp / 1000).toFixed(2)}s
-          </span>
+      <div className={styles["tooltipHeader"]}>{label}</div>
+      <div className={styles["tooltipContent"]}>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Time:</span>
+          <span className={styles["tooltipValue"]}>{(data.timestamp / 1000).toFixed(2)}s</span>
         </div>
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>Value:</span>
-          <span className={styles.tooltipValue}>{data.value.toFixed(2)}</span>
+        <div className={styles["tooltipRow"]}>
+          <span className={styles["tooltipLabel"]}>Value:</span>
+          <span className={styles["tooltipValue"]}>{data.value.toFixed(2)}</span>
         </div>
       </div>
     </div>

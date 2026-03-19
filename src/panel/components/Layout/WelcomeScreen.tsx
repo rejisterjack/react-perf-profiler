@@ -3,7 +3,7 @@
  * Empty state displayed when no profiling data is available
  */
 
-import React from 'react';
+import type React from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
 import { Icon } from '../Common/Icon/Icon';
@@ -24,49 +24,51 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <div className={styles.welcomeScreen} role="region" aria-label="Welcome">
+    <div className={styles["welcomeScreen"]} role="region" aria-label="Welcome">
       {/* Logo and Title */}
-      <div className={styles.hero}>
-        <div className={styles.logo}>
-          <Icon name="performance" size="xl" className={styles.logoIcon} />
-          <div className={styles.flame} />
+      <div className={styles["hero"]}>
+        <div className={styles["logo"]}>
+          <Icon name="performance" size={32} className={styles["logoIcon"]} />
+          <div className={styles["flame"]} />
         </div>
-        <h1 className={styles.title}>React Perf Profiler</h1>
-        <p className={styles.subtitle}>
+        <h1 className={styles["title"]}>React Perf Profiler</h1>
+        <p className={styles["subtitle"]}>
           Analyze and optimize your React application performance
         </p>
       </div>
 
       {/* Status Indicator */}
-      <div className={styles.statusSection}>
-        <div className={`${styles.statusBadge} ${isConnected ? styles.connected : styles.disconnected}`}>
-          <Icon name="dot" size="md" />
+      <div className={styles["statusSection"]}>
+        <div
+          className={`${styles["statusBadge"]} ${isConnected ? styles["connected"] : styles["disconnected"]}`}
+        >
+          <Icon name="dot" size={20} />
           <span>{isConnected ? 'Connected to React app' : 'Disconnected'}</span>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className={styles.actions}>
+      <div className={styles["actions"]}>
         <Button
           variant="primary"
-          size="lg"
+          size="sm"
           icon="record"
           onClick={handleStartRecording}
           disabled={!isConnected || isRecording}
-          className={styles.recordButton}
+          className={styles["recordButton"]}
         >
           {isRecording ? 'Recording...' : 'Start Profiling'}
         </Button>
-        
+
         {!isConnected && (
-          <p className={styles.helpText}>
+          <p className={styles["helpText"]}>
             Make sure your React app is running with the development build
           </p>
         )}
       </div>
 
       {/* Features Grid */}
-      <div className={styles.features}>
+      <div className={styles["features"]}>
         <FeatureCard
           icon="tree"
           title="Component Tree"
@@ -90,9 +92,9 @@ export const WelcomeScreen: React.FC = () => {
       </div>
 
       {/* Keyboard Shortcuts */}
-      <div className={styles.shortcuts}>
+      <div className={styles["shortcuts"]}>
         <h3>Keyboard Shortcuts</h3>
-        <div className={styles.shortcutList}>
+        <div className={styles["shortcutList"]}>
           <Shortcut keyCombo="R" description="Start/Stop recording" />
           <Shortcut keyCombo="C" description="Clear data" />
           <Shortcut keyCombo="E" description="Export data" />
@@ -101,12 +103,12 @@ export const WelcomeScreen: React.FC = () => {
       </div>
 
       {/* Tips */}
-      <div className={styles.tips}>
-        <div className={styles.tip}>
-          <Icon name="info" size="sm" className={styles.tipIcon} />
+      <div className={styles["tips"]}>
+        <div className={styles["tip"]}>
+          <Icon name="info" size={16} className={styles["tipIcon"]} />
           <p>
-            <strong>Tip:</strong> Click on any component in the tree to see detailed
-            performance metrics and optimization suggestions.
+            <strong>Tip:</strong> Click on any component in the tree to see detailed performance
+            metrics and optimization suggestions.
           </p>
         </div>
       </div>
@@ -125,12 +127,12 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => (
-  <div className={styles.featureCard}>
-    <div className={styles.featureIcon}>
-      <Icon name={icon as any} size="lg" />
+  <div className={styles["featureCard"]}>
+    <div className={styles["featureIcon"]}>
+      <Icon name={icon as any} size={24} />
     </div>
-    <h3 className={styles.featureTitle}>{title}</h3>
-    <p className={styles.featureDescription}>{description}</p>
+    <h3 className={styles["featureTitle"]}>{title}</h3>
+    <p className={styles["featureDescription"]}>{description}</p>
   </div>
 );
 
@@ -140,9 +142,9 @@ interface ShortcutProps {
 }
 
 const Shortcut: React.FC<ShortcutProps> = ({ keyCombo, description }) => (
-  <div className={styles.shortcut}>
-    <kbd className={styles.keyCombo}>{keyCombo}</kbd>
-    <span className={styles.description}>{description}</span>
+  <div className={styles["shortcut"]}>
+    <kbd className={styles["keyCombo"]}>{keyCombo}</kbd>
+    <span className={styles["description"]}>{description}</span>
   </div>
 );
 

@@ -3,7 +3,8 @@
  * Main 3-panel layout with resizable sidebar and detail panel
  */
 
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import type React from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { DetailPanel } from './DetailPanel';
@@ -20,9 +21,10 @@ export const PanelLayout: React.FC = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const detailPanelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const { sidebarWidth, detailPanelOpen, detailPanelWidth, setSidebarWidth, setDetailPanelWidth } = useProfilerStore();
-  
+
+  const { sidebarWidth, detailPanelOpen, detailPanelWidth, setSidebarWidth, setDetailPanelWidth } =
+    useProfilerStore();
+
   // Resize state
   const [isResizing, setIsResizing] = useState(false);
   const [activeResizer, setActiveResizer] = useState<ResizeTarget | null>(null);
@@ -33,29 +35,38 @@ export const PanelLayout: React.FC = () => {
   // Resize Handlers
   // =============================================================================
 
-  const handleSidebarResize = useCallback((newWidth: number) => {
-    setSidebarWidth(Math.max(200, Math.min(500, newWidth)));
-  }, [setSidebarWidth]);
+  const handleSidebarResize = useCallback(
+    (newWidth: number) => {
+      setSidebarWidth(Math.max(200, Math.min(500, newWidth)));
+    },
+    [setSidebarWidth]
+  );
 
-  const handleDetailPanelResize = useCallback((newWidth: number) => {
-    setDetailPanelWidth?.(Math.max(250, Math.min(600, newWidth)));
-  }, [setDetailPanelWidth]);
+  const handleDetailPanelResize = useCallback(
+    (newWidth: number) => {
+      setDetailPanelWidth?.(Math.max(250, Math.min(600, newWidth)));
+    },
+    [setDetailPanelWidth]
+  );
 
-  const startResize = useCallback((e: React.MouseEvent, target: ResizeTarget) => {
-    e.preventDefault();
-    setIsResizing(true);
-    setActiveResizer(target);
-    resizeStartX.current = e.clientX;
-    
-    if (target === 'sidebar') {
-      resizeStartWidth.current = sidebarWidth;
-    } else {
-      resizeStartWidth.current = detailPanelWidth || 320;
-    }
+  const startResize = useCallback(
+    (e: React.MouseEvent, target: ResizeTarget) => {
+      e.preventDefault();
+      setIsResizing(true);
+      setActiveResizer(target);
+      resizeStartX.current = e.clientX;
 
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, [sidebarWidth, detailPanelWidth]);
+      if (target === 'sidebar') {
+        resizeStartWidth.current = sidebarWidth;
+      } else {
+        resizeStartWidth.current = detailPanelWidth || 320;
+      }
+
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [sidebarWidth, detailPanelWidth]
+  );
 
   const stopResize = useCallback(() => {
     setIsResizing(false);
@@ -64,18 +75,21 @@ export const PanelLayout: React.FC = () => {
     document.body.style.userSelect = '';
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !activeResizer) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing || !activeResizer) return;
 
-    const delta = e.clientX - resizeStartX.current;
+      const delta = e.clientX - resizeStartX.current;
 
-    if (activeResizer === 'sidebar') {
-      handleSidebarResize(resizeStartWidth.current + delta);
-    } else if (activeResizer === 'detail') {
-      // For detail panel, dragging left increases width
-      handleDetailPanelResize(resizeStartWidth.current - delta);
-    }
-  }, [isResizing, activeResizer, handleSidebarResize, handleDetailPanelResize]);
+      if (activeResizer === 'sidebar') {
+        handleSidebarResize(resizeStartWidth.current + delta);
+      } else if (activeResizer === 'detail') {
+        // For detail panel, dragging left increases width
+        handleDetailPanelResize(resizeStartWidth.current - delta);
+      }
+    },
+    [isResizing, activeResizer, handleSidebarResize, handleDetailPanelResize]
+  );
 
   // =============================================================================
   // Effects
@@ -98,8 +112,8 @@ export const PanelLayout: React.FC = () => {
     const handleTouchMove = (e: TouchEvent) => {
       if (!isResizing || !activeResizer) return;
       e.preventDefault();
-      
-      const touch = e.touches[0];
+
+      const touch = e.touches[0]!;
       const delta = touch.clientX - resizeStartX.current;
 
       if (activeResizer === 'sidebar') {
@@ -125,26 +139,21 @@ export const PanelLayout: React.FC = () => {
   }, [isResizing, activeResizer, handleSidebarResize, handleDetailPanelResize, stopResize]);
 
   return (
-    <div 
-      ref={containerRef}
-      className={styles.panelLayout}
-      data-resizing={isResizing}
-    >
+    <div ref={containerRef} className={styles["panelLayout"]} data-resizing={isResizing}>
       {/* Left sidebar - Component tree */}
-      <Sidebar 
-        ref={sidebarRef}
-        width={sidebarWidth}
-        onResize={handleSidebarResize}
-      />
-      
+      <Sidebar ref={sidebarRef} width={sidebarWidth} onResize={handleSidebarResize} />
+
       {/* Resizer handle for sidebar */}
-      <div 
-        className={`${styles.resizer} ${activeResizer === 'sidebar' ? styles.active : ''}`}
+      <div
+        className={`${styles["resizer"]} ${activeResizer === 'sidebar' ? styles["active"] : ''}`}
         onMouseDown={(e) => startResize(e, 'sidebar')}
         onTouchStart={(e) => {
-          const touch = e.touches[0];
+          const touch = e.touches[0]!;
           startResize(
-            { clientX: touch.clientX, preventDefault: () => e.preventDefault() } as React.MouseEvent,
+            {
+              clientX: touch.clientX,
+              preventDefault: () => e.preventDefault(),
+            } as React.MouseEvent,
             'sidebar'
           );
         }}
@@ -162,21 +171,24 @@ export const PanelLayout: React.FC = () => {
           }
         }}
       />
-      
+
       {/* Main content area */}
-      <MainContent className={styles.mainContent} />
-      
+      <MainContent className={styles["mainContent"]} />
+
       {/* Right detail panel */}
       {detailPanelOpen && (
         <>
           {/* Resizer handle for detail panel */}
-          <div 
-            className={`${styles.resizer} ${activeResizer === 'detail' ? styles.active : ''}`}
+          <div
+            className={`${styles["resizer"]} ${activeResizer === 'detail' ? styles["active"] : ''}`}
             onMouseDown={(e) => startResize(e, 'detail')}
             onTouchStart={(e) => {
-              const touch = e.touches[0];
+              const touch = e.touches[0]!;
               startResize(
-                { clientX: touch.clientX, preventDefault: () => e.preventDefault() } as React.MouseEvent,
+                {
+                  clientX: touch.clientX,
+                  preventDefault: () => e.preventDefault(),
+                } as React.MouseEvent,
                 'detail'
               );
             }}
@@ -196,11 +208,9 @@ export const PanelLayout: React.FC = () => {
           <DetailPanel ref={detailPanelRef} />
         </>
       )}
-      
+
       {/* Resize overlay to prevent iframe/content issues during resize */}
-      {isResizing && (
-        <div className={styles.resizeOverlay} aria-hidden="true" />
-      )}
+      {isResizing && <div className={styles["resizeOverlay"]} aria-hidden="true" />}
     </div>
   );
 };

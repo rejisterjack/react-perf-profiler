@@ -7,11 +7,11 @@
 // Store Exports
 // ============================================================================
 
-export { 
-  useProfilerStore, 
-  type ProfilerState, 
-  type PerformanceMetrics, 
-  type TreeNode, 
+export {
+  useProfilerStore,
+  type ProfilerState,
+  type PerformanceMetrics,
+  type TreeNode,
   type ComponentData,
   type ViewMode,
   type ProfilerStore,
@@ -29,13 +29,10 @@ export {
   selectSelectedCommitId,
   selectSelectedComponent,
   selectFilterText,
-  selectSeverityFilter,
-  selectComponentTypeFilter,
   selectWastedRenderReports,
   selectExpandedNodes,
   selectViewMode,
   selectIsDetailPanelOpen,
-  
   // Derived selectors
   selectSelectedCommit,
   selectLastCommit,
@@ -53,7 +50,6 @@ export {
   selectTimelineData,
   selectFlamegraphData,
   selectSessionStats,
-  
   // Selector collection
   selectors,
 } from './selectors';
@@ -84,25 +80,17 @@ export function useSelectedCommit(): CommitData | null {
 export function useFilteredCommits(): CommitData[] {
   return useProfilerStore((state) => {
     const normalizedFilter = state.filterText.toLowerCase().trim();
-    
+
     return state.commits.filter((commit) => {
       // Apply text filter
       if (normalizedFilter) {
-        const hasMatch = commit.nodes.some((node) =>
+        const nodes = commit.nodes ?? [];
+        const hasMatch = nodes.some((node) =>
           node.displayName?.toLowerCase().includes(normalizedFilter)
         );
         if (!hasMatch) return false;
       }
-      
-      // Apply component type filter
-      if (state.componentTypeFilter && state.componentTypeFilter !== 'all') {
-        const hasMatchingType = commit.nodes.some((node) => {
-          const isMemoized = node.isMemoized;
-          return state.componentTypeFilter === 'memoized' ? isMemoized : !isMemoized;
-        });
-        if (!hasMatchingType) return false;
-      }
-      
+
       return true;
     });
   });
@@ -114,7 +102,7 @@ export function useFilteredCommits(): CommitData[] {
 export function useSelectedComponent(): ComponentData | null {
   return useProfilerStore((state) => {
     if (!state.selectedComponent) return null;
-    
+
     const componentData: ComponentData = {
       name: state.selectedComponent,
       renderCount: 0,
@@ -127,30 +115,32 @@ export function useSelectedComponent(): ComponentData | null {
       commitIds: [],
       severity: 'none',
     };
-    
+
     for (const commit of state.commits) {
-      for (const node of commit.nodes) {
+      const nodes = commit.nodes ?? [];
+      for (const node of nodes) {
         if (node.displayName === state.selectedComponent) {
           componentData.renderCount++;
           componentData.totalDuration += node.actualDuration;
           componentData.commitIds.push(commit.id);
-          
+
           if (node.isMemoized) {
             componentData.isMemoized = true;
           }
-          
+
           if (node.actualDuration < 0.1) {
             componentData.wastedRenders++;
           }
         }
       }
     }
-    
+
     if (componentData.renderCount === 0) return null;
-    
+
     componentData.averageDuration = componentData.totalDuration / componentData.renderCount;
-    componentData.wastedRenderRate = (componentData.wastedRenders / componentData.renderCount) * 100;
-    
+    componentData.wastedRenderRate =
+      (componentData.wastedRenders / componentData.renderCount) * 100;
+
     if (componentData.wastedRenderRate > 50) {
       componentData.severity = 'critical';
     } else if (componentData.wastedRenderRate > 20) {
@@ -158,7 +148,7 @@ export function useSelectedComponent(): ComponentData | null {
     } else if (componentData.wastedRenderRate > 5) {
       componentData.severity = 'info';
     }
-    
+
     return componentData;
   });
 }
@@ -209,9 +199,16 @@ export function usePerformanceScore(): PerformanceMetrics | null {
 export function useWastedRenderReports(): WastedRenderReport[] {
   return useProfilerStore((state) =>
     [...state.wastedRenderReports].sort((a, b) => {
-      const severityOrder = { critical: 0, warning: 1, info: 2 };
+      const severityOrder: Record<string, number> = {
+        critical: 0,
+        warning: 1,
+        info: 2,
+        low: 1,
+        medium: 1,
+        high: 0,
+      };
       if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-        return severityOrder[a.severity] - severityOrder[b.severity];
+        return severityOrder[a.severity]! - severityOrder[b.severity]!;
       }
       return (b.wastedRenderRate || 0) - (a.wastedRenderRate || 0);
     })
@@ -246,7 +243,7 @@ export function startProfilingSession(): void {
 export async function stopProfilingSession(): Promise<void> {
   useProfilerStore.getState().stopRecording();
   useConnectionStore.getState().sendMessage({ type: 'STOP_PROFILING' });
-  
+
   // Auto-run analysis if enabled
   const { enableAutoAnalysis } = useSettingsStore.getState();
   if (enableAutoAnalysis) {
@@ -287,17 +284,24 @@ export function importProfilingData(json: string): void {
 export async function initializeStores(): Promise<void> {
   // Load settings from storage
   await useSettingsStore.getState().loadSettings();
-  
+
   // Connect to background script
   useConnectionStore.getState().connect();
-  
+
   // Register message handler for commits
-  useConnectionStore.getState().onMessage?.((message: { type: string; payload?: unknown }) => {
-    if (message.type === 'COMMIT_DATA' && message.payload) {
-      const commit = message.payload as CommitData;
-      useProfilerStore.getState().addCommit(commit);
-    }
-  });
+  const connectionStore = useConnectionStore.getState();
+  if ('onMessage' in connectionStore && typeof connectionStore.onMessage === 'function') {
+    (
+      connectionStore as unknown as {
+        onMessage: (cb: (message: { type: string; payload?: unknown }) => void) => void;
+      }
+    ).onMessage((message: { type: string; payload?: unknown }) => {
+      if (message.type === 'COMMIT_DATA' && message.payload) {
+        const commit = message.payload as CommitData;
+        useProfilerStore.getState().addCommit(commit);
+      }
+    });
+  }
 }
 
 /**

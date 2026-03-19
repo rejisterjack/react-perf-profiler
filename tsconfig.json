@@ -58,8 +58,7 @@
     "types": ["chrome", "node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
-    "src/**/*",
-    "vite.config.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

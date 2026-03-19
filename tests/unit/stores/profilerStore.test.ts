@@ -37,8 +37,14 @@ const getInitialState = () => {
 
 describe('profilerStore', () => {
   beforeEach(() => {
-    // Reset store to initial state
-    useProfilerStore.setState(getInitialState(), true);
+    // Reset store to initial state while preserving methods
+    const currentState = useProfilerStore.getState();
+    const initialData = getInitialState();
+    useProfilerStore.setState({
+      ...currentState,
+      ...initialData,
+      expandedNodes: new Set<string>(),
+    });
   });
 
   describe('recording state', () => {

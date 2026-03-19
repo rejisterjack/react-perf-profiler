@@ -1,67 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 export const App: React.FC = () => {
-  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
   const [hasReact, setHasReact] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Check if React is present on the current page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { type: 'CHECK_REACT' },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              setHasReact(false);
-              return;
-            }
-            setHasReact(response?.hasReact ?? false);
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'CHECK_REACT' }, (response) => {
+          if (chrome.runtime.lastError) {
+            setHasReact(false);
+            return;
           }
-        );
+          setHasReact(response?.hasReact ?? false);
+        });
       }
     });
   }, []);
 
-  const openDevTools = () => {
-    // Open DevTools - this requires the user to manually open it
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.action.openPopup?.();
-      }
-    });
-  };
-
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>React Perf Profiler</h1>
-        <p style={styles.subtitle}>Performance analysis for React applications</p>
+    <div style={styles["container"]}>
+      <header style={styles["header"]}>
+        <h1 style={styles["title"]}>React Perf Profiler</h1>
+        <p style={styles["subtitle"]}>Performance analysis for React applications</p>
       </header>
 
-      <main style={styles.main}>
-        {hasReact === null && (
-          <p style={styles.text}>Checking for React...</p>
-        )}
+      <main style={styles["main"]}>
+        {hasReact === null && <p style={styles["text"]}>Checking for React...</p>}
 
         {hasReact === false && (
-          <div style={styles.alert}>
-            <p style={styles.alertText}>
-              ⚠️ React was not detected on this page.
-            </p>
-            <p style={styles.hint}>
+          <div style={styles["alert"]}>
+            <p style={styles["alertText"]}>⚠️ React was not detected on this page.</p>
+            <p style={styles["hint"]}>
               Make sure you're on a page that uses React, or try refreshing.
             </p>
           </div>
         )}
 
         {hasReact === true && (
-          <div style={styles.success}>
-            <p style={styles.successText}>✅ React detected!</p>
-            <p style={styles.instruction}>
-              Open Chrome DevTools and select the <strong>"Perf Profiler"</strong> panel to start profiling.
+          <div style={styles["success"]}>
+            <p style={styles["successText"]}>✅ React detected!</p>
+            <p style={styles["instruction"]}>
+              Open Chrome DevTools and select the <strong>"Perf Profiler"</strong> panel to start
+              profiling.
             </p>
-            <ol style={styles.steps}>
+            <ol style={styles["steps"]}>
               <li>Press F12 or Ctrl+Shift+J (Cmd+Option+J on Mac)</li>
               <li>Click the "Perf Profiler" tab</li>
               <li>Click the record button to start profiling</li>
@@ -70,17 +54,17 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      <footer style={styles.footer}>
+      <footer style={styles["footer"]}>
         <a
           href="https://github.com/yourusername/react-perf-profiler"
           target="_blank"
           rel="noopener noreferrer"
-          style={styles.link}
+          style={styles["link"]}
         >
           GitHub
         </a>
-        <span style={styles.separator}>•</span>
-        <span style={styles.version}>v1.0.0</span>
+        <span style={styles["separator"]}>•</span>
+        <span style={styles["version"]}>v1.0.0</span>
       </footer>
     </div>
   );

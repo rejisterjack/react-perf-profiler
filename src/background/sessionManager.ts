@@ -5,7 +5,7 @@
  */
 
 import { DEFAULT_PROFILER_CONFIG } from '@/shared/constants';
-import type { CommitData, ProfilerConfig } from '@/shared/types';
+import type { CommitData } from '@/shared/types';
 import type { ConnectionManager } from './connectionManager';
 import {
   LogLevel,
@@ -325,7 +325,7 @@ export class SessionManager {
     }
 
     const commits = connection.commits;
-    const totalNodes = commits.reduce((sum, c) => sum + c.nodes.length, 0);
+    const totalNodes = commits.reduce((sum, c) => sum + (c.nodes?.length ?? 0), 0);
     const totalDuration = commits.reduce((sum, c) => sum + c.duration, 0);
     const sessionDuration = connection.sessionStartTime
       ? Date.now() - connection.sessionStartTime
@@ -345,13 +345,13 @@ export class SessionManager {
    * @returns Session summary
    */
   private generateSessionSummary(commits: CommitData[]): SessionSummary {
-    const totalNodes = commits.reduce((sum, c) => sum + c.nodes.length, 0);
+    const totalNodes = commits.reduce((sum, c) => sum + (c.nodes?.length ?? 0), 0);
     const durations = commits.map((c) => c.duration);
 
     // Count renders per component
     const componentRenderCounts = new Map<string, number>();
     commits.forEach((commit) => {
-      commit.nodes.forEach((node) => {
+      commit.nodes?.forEach((node) => {
         const name = node.displayName;
         const current = componentRenderCounts.get(name) || 0;
         componentRenderCounts.set(name, current + 1);
@@ -368,9 +368,7 @@ export class SessionManager {
       totalCommits: commits.length,
       totalNodes,
       averageCommitDuration:
-        durations.length > 0
-          ? durations.reduce((a, b) => a + b, 0) / durations.length
-          : 0,
+        durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0,
       maxCommitDuration: durations.length > 0 ? Math.max(...durations) : 0,
       minCommitDuration: durations.length > 0 ? Math.min(...durations) : 0,
       uniqueComponents: componentRenderCounts.size,

@@ -3,7 +3,8 @@
  * Settings dropdown with configuration options
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import type React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './SettingsButton.module.css';
@@ -69,118 +70,115 @@ export const SettingsButton: React.FC = () => {
 
   const handleSeverityToggle = (severity: 'critical' | 'warning' | 'info') => {
     if (severityFilter.includes(severity)) {
-      setSeverityFilter(severityFilter.filter((s) => s !== severity));
+      setSeverityFilter(
+        severityFilter.filter((s: 'critical' | 'warning' | 'info') => s !== severity)
+      );
     } else {
       setSeverityFilter([...severityFilter, severity]);
     }
   };
 
   return (
-    <div className={styles.settingsContainer}>
+    <div className={styles["settingsContainer"]}>
       <button
         ref={buttonRef}
-        className={`${styles.settingsButton} ${isOpen ? styles.active : ''}`}
+        className={`${styles["settingsButton"]} ${isOpen ? styles["active"] : ''}`}
         onClick={handleToggle}
         aria-haspopup="true"
         aria-expanded={isOpen}
         aria-label="Settings"
         title="Settings"
       >
-        <Icon name="settings" size="sm" />
+        <Icon name="settings" size={16} />
       </button>
 
       {isOpen && (
-        <div
-          ref={menuRef}
-          className={styles.dropdown}
-          role="menu"
-          aria-orientation="vertical"
-        >
+        <div ref={menuRef} className={styles["dropdown"]} role="menu" aria-orientation="vertical">
           {/* Section: Filters */}
-          <div className={styles.section}>
-            <h4 className={styles.sectionTitle}>Filters</h4>
-            
-            <div className={styles.menuItem} role="none">
-              <label className={styles.checkboxLabel}>
+          <div className={styles["section"]}>
+            <h4 className={styles["sectionTitle"]}>Filters</h4>
+
+            <div className={styles["menuItem"]} role="none">
+              <label className={styles["checkboxLabel"]}>
                 <input
                   type="checkbox"
                   checked={severityFilter.includes('critical')}
                   onChange={() => handleSeverityToggle('critical')}
-                  className={styles.checkbox}
+                  className={styles["checkbox"]}
                 />
-                <span className={`${styles.indicator} ${styles.critical}`} />
+                <span className={`${styles["indicator"]} ${styles["critical"]}`} />
                 Show Critical
               </label>
             </div>
 
-            <div className={styles.menuItem} role="none">
-              <label className={styles.checkboxLabel}>
+            <div className={styles["menuItem"]} role="none">
+              <label className={styles["checkboxLabel"]}>
                 <input
                   type="checkbox"
                   checked={severityFilter.includes('warning')}
                   onChange={() => handleSeverityToggle('warning')}
-                  className={styles.checkbox}
+                  className={styles["checkbox"]}
                 />
-                <span className={`${styles.indicator} ${styles.warning}`} />
+                <span className={`${styles["indicator"]} ${styles["warning"]}`} />
                 Show Warnings
               </label>
             </div>
 
-            <div className={styles.menuItem} role="none">
-              <label className={styles.checkboxLabel}>
+            <div className={styles["menuItem"]} role="none">
+              <label className={styles["checkboxLabel"]}>
                 <input
                   type="checkbox"
                   checked={severityFilter.includes('info')}
                   onChange={() => handleSeverityToggle('info')}
-                  className={styles.checkbox}
+                  className={styles["checkbox"]}
                 />
-                <span className={`${styles.indicator} ${styles.info}`} />
+                <span className={`${styles["indicator"]} ${styles["info"]}`} />
                 Show Info
               </label>
             </div>
           </div>
 
           {/* Divider */}
-          <div className={styles.divider} role="separator" />
+          <div className={styles["divider"]} role="separator" />
 
           {/* Section: Component Type */}
-          <div className={styles.section}>
-            <h4 className={styles.sectionTitle}>Component Type</h4>
-            
-            <div className={styles.menuItem} role="none">
-              <label className={styles.radioLabel}>
+          <div className={styles["section"]}>
+            <h4 className={styles["sectionTitle"]}>Component Type</h4>
+
+            <div className={styles["menuItem"]} role="none">
+              <label className={styles["radioLabel"]}>
                 <input
                   type="radio"
                   name="componentType"
                   checked={componentTypeFilter === 'all'}
                   onChange={() => setComponentTypeFilter('all')}
-                  className={styles.radio}
+                  className={styles["radio"]}
                 />
                 All Components
               </label>
             </div>
 
-            <div className={styles.menuItem} role="none">
-              <label className={styles.radioLabel}>
+            <div className={styles["menuItem"]} role="none">
+              <label className={styles["radioLabel"]}>
                 <input
                   type="radio"
                   name="componentType"
                   checked={componentTypeFilter === 'memoized'}
                   onChange={() => setComponentTypeFilter('memoized')}
-                  className={styles.radio}
+                  className={styles["radio"]}
                 />
                 Memoized Only
               </label>
             </div>
 
-            <div className={styles.menuItem} role="none">
-              <label className={styles.radioLabel}>
+            <div className={styles["menuItem"]} role="none">
+              <label className={styles["radioLabel"]}>
                 <input
                   type="radio"
                   name="componentType"
                   checked={componentTypeFilter === 'unmemoized'}
                   onChange={() => setComponentTypeFilter('unmemoized')}
-                  className={styles.radio}
+                  className={styles["radio"]}
                 />
                 Unmemoized Only
               </label>
@@ -188,29 +186,29 @@ export const SettingsButton: React.FC = () => {
           </div>
 
           {/* Divider */}
-          <div className={styles.divider} role="separator" />
+          <div className={styles["divider"]} role="separator" />
 
           {/* Section: Actions */}
-          <div className={styles.section}>
+          <div className={styles["section"]}>
             <button
-              className={styles.actionButton}
+              className={styles["actionButton"]}
               onClick={() => {
                 clearData();
                 setIsOpen(false);
               }}
               role="menuitem"
             >
-              <Icon name="clear" size="sm" />
+              <Icon name="clear" size={16} />
               Clear All Data
             </button>
           </div>
 
           {/* Divider */}
-          <div className={styles.divider} role="separator" />
+          <div className={styles["divider"]} role="separator" />
 
           {/* Footer */}
-          <div className={styles.footer}>
-            <span className={styles.hint}>ESC to close</span>
+          <div className={styles["footer"]}>
+            <span className={styles["hint"]}>ESC to close</span>
           </div>
         </div>
       )}

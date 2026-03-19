@@ -1,7 +1,7 @@
-import React from 'react';
+import type React from 'react';
 import styles from './Badge.module.css';
 
-export type BadgeVariant = 
+export type BadgeVariant =
   | 'default'
   | 'primary'
   | 'secondary'
@@ -30,20 +30,11 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
   children,
 }) => {
-  const classNames = [
-    styles.badge,
-    styles[variant],
-    styles[size],
-    className,
-  ]
+  const classNames = [styles["badge"], styles[variant], styles[size], className]
     .filter(Boolean)
     .join(' ');
 
-  return (
-    <span className={classNames}>
-      {children}
-    </span>
-  );
+  return <span className={classNames}>{children}</span>;
 };
 
 export default Badge;

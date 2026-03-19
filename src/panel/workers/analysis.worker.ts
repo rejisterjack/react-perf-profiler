@@ -4,25 +4,13 @@
  */
 
 import type { CommitData } from '@/shared/types';
-import type {
-  WastedRenderReport,
-  WastedRenderConfig,
-} from '@/panel/utils/wastedRenderAnalysis';
-import type {
-  MemoEffectivenessReport,
-  MemoAnalysisConfig,
-  ComponentMetrics,
-} from '@/panel/utils/memoAnalysis';
-import type {
-  PerformanceMetrics,
-  PerformanceScoreConfig,
-} from '@/panel/utils/performanceScore';
-import type { TimelineData, TimelineConfig } from '@/panel/utils/timelineGenerator';
-import type { FlamegraphData } from './flamegraphGenerator';
+import type { WastedRenderReport, WastedRenderConfig } from '@/panel/utils/wastedRenderAnalysis';
+import type { MemoEffectivenessReport } from '@/panel/utils/memoAnalysis';
+import type { PerformanceScoreConfig } from '@/panel/utils/performanceScore';
+import type { TimelineConfig } from '@/panel/utils/timelineGenerator';
 
 // Import analysis functions - these run in the worker context
 import { analyzeWastedRenders } from '@/panel/utils/wastedRenderAnalysis';
-import { analyzeMemoEffectiveness } from '@/panel/utils/memoAnalysis';
 import { calculatePerformanceScore } from '@/panel/utils/performanceScore';
 import { generateTimeline } from '@/panel/utils/timelineGenerator';
 import { generateFlamegraphData, filterSmallNodes } from './flamegraphGenerator';
@@ -138,11 +126,7 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
  * Handles wasted render analysis for multiple commits
  * Processes commit history and identifies wasted renders
  */
-function handleAnalyzeCommits(
-  id: string,
-  payload: AnalyzeCommitsPayload,
-  startTime: number
-): void {
+function handleAnalyzeCommits(id: string, payload: AnalyzeCommitsPayload, startTime: number): void {
   const { commits, config } = payload;
 
   // Validate input
@@ -214,11 +198,7 @@ function handleGenerateTimeline(
  * Handles performance score calculation
  * Calculates overall performance metrics from analysis results
  */
-function handleCalculateScore(
-  id: string,
-  payload: CalculateScorePayload,
-  startTime: number
-): void {
+function handleCalculateScore(id: string, payload: CalculateScorePayload, startTime: number): void {
   const { commits, wastedRenderReports, memoReports, config } = payload;
 
   // Validate input
@@ -233,12 +213,7 @@ function handleCalculateScore(
   }
 
   // Calculate performance metrics
-  const metrics = calculatePerformanceScore(
-    commits,
-    wastedRenderReports,
-    memoReports,
-    config
-  );
+  const metrics = calculatePerformanceScore(commits, wastedRenderReports, memoReports, config);
 
   sendResponse(id, 'SCORE_READY', metrics, startTime);
 }
@@ -272,7 +247,7 @@ function sendResponse(
 function sendError(id: string, error: unknown, startTime: number): void {
   const duration = performance.now() - startTime;
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   const response: WorkerResponse = {
     id,
     type: 'ERROR',
@@ -292,6 +267,3 @@ function countNodes(node: { children: { children: unknown[] }[] }): number {
   }
   return count;
 }
-
-// Export for TypeScript module resolution
-export {};

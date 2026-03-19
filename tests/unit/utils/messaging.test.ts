@@ -388,7 +388,10 @@ describe('extension utilities', () => {
     });
 
     it('should return false when chrome.runtime throws', () => {
+      // Save original chrome
       const originalChrome = global.chrome;
+      
+      // Replace chrome with a proxy that throws on access
       Object.defineProperty(global, 'chrome', {
         get: () => { throw new Error('Extension context invalidated'); },
         configurable: true,
@@ -396,13 +399,20 @@ describe('extension utilities', () => {
       
       expect(isExtensionAvailable()).toBe(false);
       
-      global.chrome = originalChrome;
+      // Restore chrome using defineProperty
+      Object.defineProperty(global, 'chrome', {
+        get: () => originalChrome,
+        configurable: true,
+      });
     });
   });
 
   describe('pingBackground', () => {
     it('should return false when extension not available', async () => {
+      // Save original chrome
       const originalChrome = global.chrome;
+      
+      // Replace chrome with undefined
       Object.defineProperty(global, 'chrome', {
         get: () => undefined,
         configurable: true,
@@ -411,7 +421,11 @@ describe('extension utilities', () => {
       const result = await pingBackground();
       expect(result).toBe(false);
       
-      global.chrome = originalChrome;
+      // Restore chrome
+      Object.defineProperty(global, 'chrome', {
+        get: () => originalChrome,
+        configurable: true,
+      });
     });
 
     it('should return true on successful ping', async () => {
@@ -440,7 +454,10 @@ describe('extension utilities', () => {
     });
 
     it('should reject after max attempts', async () => {
+      // Save original chrome
       const originalChrome = global.chrome;
+      
+      // Replace chrome with undefined
       Object.defineProperty(global, 'chrome', {
         get: () => undefined,
         configurable: true,
@@ -448,7 +465,11 @@ describe('extension utilities', () => {
       
       await expect(waitForExtension(2, 10)).rejects.toThrow();
       
-      global.chrome = originalChrome;
+      // Restore chrome
+      Object.defineProperty(global, 'chrome', {
+        get: () => originalChrome,
+        configurable: true,
+      });
     });
   });
 });

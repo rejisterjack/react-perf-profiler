@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { WastedRenderReport as WastedRenderReportType } from '@/shared/types';
+import type React from 'react';
+import { useMemo } from 'react';
+import type { WastedRenderReport as WastedRenderReportType } from '@/shared/types';
 import { Badge } from '../Common/Badge/Badge';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './WastedRenderReport.module.css';
@@ -12,45 +13,45 @@ export const WastedRenderReport: React.FC<WastedRenderReportProps> = ({ reports 
   const sortedReports = useMemo(() => {
     return [...reports].sort((a, b) => b.wastedRenderRate - a.wastedRenderRate);
   }, [reports]);
-  
-  const criticalCount = reports.filter(r => r.severity === 'critical').length;
-  
+
+  const criticalCount = reports.filter((r) => r.severity === 'critical').length;
+
   return (
-    <div className={styles.report}>
-      <div className={styles.header}>
+    <div className={styles["report"]}>
+      <div className={styles["header"]}>
         <h3>
-          <Icon name="warning" />
+          <Icon name="warning" size={16} />
           Wasted Renders
         </h3>
         <Badge variant="error">{criticalCount} Critical</Badge>
       </div>
-      
+
       {sortedReports.length === 0 ? (
-        <div className={styles.empty}>
-          <Icon name="check" size="lg" />
+        <div className={styles["empty"]}>
+          <Icon name="check" size={20} />
           <p>No wasted renders detected!</p>
         </div>
       ) : (
-        <ul className={styles.list}>
+        <ul className={styles["list"]}>
           {sortedReports.slice(0, 10).map((report) => (
-            <li key={report.componentName} className={styles.item}>
-              <div className={styles.itemHeader}>
-                <span className={styles.name}>{report.componentName}</span>
-                <Badge variant={report.severity}>
+            <li key={report.componentName} className={styles["item"]}>
+              <div className={styles["itemHeader"]}>
+                <span className={styles["name"]}>{report.componentName}</span>
+                <Badge variant={getBadgeVariant(report.severity)}>
                   {Math.round(report.wastedRenderRate)}%
                 </Badge>
               </div>
-              
-              <div className={styles.stats}>
+
+              <div className={styles["stats"]}>
                 <span>{report.totalRenders} renders</span>
-                <span className={styles.dot}>•</span>
+                <span className={styles["dot"]}>•</span>
                 <span>{report.wastedRenders} wasted</span>
-                <span className={styles.dot}>•</span>
+                <span className={styles["dot"]}>•</span>
                 <span>{report.estimatedSavingsMs.toFixed(1)}ms saved</span>
               </div>
-              
-              <div className={styles.recommendation}>
-                <Icon name="info" size="xs" />
+
+              <div className={styles["recommendation"]}>
+                <Icon name="info" size={12} />
                 <span>{getActionLabel(report.recommendedAction)}</span>
               </div>
             </li>
@@ -70,6 +71,21 @@ function getActionLabel(action: string): string {
     none: 'No action needed',
   };
   return labels[action] || action;
+}
+
+function getBadgeVariant(severity: string): import('../Common/Badge/Badge').BadgeVariant {
+  switch (severity) {
+    case 'critical':
+      return 'error';
+    case 'high':
+      return 'warning';
+    case 'medium':
+      return 'info';
+    case 'low':
+      return 'default';
+    default:
+      return 'default';
+  }
 }
 
 export default WastedRenderReport;

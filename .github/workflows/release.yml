@@ -47,8 +47,11 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Build extension
+      - name: Build Chrome extension
         run: pnpm run build
+
+      - name: Build Firefox extension
+        run: pnpm run build:firefox
 
       - name: Get version
         id: get_version
@@ -59,56 +62,91 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
           fi
 
-      - name: Update manifest version
+      - name: Update Chrome manifest version
         run: |
-          cd dist
+          cd dist-chrome
           jq --arg version "$VERSION" '.version = $version' manifest.json > manifest.json.tmp
           mv manifest.json.tmp manifest.json
 
-      - name: Create ZIP archive
+      - name: Update Firefox manifest version
         run: |
-          cd dist
-          zip -r ../react-perf-profiler-v${VERSION}.zip .
+          cd dist-firefox
+          jq --arg version "$VERSION" '.version = $version' manifest.json > manifest.json.tmp
+          mv manifest.json.tmp manifest.json
+
+      - name: Create Chrome ZIP archive
+        run: |
+          cd dist-chrome
+          zip -r ../react-perf-profiler-chrome-v${VERSION}.zip .
+          cd ..
+
+      - name: Create Firefox ZIP archive
+        run: |
+          cd dist-firefox
+          zip -r ../react-perf-profiler-firefox-v${VERSION}.zip .
           cd ..
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         with:
-          files: react-perf-profiler-v*.zip
+          files: |
+            react-perf-profiler-chrome-v*.zip
+            react-perf-profiler-firefox-v*.zip
           generate_release_notes: true
           draft: false
           prerelease: false
 
-      - name: Upload artifact
+      - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4
         with:
-          name: react-perf-profiler-v${{ env.VERSION }}
-          path: react-perf-profiler-v${{ env.VERSION }}.zip
+          name: react-perf-profiler-chrome-v${{ env.VERSION }}
+          path: react-perf-profiler-chrome-v${{ env.VERSION }}.zip
 
-  # Chrome Web Store publishing (optional - requires setup)
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-perf-profiler-firefox-v${{ env.VERSION }}
+          path: react-perf-profiler-firefox-v${{ env.VERSION }}.zip
+
+  # Chrome Web Store publishing
   publish-chrome-web-store:
     runs-on: ubuntu-latest
     needs: build-and-release
-    if: false # Enable this when Chrome Web Store credentials are configured
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && vars.CHROME_PUBLISH_ENABLED == 'true'
     steps:
-      - name: Download build artifact
+      - name: Download Chrome build artifact
         uses: actions/download-artifact@v4
         with:
-          name: extension-dist
-          path: dist
+          name: react-perf-profiler-chrome-v${{ env.VERSION }}
+          path: dist-chrome
 
-      - name: Create ZIP for Chrome Web Store
-        run: |
-          cd dist
-          zip -r ../react-perf-profiler-chrome.zip .
+      - name: Upload to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@v4.0.1
+        with:
+          file-path: react-perf-profiler-chrome-v${{ env.VERSION }}.zip
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
 
-      # Uncomment and configure when ready to publish
-      # - name: Upload to Chrome Web Store
-      #   uses: mnao305/chrome-extension-upload@v4.0.1
-      #   with:
-      #     file-path: react-perf-profiler-chrome.zip
-      #     extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
-      #     client-id: ${{ secrets.CHROME_CLIENT_ID }}
-      #     client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
-      #     refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+  # Firefox Add-ons publishing
+  publish-firefox-addons:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && vars.FIREFOX_PUBLISH_ENABLED == 'true'
+    steps:
+      - name: Download Firefox build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: react-perf-profiler-firefox-v${{ env.VERSION }}
+          path: dist-firefox
+
+      - name: Upload to Firefox Add-ons
+        uses: trmcnvn/firefox-addon@v1
+        with:
+          uuid: ${{ secrets.FIREFOX_EXTENSION_UUID }}
+          xpi: react-perf-profiler-firefox-v${{ env.VERSION }}.zip
+          manifest: dist-firefox/manifest.json
+          api-key: ${{ secrets.FIREFOX_API_KEY }}
+          api-secret: ${{ secrets.FIREFOX_API_SECRET }}

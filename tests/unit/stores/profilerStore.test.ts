@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import type { CommitData } from '@/shared/types';
+import type { CommitData, AnalysisResult } from '@/shared/types';
 
 // Mock the zustand devtools middleware
 vi.mock('zustand/middleware', () => ({
@@ -325,7 +325,7 @@ describe('profilerStore', () => {
   });
 
   describe('data export/import', () => {
-    it('should export data as JSON', () => {
+    it('should export data as JSON in v1.0 format', () => {
       const store = useProfilerStore.getState();
       const commit: CommitData = {
         id: 'commit-1',
@@ -345,21 +345,35 @@ describe('profilerStore', () => {
       const exported = store.exportData();
       const parsed = JSON.parse(exported);
       
-      expect(parsed.version).toBe(1);
-      expect(parsed.commits).toHaveLength(1);
+      // Check new v1.0 format
+      expect(parsed.version).toBe('1.0');
+      expect(parsed.metadata).toBeDefined();
+      expect(parsed.metadata.profilerVersion).toBe('1.0.0');
+      expect(parsed.metadata.exportedAt).toBeDefined();
+      expect(parsed.metadata.format).toBe('react-perf-profiler-v1');
+      expect(parsed.data).toBeDefined();
+      expect(parsed.data.commits).toHaveLength(1);
       expect(parsed.recordingDuration).toBe(5000);
     });
 
-    it('should import data from JSON', () => {
+    it('should import data from v1.0 format', () => {
       const store = useProfilerStore.getState();
       const data = {
-        version: 1,
-        commits: [{
-          id: 'imported-commit',
-          timestamp: Date.now(),
-          duration: 20,
-          nodes: [],
-        }],
+        version: '1.0',
+        metadata: {
+          profilerVersion: '1.0.0',
+          reactVersion: '18.2.0',
+          exportedAt: new Date().toISOString(),
+          format: 'react-perf-profiler-v1',
+        },
+        data: {
+          commits: [{
+            id: 'imported-commit',
+            timestamp: Date.now(),
+            duration: 20,
+            nodes: [],
+          }],
+        },
         recordingDuration: 10000,
       };
       
@@ -371,6 +385,69 @@ describe('profilerStore', () => {
       expect(newState.recordingDuration).toBe(10000);
     });
 
+    it('should import and migrate legacy format', () => {
+      const store = useProfilerStore.getState();
+      // Legacy format (version as number)
+      const legacyData = {
+        version: 1,
+        commits: [{
+          id: 'legacy-commit',
+          timestamp: Date.now(),
+          duration: 15,
+          nodes: [],
+        }],
+        recordingDuration: 5000,
+      };
+      
+      store.importData(JSON.stringify(legacyData));
+      
+      const newState = useProfilerStore.getState();
+      expect(newState.commits).toHaveLength(1);
+      expect(newState.commits[0].id).toBe('legacy-commit');
+      expect(newState.recordingDuration).toBe(5000);
+    });
+
+    it('should validate import data before importing', () => {
+      const store = useProfilerStore.getState();
+      
+      const validation = store.validateImportData('{"version": "1.0", "data": {"commits": []}, "metadata": {"profilerVersion": "1.0.0", "exportedAt": "2024-01-01", "format": "react-perf-profiler-v1"}, "recordingDuration": 0}');
+      
+      expect(validation.isValid).toBe(true);
+      expect(validation.version).toBe('1.0');
+    });
+
+    it('should return validation error for invalid JSON', () => {
+      const store = useProfilerStore.getState();
+      
+      const validation = store.validateImportData('invalid json');
+      
+      expect(validation.isValid).toBe(false);
+      expect(validation.error).toBe('Invalid JSON file');
+    });
+
+    it('should handle import with migration', () => {
+      const store = useProfilerStore.getState();
+      const legacyData = {
+        version: 1,
+        commits: [{
+          id: 'migrated-commit',
+          timestamp: Date.now(),
+          duration: 20,
+          nodes: [],
+        }],
+        recordingDuration: 8000,
+      };
+      
+      const result = store.importDataWithMigration(JSON.stringify(legacyData));
+      
+      expect(result.success).toBe(true);
+      expect(result.migrated).toBe(true);
+      
+      const newState = useProfilerStore.getState();
+      expect(newState.commits).toHaveLength(1);
+      expect(newState.commits[0].id).toBe('migrated-commit');
+    });
+
     it('should handle invalid import data', () => {
       const store = useProfilerStore.getState();
       
@@ -378,6 +455,36 @@ describe('profilerStore', () => {
       
       const newState = useProfilerStore.getState();
       expect(newState.analysisError).toBeTruthy();
+    });
+
+    it('should include analysis results in export when available', () => {
+      const store = useProfilerStore.getState();
+      const analysisResults: AnalysisResult = {
+        timestamp: Date.now(),
+        totalCommits: 1,
+        wastedRenderReports: [],
+        memoReports: [],
+        performanceScore: 85,
+        topOpportunities: [],
+      };
+      
+      useProfilerStore.setState({
+        commits: [{
+          id: 'commit-1',
+          timestamp: Date.now(),
+          duration: 10,
+          nodes: [],
+          priorityLevel: 3,
+        } as CommitData],
+        analysisResults,
+        recordingDuration: 5000,
+      });
+      
+      const exported = store.exportData();
+      const parsed = JSON.parse(exported);
+      
+      expect(parsed.data.analysisResults).toBeDefined();
+      expect(parsed.data.analysisResults.performanceScore).toBe(85);
     });
   });
 

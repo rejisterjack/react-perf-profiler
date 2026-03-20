@@ -28,9 +28,9 @@ export interface RenderSession {
   /** Reasons identified for wasted renders */
   wastedRenderReasons: WastedRenderReason[];
   /** Props from last render (for comparison) */
-  lastProps: Record<string, any> | null;
+  lastProps: Record<string, unknown> | null;
   /** State from last render (for comparison) */
-  lastState: any;
+  lastState: unknown;
 }
 
 /** Final report for wasted render analysis */

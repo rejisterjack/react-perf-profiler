@@ -54,9 +54,9 @@ export function serializeCommitData(data: CommitData): string {
         const keys = Object.keys(value);
         if (keys.length > 100) {
           warnings.push(`Object "${key}" truncated from ${keys.length} to 100 keys`);
-          const truncated: Record<string, any> = {};
+          const truncated: Record<string, unknown> = {};
           keys.slice(0, 100).forEach((k) => {
-            truncated[k] = value[k];
+            truncated[k] = (value as Record<string, unknown>)[k];
           });
           return truncated;
         }
@@ -87,6 +87,7 @@ export function serializeCommitData(data: CommitData): string {
   });
 
   if (warnings.length > 0) {
+    // Warnings are collected but not logged to avoid console noise
   }
 
   return serialized;
@@ -103,12 +104,12 @@ export function deserializeCommitData(serialized: string): CommitData {
  * Throttle function calls to limit rate
  * Ensures the function is not called more than once per limit period
  */
-export function throttleCommits<T extends (...args: any[]) => void>(fn: T, limitMs: number): T {
+export function throttleCommits<T extends (...args: unknown[]) => void>(fn: T, limitMs: number): T {
   let inThrottle = false;
   let pendingArgs: Parameters<T> | null = null;
   let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  const throttled = function (this: any, ...args: Parameters<T>): void {
+  const throttled = function (this: unknown, ...args: Parameters<T>): void {
     if (!inThrottle) {
       // Execute immediately
       fn.apply(this, args);
@@ -150,10 +151,10 @@ export function throttleCommits<T extends (...args: any[]) => void>(fn: T, limit
  * Debounce function calls
  * Delays execution until after wait milliseconds have elapsed since last call
  */
-export function debounceCommits<T extends (...args: any[]) => void>(fn: T, waitMs: number): T {
+export function debounceCommits<T extends (...args: unknown[]) => void>(fn: T, waitMs: number): T {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
-  const debounced = function (this: any, ...args: Parameters<T>): void {
+  const debounced = function (this: unknown, ...args: Parameters<T>): void {
     if (timeout !== null) {
       clearTimeout(timeout);
     }
@@ -251,7 +252,7 @@ export class CommitBatcher {
 /**
  * Calculate approximate size of data in bytes
  */
-export function calculateDataSize(data: any): number {
+export function calculateDataSize(data: unknown): number {
   try {
     const json = JSON.stringify(data);
     // Each character is approximately 2 bytes in JavaScript strings
@@ -278,9 +279,10 @@ export function formatBytes(bytes: number): string {
  * Deep clone an object, handling circular references
  */
 export function deepClone<T>(obj: T): T {
-  const seen = new WeakMap();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const seen = new WeakMap<any, any>();
 
-  function clone(value: any): any {
+  function clone(value: unknown): unknown {
     if (value === null || typeof value !== 'object') {
       return value;
     }
@@ -290,6 +292,7 @@ export function deepClone<T>(obj: T): T {
     }
 
     if (Array.isArray(value)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cloned: any[] = [];
       seen.set(value, cloned);
       value.forEach((item, index) => {
@@ -306,35 +309,40 @@ export function deepClone<T>(obj: T): T {
       return new RegExp(value.source, value.flags);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cloned: Record<string, any> = {};
     seen.set(value, cloned);
 
     for (const key of Object.keys(value)) {
-      cloned[key] = clone(value[key]);
+      cloned[key] = clone((value as Record<string, unknown>)[key]);
     }
 
     return cloned;
   }
 
-  return clone(obj);
+  return clone(obj) as T;
 }
 
 /**
  * Safely access nested properties
  */
-export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
+export function safeGet<T>(
+  obj: Record<string, unknown> | undefined | null,
+  path: string,
+  defaultValue: T
+): T {
   try {
     const keys = path.split('.');
-    let current = obj;
+    let current: unknown = obj;
 
     for (const key of keys) {
       if (current === null || current === undefined) {
         return defaultValue;
       }
-      current = current[key];
+      current = (current as Record<string, unknown>)[key];
     }
 
-    return current !== undefined ? current : defaultValue;
+    return current !== undefined ? (current as T) : defaultValue;
   } catch (_e) {
     return defaultValue;
   }
@@ -439,6 +447,13 @@ export class RateLimiter {
 }
 
 /**
+ * Memory info interface from Chrome's performance API
+ */
+interface ChromeMemory {
+  usedJSHeapSize: number;
+}
+
+/**
  * Memory usage tracker
  */
 export class MemoryTracker {
@@ -453,11 +468,17 @@ export class MemoryTracker {
    * Record current memory usage
    */
   sample(): void {
-    if (typeof performance === 'undefined' || !(performance as any).memory) {
+    if (typeof performance === 'undefined') {
       return;
     }
 
-    const memory = (performance as any).memory;
+    // Chrome-specific memory API
+    const perf = performance as unknown as { memory?: ChromeMemory };
+    if (!perf.memory) {
+      return;
+    }
+
+    const memory = perf.memory;
     this.samples.push({
       timestamp: Date.now(),
       used: memory.usedJSHeapSize,
@@ -494,7 +515,7 @@ export class MemoryTracker {
   }
 
   /**
-   * Get memory trend (increasing/decreasing)
+   * Get memory trend (increasing/decreasing/stable)
    */
   getTrend(): 'increasing' | 'decreasing' | 'stable' {
     if (this.samples.length < 10) return 'stable';

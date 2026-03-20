@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { PanelLayout } from './components/Layout/PanelLayout';
 import { Toolbar } from './components/Layout/Toolbar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
 import styles from './App.module.css';
@@ -37,9 +38,15 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className={styles["app"]} data-recording={isRecording}>
-      <Toolbar />
-      <PanelLayout />
-    </div>
+    <ErrorBoundary context="React Perf Profiler">
+      <div className={styles["app"]} data-recording={isRecording}>
+        <ErrorBoundary context="toolbar">
+          <Toolbar />
+        </ErrorBoundary>
+        <ErrorBoundary context="panel layout">
+          <PanelLayout />
+        </ErrorBoundary>
+      </div>
+    </ErrorBoundary>
   );
 };

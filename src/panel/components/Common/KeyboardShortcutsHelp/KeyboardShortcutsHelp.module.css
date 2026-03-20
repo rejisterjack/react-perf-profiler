@@ -1,0 +1,306 @@
+/* Keyboard Shortcuts Help Dialog Styles */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+  padding: 20px;
+}
+
+.dialog {
+  background-color: var(--color-bg-primary, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 640px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-out;
+  border: 1px solid var(--color-border, #e0e0e0);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1a1a1a);
+  margin: 0;
+}
+
+.titleIcon {
+  color: var(--color-primary, #1976d2);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text-secondary, #666666);
+  transition: all 0.15s ease;
+}
+
+.closeButton:hover {
+  background-color: var(--color-bg-hover, #f5f5f5);
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--color-primary, #1976d2);
+  outline-offset: 2px;
+}
+
+/* Content */
+.content {
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Category Section */
+.category {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.categoryTitle {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-tertiary, #888888);
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-light, #f0f0f0);
+}
+
+.shortcutsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcutItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.shortcutItem:hover {
+  background-color: var(--color-bg-hover, #f5f5f5);
+}
+
+.shortcutDescription {
+  font-size: 14px;
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.shortcutKeys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Keyboard Key styling */
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  color: var(--color-text-secondary, #666666);
+  background: linear-gradient(180deg, var(--color-bg-secondary, #f5f5f5) 0%, var(--color-bg-tertiary, #e8e8e8) 100%);
+  border: 1px solid var(--color-border, #d0d0d0);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 var(--color-border, #d0d0d0);
+  text-transform: uppercase;
+}
+
+.keyWide {
+  min-width: 48px;
+  padding: 0 10px;
+}
+
+.keyPlus {
+  color: var(--color-text-tertiary, #888888);
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+/* Footer */
+.footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  background-color: var(--color-bg-secondary, #f8f9fa);
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footerHint {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #888888);
+}
+
+.footerHint kbd {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  background-color: var(--color-bg-tertiary, #e8e8e8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .dialog {
+    background-color: var(--color-bg-primary, #1e1e1e);
+    border-color: var(--color-border, #333333);
+  }
+
+  .header {
+    border-color: var(--color-border, #333333);
+  }
+
+  .title {
+    color: var(--color-text-primary, #e0e0e0);
+  }
+
+  .closeButton {
+    color: var(--color-text-secondary, #999999);
+  }
+
+  .closeButton:hover {
+    background-color: var(--color-bg-hover, #2a2a2a);
+    color: var(--color-text-primary, #e0e0e0);
+  }
+
+  .categoryTitle {
+    color: var(--color-text-tertiary, #666666);
+    border-color: var(--color-border-light, #2a2a2a);
+  }
+
+  .shortcutItem:hover {
+    background-color: var(--color-bg-hover, #2a2a2a);
+  }
+
+  .shortcutDescription {
+    color: var(--color-text-primary, #e0e0e0);
+  }
+
+  .key {
+    color: var(--color-text-secondary, #b0b0b0);
+    background: linear-gradient(180deg, var(--color-bg-secondary, #2a2a2a) 0%, var(--color-bg-tertiary, #1a1a1a) 100%);
+    border-color: var(--color-border, #444444);
+    box-shadow: 0 1px 0 var(--color-border, #444444);
+  }
+
+  .keyPlus {
+    color: var(--color-text-tertiary, #666666);
+  }
+
+  .footer {
+    background-color: var(--color-bg-secondary, #252525);
+    border-color: var(--color-border, #333333);
+  }
+
+  .footerHint {
+    color: var(--color-text-tertiary, #666666);
+  }
+
+  .footerHint kbd {
+    background-color: var(--color-bg-tertiary, #1a1a1a);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .dialog {
+    animation: none;
+  }
+
+  .shortcutItem,
+  .closeButton,
+  .key {
+    transition: none;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .overlay {
+    padding: 10px;
+  }
+
+  .dialog {
+    max-height: 90vh;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .shortcutItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .shortcutKeys {
+    align-self: flex-end;
+  }
+}

@@ -4,18 +4,27 @@
  */
 
 // ============================================================================
-// Worker Client
+// Worker Clients
 // ============================================================================
 
-export { analysisWorker } from './workerClient';
-
-export type { AnalysisResult } from '@/shared/types';
+export { analysisWorker, rscWorker } from './workerClient';
 
 // ============================================================================
 // Worker Types
 // ============================================================================
 
-// Worker types are defined in workerClient.ts
+export type {
+  RSCWorkerRequest,
+  RSCWorkerResponse,
+  RSCWorkerRequestType,
+  RSCWorkerResponseType,
+} from './rscAnalysis.worker';
+
+// ============================================================================
+// Shared Types
+// ============================================================================
+
+export type { AnalysisResult } from '@/shared/types';
 
 // ============================================================================
 // Flamegraph Types

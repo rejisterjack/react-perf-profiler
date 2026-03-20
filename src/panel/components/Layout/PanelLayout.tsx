@@ -8,6 +8,7 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { DetailPanel } from './DetailPanel';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import styles from './PanelLayout.module.css';
 
@@ -141,7 +142,9 @@ export const PanelLayout: React.FC = () => {
   return (
     <div ref={containerRef} className={styles["panelLayout"]} data-resizing={isResizing}>
       {/* Left sidebar - Component tree */}
-      <Sidebar ref={sidebarRef} width={sidebarWidth} onResize={handleSidebarResize} />
+      <ErrorBoundary context="component tree view">
+        <Sidebar ref={sidebarRef} width={sidebarWidth} onResize={handleSidebarResize} />
+      </ErrorBoundary>
 
       {/* Resizer handle for sidebar */}
       <div
@@ -173,7 +176,9 @@ export const PanelLayout: React.FC = () => {
       />
 
       {/* Main content area */}
-      <MainContent className={styles["mainContent"]} />
+      <ErrorBoundary context="main content view">
+        <MainContent className={styles["mainContent"]} />
+      </ErrorBoundary>
 
       {/* Right detail panel */}
       {detailPanelOpen && (
@@ -205,7 +210,9 @@ export const PanelLayout: React.FC = () => {
               }
             }}
           />
-          <DetailPanel ref={detailPanelRef} />
+          <ErrorBoundary context="detail panel">
+            <DetailPanel ref={detailPanelRef} />
+          </ErrorBoundary>
         </>
       )}
 

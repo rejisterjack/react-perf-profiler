@@ -341,8 +341,8 @@ function detectWastedRender(current: FiberData, previous: FiberData | null): boo
  * Detects which props changed between renders
  */
 function detectChangedProps(
-  prev: Record<string, any> | null,
-  curr: Record<string, any> | null
+  prev: Record<string, unknown> | null,
+  curr: Record<string, unknown> | null
 ): string[] {
   const changed: string[] = [];
 

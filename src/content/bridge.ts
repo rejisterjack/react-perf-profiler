@@ -4,12 +4,13 @@
  * It intercepts React commits and sends data to the content script via postMessage
  */
 
-import type { BridgeMessage, ReactDevToolsHook } from './types';
+import type { BridgeMessage } from './types';
+import type { FiberRoot } from './ReactInternals';
 import { parseFiberRoot, getReactVersion } from './fiberParser';
 
 // Store original hook methods
 let originalOnCommitFiberRoot:
-  | ((rendererID: number, root: any, priorityLevel: number) => void)
+  | ((rendererID: number, root: FiberRoot, priorityLevel: number) => void)
   | null = null;
 let isProfiling = false;
 let reactVersion: string | undefined;
@@ -26,7 +27,6 @@ function initBridge(): void {
   const hook = getReactDevToolsHook();
 
   if (!hook) {
-
     // Set up a listener to detect when React is loaded
     const checkInterval = setInterval(() => {
       const h = getReactDevToolsHook();
@@ -56,7 +56,7 @@ function initBridge(): void {
 /**
  * Get the React DevTools global hook
  */
-function getReactDevToolsHook(): ReactDevToolsHook | null {
+function getReactDevToolsHook() {
   if (typeof window === 'undefined') return null;
   return window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || null;
 }
@@ -64,7 +64,7 @@ function getReactDevToolsHook(): ReactDevToolsHook | null {
 /**
  * Set up interception of the React DevTools hook
  */
-function setupHookInterception(hook: ReactDevToolsHook): void {
+function setupHookInterception(hook: NonNullable<ReturnType<typeof getReactDevToolsHook>>): void {
   reactVersion = getReactVersion();
 
   // Store original method
@@ -73,12 +73,17 @@ function setupHookInterception(hook: ReactDevToolsHook): void {
   }
 
   // Wrap the onCommitFiberRoot method
-  hook.onCommitFiberRoot = (rendererID: number, root: any, priorityLevel: number): void => {
+  hook.onCommitFiberRoot = (
+    rendererID: number,
+    root: FiberRoot,
+    priorityLevel: number
+  ): void => {
     // Call original first
     if (originalOnCommitFiberRoot) {
       try {
         originalOnCommitFiberRoot(rendererID, root, priorityLevel);
       } catch (_e) {
+        // Ignore errors from original handler
       }
     }
 
@@ -171,6 +176,7 @@ function handleBridgeMessage(event: MessageEvent): void {
       break;
 
     default:
+    // Ignore unknown message types
   }
 }
 
@@ -219,8 +225,8 @@ function detectReact(): boolean {
 
   // Check for React in various ways
   const indicators = [
-    () => (window as any).React,
-    () => (window as any).__REACT__,
+    () => window.React,
+    () => window.__REACT__,
     () => document.querySelector('[data-reactroot]'),
     () => document.querySelector('[data-reactid]'),
     () => {
@@ -229,7 +235,11 @@ function detectReact(): boolean {
         '[id^="root"], [id^="app"], [id^="__next"], [id^="__nuxt"]'
       );
       for (const el of rootElements) {
-        if ((el as any)._reactRootContainer || (el as any).__reactContainer$) {
+        const elWithReact = el as {
+          _reactRootContainer?: unknown;
+          __reactContainer$?: unknown;
+        };
+        if (elWithReact._reactRootContainer || elWithReact.__reactContainer$) {
           return true;
         }
       }
@@ -278,7 +288,6 @@ if (document.readyState === 'loading') {
 
 // Detect if React is present
 if (!detectReact()) {
-
   // Set up a listener to detect React when it's loaded
   const observer = new MutationObserver(() => {
     if (detectReact()) {
@@ -300,7 +309,7 @@ if (!detectReact()) {
 window.addEventListener('beforeunload', cleanup);
 
 // Expose cleanup for testing
-(window as any).__REACT_PERF_PROFILER_CLEANUP__ = cleanup;
+window.__REACT_PERF_PROFILER_CLEANUP__ = cleanup;
 
 // Export for module usage (if needed)
 export {

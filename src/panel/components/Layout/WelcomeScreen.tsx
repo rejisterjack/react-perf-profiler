@@ -6,7 +6,7 @@
 import type React from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
-import { Icon } from '../Common/Icon/Icon';
+import { Icon, type IconName } from '../Common/Icon/Icon';
 import { Button } from '../Common/Button/Button';
 import styles from './WelcomeScreen.module.css';
 
@@ -121,7 +121,7 @@ export const WelcomeScreen: React.FC = () => {
 // =============================================================================
 
 interface FeatureCardProps {
-  icon: string;
+  icon: IconName;
   title: string;
   description: string;
 }
@@ -129,7 +129,7 @@ interface FeatureCardProps {
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => (
   <div className={styles["featureCard"]}>
     <div className={styles["featureIcon"]}>
-      <Icon name={icon as any} size={24} />
+      <Icon name={icon} size={24} />
     </div>
     <h3 className={styles["featureTitle"]}>{title}</h3>
     <p className={styles["featureDescription"]}>{description}</p>

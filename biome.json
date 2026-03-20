@@ -36,7 +36,7 @@
         "useHookAtTopLevel": "off"
       },
       "suspicious": {
-        "noExplicitAny": "off",
+        "noExplicitAny": "error",
         "noConsole": "off",
         "noArrayIndexKey": "off"
       },

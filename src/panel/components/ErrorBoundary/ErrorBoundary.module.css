@@ -1,0 +1,192 @@
+/**
+ * ErrorBoundary Styles
+ * Centered error display with friendly messaging and action buttons
+ */
+
+.errorBoundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--space-lg);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.errorContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 480px;
+  text-align: center;
+  animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Error Icon */
+.errorIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--color-status-error-bg, rgba(239, 68, 68, 0.1));
+  color: var(--color-status-error);
+  margin-bottom: var(--space-lg);
+}
+
+/* Error Title */
+.errorTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.3;
+}
+
+/* Error Message */
+.errorMessage {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-lg);
+  line-height: 1.5;
+}
+
+/* Error Details (Collapsible) */
+.errorDetails {
+  width: 100%;
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.errorDetails summary {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+}
+
+.errorDetails summary:hover {
+  background: var(--color-bg-hover);
+}
+
+.errorDetails[open] summary {
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.errorDetailsContent {
+  padding: var(--space-md);
+  text-align: left;
+}
+
+.errorType {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-status-error);
+  margin: 0 0 var(--space-sm);
+  word-break: break-word;
+}
+
+.componentStack {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Error Actions */
+.errorActions {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Variant: Compact (for smaller areas like sidebar) */
+.compact .errorBoundary {
+  padding: var(--space-md);
+}
+
+.compact .errorIcon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-md);
+}
+
+.compact .errorIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.compact .errorTitle {
+  font-size: var(--font-size-lg);
+}
+
+.compact .errorMessage {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
+}
+
+.compact .errorActions {
+  gap: var(--space-sm);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .errorIcon {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme='dark'] .errorDetails {
+  background: var(--color-bg-secondary);
+}
+
+[data-theme='dark'] .componentStack {
+  background: var(--color-bg-primary);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .errorContent {
+    animation: none;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .errorBoundary {
+    padding: var(--space-md);
+  }
+
+  .errorActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .errorActions button {
+    width: 100%;
+  }
+}

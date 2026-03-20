@@ -49,7 +49,8 @@ export const DetailPanel = forwardRef<HTMLDivElement>((_, ref) => {
         <button
           className={styles["closeButton"]}
           onClick={toggleDetailPanel}
-          aria-label="Close detail panel"
+          aria-label="Close detail panel (Escape)"
+          title="Close (Escape)"
         >
           <Icon name="close" size={16} />
         </button>

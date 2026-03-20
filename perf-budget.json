@@ -1,0 +1,69 @@
+{
+  "$schema": "./src/shared/performance-budgets/schema.json",
+  "version": 1,
+  "projectName": "React Perf Profiler",
+  "wastedRenderThreshold": 0.1,
+  "memoHitRateThreshold": 0.8,
+  "maxRenderTimeMs": 16,
+  "maxRSCPayloadSize": 100000,
+  "minPerformanceScore": 70,
+  "maxSlowRenderPercentage": 0.1,
+  "failOnWarning": false,
+  "outputFormat": "human",
+  "budgets": [
+    {
+      "id": "wasted-render-rate",
+      "name": "Wasted Render Rate",
+      "description": "Maximum percentage of renders that should be wasted",
+      "threshold": 0.1,
+      "severity": "error",
+      "enabled": true,
+      "errorMessage": "Wasted render rate exceeds 10% threshold"
+    },
+    {
+      "id": "memo-hit-rate",
+      "name": "Memo Hit Rate",
+      "description": "Minimum memoization hit rate for memoized components",
+      "threshold": 0.8,
+      "severity": "warning",
+      "enabled": true,
+      "errorMessage": "Memo hit rate below 80% threshold"
+    },
+    {
+      "id": "max-render-time",
+      "name": "Maximum Render Time",
+      "description": "Maximum average render time per component (16ms = 60fps)",
+      "threshold": 16,
+      "severity": "error",
+      "enabled": true,
+      "errorMessage": "Average render time exceeds 16ms threshold (60fps budget)"
+    },
+    {
+      "id": "rsc-payload-size",
+      "name": "RSC Payload Size",
+      "description": "Maximum RSC payload size in bytes",
+      "threshold": 100000,
+      "severity": "warning",
+      "enabled": true,
+      "errorMessage": "RSC payload size exceeds 100KB threshold"
+    },
+    {
+      "id": "performance-score",
+      "name": "Overall Performance Score",
+      "description": "Minimum overall performance score (0-100)",
+      "threshold": 70,
+      "severity": "error",
+      "enabled": true,
+      "errorMessage": "Overall performance score below 70"
+    },
+    {
+      "id": "slow-render-percentage",
+      "name": "Slow Render Percentage",
+      "description": "Maximum percentage of renders exceeding 16ms",
+      "threshold": 0.1,
+      "severity": "warning",
+      "enabled": true,
+      "errorMessage": "More than 10% of renders exceed 16ms"
+    }
+  ]
+}

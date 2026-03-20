@@ -43,34 +43,6 @@ export const ViewModeToggle: React.FC = () => {
     setViewMode(mode);
   };
 
-  // Keyboard shortcuts handler
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case '1':
-          setViewMode('tree');
-          break;
-        case '2':
-          setViewMode('flamegraph');
-          break;
-        case '3':
-          setViewMode('timeline');
-          break;
-        case '4':
-          setViewMode('analysis');
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setViewMode]);
-
   const hasData = commits.length > 0;
 
   return (

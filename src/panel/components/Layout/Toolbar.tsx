@@ -4,12 +4,15 @@
  */
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
+import { useKeyboardShortcuts, formatShortcut, isMac } from '@/panel/hooks/useKeyboardShortcuts';
 import { Button } from '../Common/Button/Button';
 import { Icon } from '../Common/Icon/Icon';
 import { ImportDialog } from '../Common/ImportDialog/ImportDialog';
+import { KeyboardShortcutsHelp } from '../Common/KeyboardShortcutsHelp/KeyboardShortcutsHelp';
+import { Tooltip } from '../Common/Tooltip/Tooltip';
 import { ThemeToggle } from '../Theme/ThemeToggle';
 import { ViewModeToggle } from './ViewModeToggle';
 import { SettingsButton } from './SettingsButton';
@@ -21,6 +24,7 @@ import styles from './Toolbar.module.css';
 
 export const Toolbar: React.FC = () => {
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const {
     isRecording,
@@ -30,6 +34,10 @@ export const Toolbar: React.FC = () => {
     stopRecording,
     clearData,
     exportData,
+    viewMode,
+    setViewMode,
+    selectedComponent,
+    toggleDetailPanel,
   } = useProfilerStore();
 
   const { isConnected, sendMessage } = useConnectionStore();
@@ -68,83 +76,122 @@ export const Toolbar: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
+  // Keyboard shortcut actions
+  const handleToggleRecording = useCallback(() => {
+    if (isRecording) {
+      handleStopRecording();
+    } else {
+      handleStartRecording();
+    }
+  }, [isRecording]);
 
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const modKey = isMac ? e.metaKey : e.ctrlKey;
+  const handlePreviousCommit = useCallback(() => {
+    // Navigate commits implementation
+    const currentIndex = commits.findIndex(c => c.id === useProfilerStore.getState().selectedCommitId);
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : commits.length - 1;
+    if (commits[newIndex]) {
+      useProfilerStore.getState().selectCommit(commits[newIndex].id);
+    }
+  }, [commits]);
 
-      // Record/Stop: Ctrl/Cmd + R
-      if (modKey && e.key === 'r') {
-        e.preventDefault();
-        if (isRecording) {
-          handleStopRecording();
-        } else {
-          handleStartRecording();
-        }
-      }
+  const handleNextCommit = useCallback(() => {
+    // Navigate commits implementation
+    const currentIndex = commits.findIndex(c => c.id === useProfilerStore.getState().selectedCommitId);
+    const newIndex = currentIndex < commits.length - 1 ? currentIndex + 1 : 0;
+    if (commits[newIndex]) {
+      useProfilerStore.getState().selectCommit(commits[newIndex].id);
+    }
+  }, [commits]);
 
-      // Clear: Ctrl/Cmd + Delete or Ctrl/Cmd + Backspace
-      if (modKey && (e.key === 'Delete' || e.key === 'Backspace')) {
-        e.preventDefault();
-        if (commits.length > 0) {
-          handleClear();
-        }
-      }
+  const handleNavigateUp = useCallback(() => {
+    // Navigation is handled in TreeView component
+    // This is a no-op here as TreeView has its own focus
+  }, []);
 
-      // Export: Ctrl/Cmd + S
-      if (modKey && e.key === 's') {
-        e.preventDefault();
-        if (commits.length > 0) {
-          handleExport();
-        }
-      }
+  const handleNavigateDown = useCallback(() => {
+    // Navigation is handled in TreeView component
+  }, []);
 
-      // Import: Ctrl/Cmd + O
-      if (modKey && e.key === 'o') {
-        e.preventDefault();
-        setIsImportOpen(true);
-      }
-    };
+  const handleOpenDetails = useCallback(() => {
+    if (selectedComponent && viewMode !== 'analysis') {
+      setViewMode('analysis');
+    }
+  }, [selectedComponent, viewMode, setViewMode]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isRecording, commits.length, handleClear, handleExport, handleStartRecording, handleStopRecording]);
+  const handleClosePanel = useCallback(() => {
+    toggleDetailPanel();
+    setIsHelpOpen(false);
+    setIsImportOpen(false);
+  }, [toggleDetailPanel]);
+
+  const handleClearData = useCallback(() => {
+    if (commits.length > 0) {
+      handleClear();
+    }
+  }, [commits.length]);
+
+  const handleExportProfile = useCallback(() => {
+    if (commits.length > 0) {
+      handleExport();
+    }
+  }, [commits.length]);
+
+  // Initialize keyboard shortcuts
+  const { shortcuts } = useKeyboardShortcuts({
+    toggleRecording: handleToggleRecording,
+    previousCommit: handlePreviousCommit,
+    nextCommit: handleNextCommit,
+    navigateUp: handleNavigateUp,
+    navigateDown: handleNavigateDown,
+    openDetails: handleOpenDetails,
+    closePanel: handleClosePanel,
+    setViewMode,
+    exportData: handleExportProfile,
+    importData: () => setIsImportOpen(true),
+    clearData: handleClearData,
+    toggleHelp: () => setIsHelpOpen(prev => !prev),
+  });
 
   // =============================================================================
   // Render Helpers
   // =============================================================================
 
+  const recordShortcut = formatShortcut('space');
+  const clearShortcut = formatShortcut(isMac() ? 'cmd+delete' : 'ctrl+delete');
+  const exportShortcut = formatShortcut(isMac() ? 'cmd+s' : 'ctrl+s');
+  const importShortcut = formatShortcut(isMac() ? 'cmd+o' : 'ctrl+o');
+
   const renderRecordingButton = () => {
     if (isRecording) {
       return (
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={handleStopRecording}
-          disabled={!isConnected}
-          icon="stop" iconPosition="left"
-        >
-          Stop
-        </Button>
+        <Tooltip content={`Stop recording (${recordShortcut})`}>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleStopRecording}
+            disabled={!isConnected}
+            icon="stop" iconPosition="left"
+            aria-label={`Stop recording. Keyboard shortcut: ${recordShortcut}`}
+          >
+            Stop
+          </Button>
+        </Tooltip>
       );
     }
 
     return (
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={handleStartRecording}
-        disabled={!isConnected}
-        icon="record" iconPosition="left"
-      >
-        Record
-      </Button>
+      <Tooltip content={`Start recording (${recordShortcut})`}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleStartRecording}
+          disabled={!isConnected}
+          icon="record" iconPosition="left"
+          aria-label={`Start recording. Keyboard shortcut: ${recordShortcut}`}
+        >
+          Record
+        </Button>
+      </Tooltip>
     );
   };
 
@@ -175,34 +222,53 @@ export const Toolbar: React.FC = () => {
         <div className={styles['controls']}>
           {renderRecordingButton()}
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleClear}
-            disabled={commits.length === 0}
-            icon="trash" iconPosition="left"
-          >
-            Clear
-          </Button>
+          <Tooltip content={`Clear all data (${clearShortcut})`}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleClear}
+              disabled={commits.length === 0}
+              icon="trash" iconPosition="left"
+              aria-label={`Clear all data. Keyboard shortcut: ${clearShortcut}`}
+            >
+              Clear
+            </Button>
+          </Tooltip>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleExport}
-            disabled={commits.length === 0}
-            icon="download" iconPosition="left"
-          >
-            Export
-          </Button>
+          <Tooltip content={`Export profile (${exportShortcut})`}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExport}
+              disabled={commits.length === 0}
+              icon="download" iconPosition="left"
+              aria-label={`Export profile. Keyboard shortcut: ${exportShortcut}`}
+            >
+              Export
+            </Button>
+          </Tooltip>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsImportOpen(true)}
-            icon="upload" iconPosition="left"
-          >
-            Import
-          </Button>
+          <Tooltip content={`Import profile (${importShortcut})`}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsImportOpen(true)}
+              icon="upload" iconPosition="left"
+              aria-label={`Import profile. Keyboard shortcut: ${importShortcut}`}
+            >
+              Import
+            </Button>
+          </Tooltip>
+
+          <Tooltip content="Show keyboard shortcuts (?)" placement="bottom">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsHelpOpen(true)}
+              icon="info"
+              aria-label="Show keyboard shortcuts. Press question mark key"
+            />
+          </Tooltip>
         </div>
       </div>
 
@@ -240,6 +306,11 @@ export const Toolbar: React.FC = () => {
       </div>
 
       <ImportDialog isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
+      <KeyboardShortcutsHelp
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        shortcuts={shortcuts}
+      />
     </header>
   );
 };

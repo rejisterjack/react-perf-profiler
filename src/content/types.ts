@@ -3,6 +3,33 @@
  * Types for fiber data and bridge communication
  */
 
+import type {
+  ReactFiber,
+  ReactDevToolsHook,
+  ReactElementType,
+  ReactRef,
+  ReactProps,
+  ReactState,
+  ReactUpdateQueue,
+  ReactDependencies,
+  ReactDeletions,
+  FiberRoot,
+} from './ReactInternals';
+
+// Re-export React internal types for convenience
+export type {
+  ReactFiber,
+  ReactDevToolsHook,
+  FiberRoot,
+  ReactElementType,
+  ReactRef,
+  ReactProps,
+  ReactState,
+  ReactUpdateQueue,
+  ReactDependencies,
+  ReactDeletions,
+};
+
 /**
  * Message format for communication between the injected bridge and content script
  */
@@ -20,56 +47,35 @@ export type { CommitData, FiberData } from '@/shared/types';
 
 /**
  * Extended Fiber interface matching React internals
+ * This mirrors ReactFiber from ReactInternals for internal use
  */
-export interface ReactFiber {
+export interface ReactFiberExtended {
   tag: number;
   key: string | null;
-  elementType: any;
-  type: any;
-  stateNode: any;
-  return: ReactFiber | null;
-  child: ReactFiber | null;
-  sibling: ReactFiber | null;
+  elementType: ReactElementType;
+  type: ReactElementType;
+  stateNode: unknown;
+  return: ReactFiberExtended | null;
+  child: ReactFiberExtended | null;
+  sibling: ReactFiberExtended | null;
   index: number;
-  ref: any;
-  pendingProps: any;
-  memoizedProps: any;
-  updateQueue: any;
-  memoizedState: any;
-  dependencies: any;
+  ref: ReactRef;
+  pendingProps: ReactProps;
+  memoizedProps: ReactProps;
+  updateQueue: ReactUpdateQueue | null;
+  memoizedState: ReactState;
+  dependencies: ReactDependencies | null;
   mode: number;
   flags: number;
   subtreeFlags: number;
-  deletions: any;
+  deletions: ReactDeletions;
   lanes: number;
   childLanes: number;
-  alternate: ReactFiber | null;
+  alternate: ReactFiberExtended | null;
   actualDuration?: number;
   actualStartTime?: number;
   selfBaseDuration?: number;
   treeBaseDuration?: number;
-}
-
-/**
- * React DevTools global hook interface
- */
-export interface ReactDevToolsHook {
-  renderers: Map<number, any>;
-  supportsFiber: boolean;
-  inject: (renderer: any) => number;
-  onScheduleRoot?: (root: any, children: any) => void;
-  onCommitFiberRoot: (rendererID: number, root: any, priorityLevel: number) => void;
-  onCommitFiberUnmount: (rendererID: number, fiber: any) => void;
-}
-
-/**
- * Declare global window extensions
- */
-declare global {
-  interface Window {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__?: ReactDevToolsHook;
-    __REACT_PERF_PROFILER_ACTIVE__?: boolean;
-  }
 }
 
 /**
@@ -88,7 +94,7 @@ export type BackgroundMessageType =
  */
 export interface BackgroundMessage {
   type: BackgroundMessageType;
-  payload?: any;
+  payload?: unknown;
   error?: string;
   tabId?: number;
 }

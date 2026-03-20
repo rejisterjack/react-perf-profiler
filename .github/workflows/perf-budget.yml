@@ -1,0 +1,280 @@
+name: Performance Budget Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+env:
+  CI: true
+  NODE_VERSION: '20'
+
+jobs:
+  perf-budget:
+    name: Check Performance Budgets
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Run performance tests and generate profile
+        run: |
+          # Run performance tests that generate a profile file
+          # This example assumes you have a test script that generates a profile
+          # Adjust this to match your actual test setup
+          
+          # Option 1: Run Playwright E2E tests with profiling
+          # pnpm run test:e2e --reporter=json > e2e-results.json
+          
+          # Option 2: Run a specific performance test
+          # pnpm run test:perf
+          
+          # Option 3: Generate a sample profile for demonstration
+          echo "Generating sample profile for demonstration..."
+          node -e "
+            const fs = require('fs');
+            const profile = {
+              version: 1,
+              recordingDuration: 5000,
+              commits: Array.from({ length: 20 }, (_, i) => ({
+                id: 'commit-' + i,
+                timestamp: Date.now() + i * 100,
+                priorityLevel: 'Normal',
+                duration: 10 + Math.random() * 20,
+                fibers: [
+                  {
+                    id: 'fiber-' + i,
+                    displayName: 'TestComponent',
+                    actualDuration: 10 + Math.random() * 20,
+                    selfBaseDuration: 5 + Math.random() * 10,
+                    memoizedProps: {},
+                    memoizedState: null,
+                    tag: 0,
+                    key: null,
+                    child: null,
+                    sibling: null,
+                    return: null,
+                    type: 'div',
+                    elementType: 'div',
+                    actualStartTime: 0,
+                    treeBaseDuration: 0,
+                    index: 0,
+                    mode: 0,
+                  }
+                ]
+              })),
+              rscPayloads: [],
+              rscAnalysis: null
+            };
+            fs.writeFileSync('perf-profile.json', JSON.stringify(profile, null, 2));
+          "
+        continue-on-error: true
+
+      - name: Check performance budgets
+        id: budget_check
+        run: |
+          # Check if profile exists (from previous step or pre-existing)
+          if [ ! -f "perf-profile.json" ]; then
+            echo "No performance profile found. Skipping budget check."
+            echo "skipped=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Run the budget check CLI
+          node dist/cli/perf-check.js \
+            --config perf-budget.json \
+            --format json \
+            --output budget-result.json \
+            --fail-on-warning \
+            perf-profile.json
+          
+          # Store exit code
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          # Display human-readable output
+          node dist/cli/perf-check.js \
+            --config perf-budget.json \
+            --format human \
+            perf-profile.json || true
+          
+          exit $EXIT_CODE
+        continue-on-error: true
+
+      - name: Upload budget results
+        if: steps.budget_check.outputs.skipped != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-budget-results
+          path: |
+            budget-result.json
+            perf-profile.json
+          retention-days: 30
+
+      - name: Parse budget results
+        if: steps.budget_check.outputs.skipped != 'true'
+        id: parse_results
+        run: |
+          if [ -f "budget-result.json" ]; then
+            # Extract key metrics for PR comment
+            PASSED=$(node -e "console.log(require('./budget-result.json').passed ? 'true' : 'false')")
+            TOTAL_VIOLATIONS=$(node -e "console.log(require('./budget-result.json').totalViolations)")
+            ERROR_COUNT=$(node -e "console.log(require('./budget-result.json').errorCount)")
+            WARNING_COUNT=$(node -e "console.log(require('./budget-result.json').warningCount)")
+            PERF_SCORE=$(node -e "console.log(require('./budget-result.json').summary.performanceScore)")
+            
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "total_violations=$TOTAL_VIOLATIONS" >> $GITHUB_OUTPUT
+            echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
+            echo "warning_count=$WARNING_COUNT" >> $GITHUB_OUTPUT
+            echo "perf_score=$PERF_SCORE" >> $GITHUB_OUTPUT
+            
+            # Generate summary for GitHub step summary
+            echo "## 📊 Performance Budget Check Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$PASSED" = "true" ]; then
+              echo "✅ **All performance budgets passed!**" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Performance budget check failed**" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Performance Score | ${PERF_SCORE}/100 |" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Violations | ${TOTAL_VIOLATIONS} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Errors | ${ERROR_COUNT} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Warnings | ${WARNING_COUNT} |" >> $GITHUB_STEP_SUMMARY
+            
+            # List violations if any
+            if [ "$TOTAL_VIOLATIONS" -gt 0 ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Violations" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              node -e "
+                const result = require('./budget-result.json');
+                result.violations.forEach(v => {
+                  const icon = v.severity === 'error' ? '🔴' : v.severity === 'warning' ? '🟡' : '🔵';
+                  console.log('- ' + icon + ' **' + v.budgetName + '**: ' + v.message);
+                });
+              " >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request' && steps.budget_check.outputs.skipped != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read results
+            let result;
+            try {
+              result = JSON.parse(fs.readFileSync('budget-result.json', 'utf-8'));
+            } catch (e) {
+              console.log('Could not read budget results');
+              return;
+            }
+            
+            // Determine status
+            const status = result.passed ? '✅ PASSED' : '❌ FAILED';
+            const score = Math.round(result.summary.performanceScore);
+            
+            // Create comment body
+            let body = `## 📊 Performance Budget Check: ${status}\n\n`;
+            body += `**Overall Score:** ${score}/100\n\n`;
+            
+            // Add violations table
+            if (result.violations.length > 0) {
+              body += '| Severity | Budget | Message |\n';
+              body += '|----------|--------|---------|\n';
+              
+              result.violations.slice(0, 10).forEach(v => {
+                const severity = v.severity === 'error' ? '🔴 Error' : v.severity === 'warning' ? '🟡 Warning' : '🔵 Info';
+                body += `| ${severity} | ${v.budgetName} | ${v.message} |\n`;
+              });
+              
+              if (result.violations.length > 10) {
+                body += `\n*...and ${result.violations.length - 10} more violations*\n`;
+              }
+            } else {
+              body += '🎉 No budget violations detected!\n';
+            }
+            
+            body += '\n---\n';
+            body += `<sub>Checked at: ${new Date().toISOString()}</sub>`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user?.type === 'Bot' && 
+              comment.body?.includes('Performance Budget Check')
+            );
+            
+            // Update or create comment
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
+
+      - name: Fail on violations
+        if: steps.budget_check.outputs.skipped != 'true' && steps.parse_results.outputs.passed == 'false'
+        run: |
+          echo "::error::Performance budget check failed with ${ERROR_COUNT} errors and ${WARNING_COUNT} warnings"
+          exit 1

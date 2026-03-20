@@ -8,8 +8,8 @@ import type React from 'react';
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import { generateTimeline } from '@/panel/utils/timelineGenerator';
-import type { TimelineData, TimelineEvent } from '@/panel/utils/timelineGenerator';
+import { timelineWorker } from '@/panel/workers/workerClient';
+import type { TimelineData, TimelineEvent, TimelineProgress } from '@/panel/workers/timeline.worker';
 import styles from './Timeline.module.css';
 
 interface TooltipState {
@@ -64,24 +64,54 @@ export const Timeline: React.FC = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
+  const [progress, setProgress] = useState<TimelineProgress | null>(null);
+
   // Generate timeline data via worker
   useEffect(() => {
     if (commits.length === 0) {
       setTimelineData(null);
+      setProgress(null);
       return;
     }
 
     setIsLoading(true);
-    try {
-      const data = generateTimeline(commits, {
-        onlyWasted: filterWasted,
-        minDuration: 0,
+    setProgress(null);
+
+    const abortController = new AbortController();
+
+    timelineWorker
+      .generateTimeline(
+        commits,
+        {
+          onlyWasted: filterWasted,
+          minDuration: 0,
+        },
+        (p) => {
+          if (!abortController.signal.aborted) {
+            setProgress(p);
+          }
+        }
+      )
+      .then((result) => {
+        if (!abortController.signal.aborted) {
+          setTimelineData(result.timeline);
+        }
+      })
+      .catch((error) => {
+        if (!abortController.signal.aborted) {
+          console.error('Timeline generation failed:', error);
+        }
+      })
+      .finally(() => {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+          setProgress(null);
+        }
       });
-      setTimelineData(data);
-    } catch (_error) {
-    } finally {
-      setIsLoading(false);
-    }
+
+    return () => {
+      abortController.abort();
+    };
   }, [commits, filterWasted]);
 
   // Show tooltip
@@ -112,7 +142,8 @@ export const Timeline: React.FC = () => {
       svg
         .transition()
         .duration(750)
-        .call(zoomRef.current.transform as any, d3.zoomIdentity);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .call(zoomRef.current.transform as unknown as (event: unknown) => void, d3.zoomIdentity);
     }
   }, []);
 
@@ -268,6 +299,19 @@ export const Timeline: React.FC = () => {
       <div className={styles["loading"]}>
         <div className={styles["spinner"]} />
         <p>Generating timeline...</p>
+        {progress && (
+          <div className={styles["progressInfo"]}>
+            <div className={styles["progressBar"]}>
+              <div
+                className={styles["progressFill"]}
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            <span className={styles["progressText"]}>
+              {progress.stage} ({progress.processedCommits}/{progress.totalCommits})
+            </span>
+          </div>
+        )}
       </div>
     );
   }

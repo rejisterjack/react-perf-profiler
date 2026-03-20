@@ -14,6 +14,7 @@ declare module '*?worker' {
 
 // Declare JSON imports
 declare module '*.json' {
-  const value: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const value: Record<string, unknown>;
   export default value;
 }

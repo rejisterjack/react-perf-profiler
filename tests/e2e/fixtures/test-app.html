@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Perf Profiler - Test App</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .app {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 16px;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background: #0066cc;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #0052a3;
+    }
+    button.secondary {
+      background: #6c757d;
+    }
+    button.secondary:hover {
+      background: #545b62;
+    }
+    button.danger {
+      background: #dc3545;
+    }
+    button.danger:hover {
+      background: #c82333;
+    }
+    .counter {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    .counter h2 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #495057;
+    }
+    .counter-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #0066cc;
+      margin-bottom: 12px;
+    }
+    .todo-list {
+      margin-top: 20px;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #e9ecef;
+      gap: 12px;
+    }
+    .todo-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+    .todo-item span {
+      flex: 1;
+    }
+    .todo-item.completed span {
+      text-decoration: line-through;
+      color: #6c757d;
+    }
+    .todo-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .todo-input input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .user-card {
+      background: #e7f3ff;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+    .user-card h3 {
+      margin-bottom: 8px;
+      color: #004085;
+    }
+    .user-card p {
+      color: #004085;
+      margin: 4px 0;
+    }
+    .heavy-computation {
+      margin-top: 20px;
+      padding: 16px;
+      background: #fff3cd;
+      border-radius: 4px;
+    }
+    .stats {
+      margin-top: 20px;
+      padding: 16px;
+      background: #d4edda;
+      border-radius: 4px;
+    }
+    .stats h3 {
+      margin-bottom: 12px;
+      color: #155724;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #c3e6cb;
+    }
+    .memo-demo {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f8d7da;
+      border-radius: 4px;
+    }
+    .memo-demo h3 {
+      margin-bottom: 12px;
+      color: #721c24;
+    }
+    .render-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #28a745;
+      margin-left: 8px;
+      animation: flash 0.5s ease;
+    }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      background: #e2e3e5;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #383d41;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback, memo, createContext, useContext } = React;
+
+    // Create a context for testing context-related renders
+    const AppContext = createContext({ user: null, theme: 'light' });
+
+    // Unmemoized child component - will cause wasted renders
+    function UnmemoizedChild({ count, onIncrement }) {
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      return (
+        <div className="counter">
+          <h2>Unmemoized Child Component <span className="render-indicator" key={renderCount.current} /></h2>
+          <div className="counter-value">{count}</div>
+          <div>Renders: {renderCount.current}</div>
+          <button onClick={onIncrement}>Increment</button>
+        </div>
+      );
+    }
+
+    // Memoized child component - optimized
+    const MemoizedChild = memo(function MemoizedChild({ count, onIncrement }) {
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      return (
+        <div className="counter">
+          <h2>Memoized Child Component <span className="render-indicator" key={renderCount.current} /></h2>
+          <div className="counter-value">{count}</div>
+          <div>Renders: {renderCount.current}</div>
+          <button onClick={onIncrement}>Increment</button>
+        </div>
+      );
+    });
+
+    // Component with inline functions (bad practice)
+    function InlineFunctionComponent({ label }) {
+      const [localCount, setLocalCount] = useState(0);
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      // This inline function causes unnecessary re-renders in children
+      const handleClick = () => {
+        setLocalCount(c => c + 1);
+      };
+
+      return (
+        <div className="memo-demo">
+          <h3>{label} <span className="render-indicator" key={renderCount.current} /></h3>
+          <p>Local Count: {localCount}</p>
+          <p>Renders: {renderCount.current}</p>
+          <button onClick={handleClick}>Update</button>
+          <UnmemoizedChildWithInlineProps onUpdate={() => {}} data={{ key: 'value' }} />
+        </div>
+      );
+    }
+
+    // Child that receives inline props
+    const UnmemoizedChildWithInlineProps = ({ onUpdate, data }) => {
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      return (
+        <div style={{ marginTop: '12px', padding: '8px', background: '#f5c6cb', borderRadius: '4px' }}>
+          <strong>Child with Inline Props <span className="render-indicator" key={renderCount.current} /></strong>
+          <div>Renders: {renderCount.current}</div>
+          <div>Data: {JSON.stringify(data)}</div>
+        </div>
+      );
+    };
+
+    // Heavy computation component
+    function HeavyComputationComponent({ number }) {
+      const [result, setResult] = useState(0);
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      useEffect(() => {
+        // Simulate heavy computation
+        let sum = 0;
+        for (let i = 0; i < number * 100000; i++) {
+          sum += Math.sqrt(i);
+        }
+        setResult(sum);
+      }, [number]);
+
+      return (
+        <div className="heavy-computation">
+          <h3>Heavy Computation Component <span className="render-indicator" key={renderCount.current} /></h3>
+          <p>Input: {number}</p>
+          <p>Result: {result.toFixed(2)}</p>
+          <p>Renders: {renderCount.current}</p>
+        </div>
+      );
+    }
+
+    // Todo Item component
+    function TodoItem({ todo, onToggle, onDelete }) {
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      return (
+        <div className={`todo-item ${todo.completed ? 'completed' : ''}`}>
+          <input
+            type="checkbox"
+            checked={todo.completed}
+            onChange={() => onToggle(todo.id)}
+          />
+          <span>{todo.text}</span>
+          <button className="danger" onClick={() => onDelete(todo.id)}>Delete</button>
+          <span style={{ fontSize: '12px', color: '#6c757d' }}>Renders: {renderCount.current}</span>
+        </div>
+      );
+    }
+
+    // User profile component using context
+    function UserProfile() {
+      const { user, theme } = useContext(AppContext);
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      if (!user) return null;
+
+      return (
+        <div className="user-card">
+          <h3>User Profile <span className="render-indicator" key={renderCount.current} /></h3>
+          <p><strong>Name:</strong> {user.name}</p>
+          <p><strong>Email:</strong> {user.email}</p>
+          <p><strong>Theme:</strong> {theme}</p>
+          <p>Renders: {renderCount.current}</p>
+        </div>
+      );
+    }
+
+    // Statistics component
+    function Statistics({ todos }) {
+      const renderCount = React.useRef(0);
+      renderCount.current++;
+
+      const stats = useMemo(() => {
+        const total = todos.length;
+        const completed = todos.filter(t => t.completed).length;
+        const pending = total - completed;
+        return { total, completed, pending };
+      }, [todos]);
+
+      return (
+        <div className="stats">
+          <h3>Statistics <span className="render-indicator" key={renderCount.current} /></h3>
+          <div className="stat-row">
+            <span>Total Todos:</span>
+            <span>{stats.total}</span>
+          </div>
+          <div className="stat-row">
+            <span>Completed:</span>
+            <span>{stats.completed}</span>
+          </div>
+          <div className="stat-row">
+            <span>Pending:</span>
+            <span>{stats.pending}</span>
+          </div>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#155724' }}>
+            Renders: {renderCount.current}
+          </div>
+        </div>
+      );
+    }
+
+    // Main App component
+    function App() {
+      const [count, setCount] = useState(0);
+      const [todos, setTodos] = useState([
+        { id: 1, text: 'Learn React', completed: true },
+        { id: 2, text: 'Optimize performance', completed: false },
+        { id: 3, text: 'Use React.memo', completed: false },
+      ]);
+      const [newTodo, setNewTodo] = useState('');
+      const [heavyNumber, setHeavyNumber] = useState(10);
+      const [user, setUser] = useState({ name: 'John Doe', email: 'john@example.com' });
+      const [theme, setTheme] = useState('light');
+      const [appRenders, setAppRenders] = useState(0);
+
+      React.useEffect(() => {
+        setAppRenders(r => r + 1);
+      });
+
+      const handleIncrement = useCallback(() => {
+        setCount(c => c + 1);
+      }, []);
+
+      const handleAddTodo = () => {
+        if (newTodo.trim()) {
+          setTodos([...todos, { id: Date.now(), text: newTodo, completed: false }]);
+          setNewTodo('');
+        }
+      };
+
+      const handleToggleTodo = (id) => {
+        setTodos(todos.map(todo =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        ));
+      };
+
+      const handleDeleteTodo = (id) => {
+        setTodos(todos.filter(todo => todo.id !== id));
+      };
+
+      const triggerWastedRenders = () => {
+        // Force update without changing data - causes wasted renders
+        setUser({ ...user });
+      };
+
+      const contextValue = { user, theme };
+
+      return (
+        <AppContext.Provider value={contextValue}>
+          <div className="app">
+            <h1>React Perf Profiler Test App</h1>
+            
+            <div className="status">
+              App Renders: {appRenders} | React Version: {React.version}
+            </div>
+
+            <div className="controls">
+              <button onClick={() => setCount(c => c + 1)}>Increment Counter</button>
+              <button className="secondary" onClick={() => setHeavyNumber(n => n + 5)}>
+                Increase Computation
+              </button>
+              <button className="secondary" onClick={triggerWastedRenders}>
+                Trigger Wasted Renders
+              </button>
+              <button className="secondary" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}>
+                Toggle Theme
+              </button>
+            </div>
+
+            <UnmemoizedChild count={count} onIncrement={handleIncrement} />
+            <MemoizedChild count={count} onIncrement={handleIncrement} />
+            
+            <HeavyComputationComponent number={heavyNumber} />
+            
+            <InlineFunctionComponent label="Component with Inline Functions" />
+
+            <div className="todo-list">
+              <h2>Todo List</h2>
+              <div className="todo-input">
+                <input
+                  type="text"
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  placeholder="Add new todo..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddTodo()}
+                />
+                <button onClick={handleAddTodo}>Add</button>
+              </div>
+              {todos.map(todo => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={handleToggleTodo}
+                  onDelete={handleDeleteTodo}
+                />
+              ))}
+            </div>
+
+            <Statistics todos={todos} />
+            <UserProfile />
+          </div>
+        </AppContext.Provider>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

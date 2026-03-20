@@ -58,3 +58,23 @@ export type {
   UseLocalStorageOptions,
   UseLocalStorageReturn,
 } from './useLocalStorage';
+
+// Keyboard shortcuts
+export {
+  useKeyboardShortcuts,
+  isMac,
+  isInputFocused,
+  parseShortcut,
+  matchesShortcut,
+  formatShortcut,
+  groupShortcutsByCategory,
+  createDefaultShortcuts,
+} from './useKeyboardShortcuts';
+export type {
+  ShortcutConfig,
+  ShortcutActions,
+  ShortcutCategory,
+  ShortcutGroup,
+  UseKeyboardShortcutsOptions,
+  ModifierKey,
+} from './useKeyboardShortcuts';

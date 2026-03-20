@@ -8,9 +8,9 @@ import type { CommitData } from '../../content/types';
 /** Snapshot of a prop value at a specific time */
 export interface PropValueSnapshot {
   /** String representation of value for comparison */
-  value: any;
+  value: string;
   /** Reference for identity comparison */
-  reference: any;
+  reference: unknown;
   /** Timestamp of the snapshot */
   timestamp: number;
 }
@@ -149,7 +149,8 @@ export function analyzePropStability(
   propHistoryMap.forEach((history, name) => {
     if (history.length < 2) return;
 
-    const type = detectPropType(history[0]?.reference);
+    const firstSnapshot = history[0];
+    const type = firstSnapshot ? detectPropType(firstSnapshot.reference) : 'unknown';
     const changeFrequency = calculateChangeFrequency(history);
     const isStable = changeFrequency < 0.1;
     const isMemoized = detectMemoization(history);
@@ -435,10 +436,13 @@ export function generateMemoRecommendations(
  * Serializes a value for comparison
  * Returns a string representation for object/array comparison
  */
-function serializeValue(value: any): string {
+function serializeValue(value: unknown): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
-  if (typeof value === 'function') return `fn:${value.name || 'anonymous'}`;
+  if (typeof value === 'function') {
+    const fn = value as { name?: string };
+    return `fn:${fn.name || 'anonymous'}`;
+  }
   if (typeof value === 'object') {
     // For objects/arrays, we can't reliably serialize without performance cost
     // Use a hash of keys for objects, length for arrays
@@ -451,7 +455,7 @@ function serializeValue(value: any): string {
 /**
  * Detects the type of a prop value
  */
-function detectPropType(value: any): PropStability['type'] {
+function detectPropType(value: unknown): PropStability['type'] {
   if (value === null || value === undefined) return 'primitive';
   if (typeof value === 'function') return 'function';
   if (Array.isArray(value)) return 'array';

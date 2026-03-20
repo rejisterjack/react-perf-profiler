@@ -179,10 +179,9 @@ export interface SettingsState {
 // Action Creators
 // ============================================================================
 
-// Define action creators that will be bound to the store
 const createActions = (
-  set: any,
-  get: any
+  set: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  get: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Omit<SettingsState, keyof typeof DEFAULT_SETTINGS | 'loaded'> => ({
   loadSettings: async () => {
     return new Promise((resolve) => {
@@ -370,7 +369,7 @@ export const useSettingsStore = create<SettingsState>()(
 
 // Override setState to ensure actions are always present
 const originalSetState = useSettingsStore.setState;
-useSettingsStore.setState = (partial: any, replace?: boolean) => {
+useSettingsStore.setState = (partial: SettingsState | Partial<SettingsState>, replace?: boolean) => {
   if (replace && typeof partial === 'object' && partial !== null) {
     // When replacing, merge actions back into the state
     const merged = {

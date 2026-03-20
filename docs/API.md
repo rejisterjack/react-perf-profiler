@@ -308,14 +308,295 @@ const result = await waitForAnalysis(() => {
 
 ## CI/CD Integration
 
-### Performance Budgets
+### Performance Budget API
+
+React Perf Profiler provides a comprehensive performance budget system for CI/CD integration. Set thresholds for key metrics and automatically fail builds when performance degrades.
+
+#### Quick Start
+
+```typescript
+import { checkPerformanceBudget, loadBudgetConfig } from '@/shared/performance-budgets';
+
+// Load profile data (exported from the extension or generated during tests)
+const profile = JSON.parse(fs.readFileSync('profile.json', 'utf-8'));
+
+// Check against default budgets
+const result = checkPerformanceBudget(profile);
+
+if (!result.passed) {
+  console.error('Performance budget violations:', result.violations);
+  process.exit(1);
+}
+```
+
+#### Budget Configuration
+
+Create a `perf-budget.json` file in your project root:
+
+```json
+{
+  "version": 1,
+  "projectName": "My App",
+  "wastedRenderThreshold": 0.1,
+  "memoHitRateThreshold": 0.8,
+  "maxRenderTimeMs": 16,
+  "maxRSCPayloadSize": 100000,
+  "minPerformanceScore": 70,
+  "maxSlowRenderPercentage": 0.1,
+  "failOnWarning": false,
+  "outputFormat": "human",
+  "budgets": [
+    {
+      "id": "wasted-render-rate",
+      "name": "Wasted Render Rate",
+      "threshold": 0.1,
+      "severity": "error",
+      "enabled": true,
+      "errorMessage": "Wasted render rate exceeds 10%"
+    }
+  ]
+}
+```
+
+**Configuration Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `wastedRenderThreshold` | number | 0.1 | Max wasted render rate (0-1) |
+| `memoHitRateThreshold` | number | 0.8 | Min memo hit rate (0-1) |
+| `maxRenderTimeMs` | number | 16 | Max avg render time (60fps budget) |
+| `maxRSCPayloadSize` | number | 100000 | Max RSC payload in bytes |
+| `minPerformanceScore` | number | 70 | Min overall score (0-100) |
+| `maxSlowRenderPercentage` | number | 0.1 | Max % of renders > 16ms |
+| `failOnWarning` | boolean | false | Fail CI on warnings |
+| `outputFormat` | string | "human" | "json" or "human" |
+
+#### CLI Tool
+
+The `perf-check` CLI tool runs in CI pipelines:
+
+```bash
+# Basic usage
+npx perf-check profile.json
+
+# With custom config
+npx perf-check --config budgets.json profile.json
+
+# JSON output for automation
+npx perf-check --format json --output result.json profile.json
+
+# Fail on warnings
+npx perf-check --fail-on-warning profile.json
+```
+
+**CLI Options:**
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--config` | `-c` | Path to budget config file |
+| `--format` | `-f` | Output format: json or human |
+| `--output` | `-o` | Write output to file |
+| `--fail-on-warning` | `-w` | Fail on warning-level violations |
+| `--quiet` | `-q` | Only output errors |
+| `--verbose` | `-v` | Show detailed information |
+| `--help` | `-h` | Show help |
+| `--version` | | Show version |
+
+#### Programmatic API
+
+##### Check Performance Budget
+
+```typescript
+import { checkPerformanceBudget } from '@/shared/performance-budgets';
+
+const result = checkPerformanceBudget(profile, {
+  wastedRenderThreshold: 0.15,
+  maxRenderTimeMs: 20,
+  minPerformanceScore: 75
+});
+
+console.log(result.passed);           // boolean
+console.log(result.totalViolations);  // number
+console.log(result.violations);       // BudgetViolation[]
+console.log(result.summary);          // BudgetSummary
+```
+
+**Check Result Structure:**
+
+```typescript
+interface BudgetCheckResult {
+  passed: boolean;                    // All budgets passed
+  totalViolations: number;            // Total violation count
+  errorCount: number;                 // Error-level violations
+  warningCount: number;               // Warning-level violations
+  infoCount: number;                  // Info-level violations
+  violations: BudgetViolation[];      // Detailed violations
+  summary: BudgetSummary;             // Summary statistics
+  metadata: ProfileMetadata;          // Profile info
+  timestamp: number;                  // Check timestamp
+}
+```
+
+##### Budget Violation
+
+```typescript
+interface BudgetViolation {
+  id: string;                         // Violation ID
+  budgetId: string;                   // Budget ID
+  budgetName: string;                 // Human-readable name
+  severity: 'error' | 'warning' | 'info';
+  actualValue: number;                // Measured value
+  threshold: number;                  // Budget threshold
+  difference: number;                 // Amount over threshold
+  percentageOver: number;             // % over threshold
+  componentName?: string;             // Affected component
+  message: string;                    // Human-readable message
+  recommendation?: string;            // Suggested fix
+  timestamp: number;                  // Detection time
+}
+```
+
+##### Load Budget Configuration
+
+```typescript
+import { loadBudgetConfig } from '@/shared/performance-budgets';
+
+// Load from file or use defaults
+const config = loadBudgetConfig({
+  wastedRenderThreshold: 0.1,
+  budgets: [
+    {
+      id: 'custom-budget',
+      name: 'Custom Budget',
+      threshold: 100,
+      severity: 'warning',
+      enabled: true
+    }
+  ]
+});
+```
+
+##### Format Results
+
+```typescript
+import { 
+  formatCheckResultHuman, 
+  formatCheckResultJson 
+} from '@/shared/performance-budgets';
+
+// Human-readable output
+const humanOutput = formatCheckResultHuman(result);
+console.log(humanOutput);
+
+// JSON output
+const jsonOutput = formatCheckResultJson(result);
+fs.writeFileSync('results.json', jsonOutput);
+```
+
+#### GitHub Actions Integration
+
+A complete workflow is provided in `.github/workflows/perf-budget.yml`:
+
+```yaml
+name: Performance Budget Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  perf-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build
+        run: pnpm run build
+      
+      - name: Run E2E tests and generate profile
+        run: pnpm run test:e2e:profile
+      
+      - name: Check performance budgets
+        run: |
+          node dist/cli/perf-check.js \
+            --config perf-budget.json \
+            --format json \
+            --fail-on-warning \
+            perf-profile.json
+```
+
+The workflow automatically:
+- Runs on every PR to main/develop
+- Generates a performance profile
+- Checks against configured budgets
+- Comments results on the PR
+- Fails the build if budgets are exceeded
+
+#### Testing with Performance Budgets
+
+```typescript
+// perf-budget.test.ts
+import { checkPerformanceBudget } from '@/shared/performance-budgets';
+import { loadProfile } from './utils';
+
+describe('Performance Budgets', () => {
+  it('should pass all performance budgets', async () => {
+    const profile = await loadProfile('production.json');
+    const result = checkPerformanceBudget(profile, {
+      wastedRenderThreshold: 0.1,
+      maxRenderTimeMs: 16
+    });
+    
+    // Log violations for debugging
+    result.violations.forEach(v => {
+      console.log(`${v.severity}: ${v.message}`);
+    });
+    
+    expect(result.passed).toBe(true);
+  });
+  
+  it('should have < 10% wasted renders', () => {
+    const profile = loadProfile('production.json');
+    const result = checkPerformanceBudget(profile);
+    
+    const wastedViolation = result.violations.find(
+      v => v.budgetId === 'wasted-render-rate'
+    );
+    
+    expect(wastedViolation).toBeUndefined();
+  });
+  
+  it('should maintain > 80% memo hit rate', () => {
+    const profile = loadProfile('production.json');
+    const result = checkPerformanceBudget(profile);
+    
+    const memoViolation = result.violations.find(
+      v => v.budgetId === 'memo-hit-rate'
+    );
+    
+    expect(memoViolation).toBeUndefined();
+  });
+});
+```
+
+### Legacy Performance Budgets
+
+For backward compatibility, the original budget checking approach is still available:
 
 ```typescript
 // perf-budget.test.ts
 import { analyzeWastedRenders } from '@/panel/utils/wastedRenderAnalysis';
 import { calculatePerformanceScore } from '@/panel/utils/performanceScore';
 
-describe('Performance Budgets', () => {
+describe('Performance Budgets (Legacy)', () => {
   it('should maintain > 90% performance score', async () => {
     const profile = await loadProfile('production.json');
     const score = calculatePerformanceScore(profile);
@@ -337,32 +618,6 @@ describe('Performance Budgets', () => {
     expect(payload).toBeLessThan(100 * 1024);
   });
 });
-```
-
-### GitHub Actions Integration
-
-```yaml
-# .github/workflows/perf.yml
-name: Performance Check
-
-on: [pull_request]
-
-jobs:
-  perf:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Profiler CI
-        run: |
-          pnpm install
-          pnpm run test:perf
-          
-      - name: Upload Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: perf-report
-          path: perf-report.json
 ```
 
 ## Message API

@@ -51,12 +51,18 @@
   background: var(--color-surface-hover);
 }
 
+.closeButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .content {
   padding: 20px;
   flex: 1;
   overflow-y: auto;
 }
 
+/* Drop Zone Styles */
 .dropZone {
   border: 2px dashed var(--color-border);
   border-radius: 8px;
@@ -64,36 +70,179 @@
   text-align: center;
   cursor: pointer;
   transition:
-    border-color 0.2s,
-    background 0.2s;
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.dropZone:hover,
-.dropZone.dragOver {
+.dropZone:hover {
   border-color: var(--color-primary);
   background: var(--color-surface-hover);
 }
 
+.dropZone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Active state when dragging over - new class */
+.dropZoneActive {
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+  border-style: solid;
+  transform: scale(1.02);
+}
+
+.dropZoneActive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1) 0%,
+    rgba(59, 130, 246, 0.05) 100%
+  );
+  pointer-events: none;
+}
+
+/* Error state for wrong file type - new class */
+.dropZoneError {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  border-style: solid;
+  animation: shake 0.5s ease-in-out;
+}
+
+.dropZoneError::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.1) 0%,
+    rgba(239, 68, 68, 0.05) 100%
+  );
+  pointer-events: none;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+/* Legacy dragOver class for backwards compatibility */
+.dragOver {
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+}
+
+/* Drop zone icon wrapper - new */
+.dropZoneIconWrapper {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Legacy dropZoneIcon class */
 .dropZoneIcon {
   font-size: 48px;
   margin-bottom: 16px;
+  color: var(--color-text-secondary);
+  transition: color 0.2s ease;
 }
 
+.dropZone:hover .dropZoneIcon {
+  color: var(--color-primary);
+}
+
+/* New icon state classes */
+.dropZoneActiveIcon {
+  color: var(--color-primary);
+  animation: bounce 1s ease infinite;
+}
+
+.dropZoneErrorIcon {
+  color: var(--color-error);
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Drop zone text */
 .dropZoneText {
   font-size: 16px;
+  font-weight: 500;
   color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
+.dropZoneActive .dropZoneText {
+  color: var(--color-primary);
+}
+
+.dropZoneError .dropZoneText {
+  color: var(--color-error);
+}
+
+/* Drop zone hint - updated for flex layout */
 .dropZoneHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 8px;
+}
+
+.dropZoneHint svg {
+  flex-shrink: 0;
+}
+
+/* Drop message - new class for visual instructions */
+.dropMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-size: 14px;
   color: var(--color-text-secondary);
+  padding: 8px 16px;
+  background: var(--color-surface-elevated);
+  border-radius: 4px;
+  margin-top: 12px;
 }
 
 .fileInput {
   display: none;
 }
 
+/* Error message - updated for flex layout */
 .error {
   margin-top: 16px;
   padding: 12px;
@@ -102,13 +251,42 @@
   border-radius: 6px;
   color: var(--color-error-text);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.error svg {
+  flex-shrink: 0;
+  color: var(--color-error);
+}
+
+/* Warning message */
+.warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: 6px;
+  color: var(--color-warning-text);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning svg {
+  flex-shrink: 0;
+  color: var(--color-warning);
+}
+
+/* Preview section */
 .preview {
   margin-top: 16px;
   padding: 16px;
   background: var(--color-surface-elevated);
   border-radius: 6px;
+  border: 1px solid var(--color-border);
 }
 
 .previewTitle {
@@ -116,6 +294,9 @@
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .previewItem {
@@ -139,6 +320,56 @@
   font-weight: 500;
 }
 
+/* Version badge styles */
+.versionBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.versionSupported {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-text);
+}
+
+.versionMigrated {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
+.versionUnsupported {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+}
+
+.migrationIndicator {
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* Feature badge */
+.featureBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-text);
+}
+
+/* Footer and buttons */
 .footer {
   display: flex;
   justify-content: flex-end;
@@ -168,6 +399,11 @@
   cursor: not-allowed;
 }
 
+.importButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .cancelButton {
   padding: 8px 16px;
   border-radius: 6px;
@@ -182,4 +418,87 @@
 
 .cancelButton:hover {
   background: var(--color-surface-hover);
+}
+
+.cancelButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Screen reader only text - new */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .dialog {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .dropZone {
+    padding: 30px 16px;
+  }
+
+  .dropZoneText {
+    font-size: 14px;
+  }
+
+  .footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .importButton,
+  .cancelButton {
+    width: 100%;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .dropZone {
+    border-width: 3px;
+  }
+
+  .dropZoneActive {
+    border-style: dashed;
+  }
+
+  .dropZoneError {
+    border-style: solid;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .dropZone,
+  .dropZoneActive,
+  .dropZoneError,
+  .closeButton,
+  .importButton,
+  .cancelButton {
+    transition: none;
+  }
+
+  .dropZoneActive {
+    transform: none;
+  }
+
+  .dropZoneError {
+    animation: none;
+  }
+
+  .dropZoneActiveIcon {
+    animation: none;
+  }
 }

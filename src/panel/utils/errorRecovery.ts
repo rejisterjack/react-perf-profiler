@@ -1,0 +1,254 @@
+/**
+ * Error Recovery Utilities
+ * Functions for recovering from errors and managing panel state
+ */
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface ErrorReport {
+  /** The error message */
+  message: string;
+  /** The error stack trace */
+  stack?: string;
+  /** The component stack from React */
+  componentStack?: string;
+  /** Timestamp when the error occurred */
+  timestamp: number;
+  /** User agent string */
+  userAgent: string;
+  /** Extension version */
+  version: string;
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const EXTENSION_VERSION = '1.0.0';
+const STORAGE_PREFIX = 'react-perf-profiler:';
+
+// =============================================================================
+// Storage Keys to Clear
+// =============================================================================
+
+const STORAGE_KEYS = [
+  'commits',
+  'componentData',
+  'wastedRenderReports',
+  'performanceScore',
+  'settings',
+  'uiState',
+] as const;
+
+// =============================================================================
+// Public Functions
+// =============================================================================
+
+/**
+ * Clears all stored data from the panel.
+ * This removes all profiler data from storage but preserves settings.
+ * Use this when the panel is in a corrupted state.
+ */
+export function clearPanelData(): void {
+  try {
+    // Clear session storage (current session data)
+    for (const key of STORAGE_KEYS) {
+      const fullKey = `${STORAGE_PREFIX}${key}`;
+      try {
+        sessionStorage.removeItem(fullKey);
+      } catch {
+        // Ignore errors for individual keys
+      }
+    }
+
+    // Clear any temporary state from stores
+    console.info('[React Perf Profiler] Panel data cleared successfully');
+  } catch (error) {
+    console.error('[React Perf Profiler] Failed to clear panel data:', error);
+  }
+}
+
+/**
+ * Clears all settings from storage.
+ * This removes user preferences and UI state.
+ */
+export function clearSettings(): void {
+  try {
+    localStorage.removeItem(`${STORAGE_PREFIX}settings`);
+    console.info('[React Perf Profiler] Settings cleared successfully');
+  } catch (error) {
+    console.error('[React Perf Profiler] Failed to clear settings:', error);
+  }
+}
+
+/**
+ * Reloads the DevTools panel.
+ * This is the primary recovery method when an error occurs.
+ * It reloads the panel window, clearing any corrupted React state.
+ */
+export function reloadPanel(): void {
+  try {
+    console.info('[React Perf Profiler] Reloading panel...');
+    
+    // Attempt to reload the panel window
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error('[React Perf Profiler] Failed to reload panel:', error);
+    
+    // Fallback: try to inform the user
+    alert('Failed to reload the panel. Please close and reopen DevTools.');
+  }
+}
+
+/**
+ * Hard reset of the panel - clears all data and reloads.
+ * Use this as a last resort when the panel is completely unresponsive.
+ */
+export function hardReset(): void {
+  try {
+    console.warn('[React Perf Profiler] Performing hard reset...');
+    
+    // Clear all data first
+    clearPanelData();
+    clearSettings();
+    
+    // Then reload
+    reloadPanel();
+  } catch (error) {
+    console.error('[React Perf Profiler] Hard reset failed:', error);
+  }
+}
+
+/**
+ * Sends error information to analytics.
+ * This is a stub implementation - in production, replace with actual analytics.
+ * 
+ * @param error - The error that was caught
+ * @param errorInfo - React error info containing component stack
+ * @param context - Optional context about where the error occurred
+ */
+export function reportError(
+  error: Error,
+  errorInfo?: { componentStack?: string },
+  context?: string
+): void {
+  try {
+    const report: ErrorReport = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo?.componentStack,
+      timestamp: Date.now(),
+      userAgent: navigator.userAgent,
+      version: EXTENSION_VERSION,
+    };
+
+    // Log to console for debugging
+    console.error('[React Perf Profiler] Error Report:', {
+      ...report,
+      context,
+    });
+
+    // TODO: Implement actual analytics reporting
+    // Examples:
+    // - Send to error tracking service (Sentry, LogRocket, etc.)
+    // - Send to custom analytics endpoint
+    // - Store locally for debugging
+
+    // Stub: Store last error in session storage for debugging
+    try {
+      sessionStorage.setItem(
+        `${STORAGE_PREFIX}last-error`,
+        JSON.stringify(report)
+      );
+    } catch {
+      // Ignore storage errors
+    }
+
+  } catch (reportingError) {
+    // Don't let error reporting fail
+    console.error('[React Perf Profiler] Failed to report error:', reportingError);
+  }
+}
+
+/**
+ * Retrieves the last error that was reported.
+ * Useful for debugging after a panel reload.
+ */
+export function getLastError(): ErrorReport | null {
+  try {
+    const stored = sessionStorage.getItem(`${STORAGE_PREFIX}last-error`);
+    if (stored) {
+      return JSON.parse(stored) as ErrorReport;
+    }
+  } catch {
+    // Ignore parsing errors
+  }
+  return null;
+}
+
+/**
+ * Clears the stored last error.
+ */
+export function clearLastError(): void {
+  try {
+    sessionStorage.removeItem(`${STORAGE_PREFIX}last-error`);
+  } catch {
+    // Ignore errors
+  }
+}
+
+/**
+ * Checks if the panel is in a potentially corrupted state.
+ * This can be used to proactively warn users or suggest a reload.
+ */
+export function checkPanelHealth(): { healthy: boolean; issues: string[] } {
+  const issues: string[] = [];
+
+  try {
+    // Check if React is available
+    if (typeof window === 'undefined' || !window.document) {
+      issues.push('Window or document not available');
+    }
+
+    // Check for memory issues (simple heuristic)
+    if (performance && 'memory' in performance) {
+      const memory = (performance as { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+      if (memory && memory.usedJSHeapSize > memory.jsHeapSizeLimit * 0.9) {
+        issues.push('Memory usage is very high');
+      }
+    }
+
+    // Check if last error was recent (within last 5 minutes)
+    const lastError = getLastError();
+    if (lastError && Date.now() - lastError.timestamp < 5 * 60 * 1000) {
+      issues.push('Recent error detected');
+    }
+
+  } catch {
+    issues.push('Health check failed');
+  }
+
+  return {
+    healthy: issues.length === 0,
+    issues,
+  };
+}
+
+// =============================================================================
+// Default Export
+// =============================================================================
+
+export default {
+  clearPanelData,
+  clearSettings,
+  reloadPanel,
+  hardReset,
+  reportError,
+  getLastError,
+  clearLastError,
+  checkPanelHealth,
+};

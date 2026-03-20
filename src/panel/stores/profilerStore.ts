@@ -15,7 +15,12 @@ import type {
   RSCPayload,
   RSCAnalysisResult,
   RSCMetrics,
+  RSCAnalysisConfig,
 } from '@/shared/types/rsc';
+import type { ExportedProfileV1, ImportValidationResult } from '@/shared/types/export';
+import { createExportProfile, validateImportData, isExportedProfileV1 } from '@/shared/types/export';
+import { autoMigrateProfile, MigrationError } from '@/shared/export/migrations';
+import { rscWorker } from '@/panel/workers/workerClient';
 
 /**
  * Performance metrics for the profiler
@@ -160,6 +165,8 @@ export interface ProfilerState {
   rscMetrics: RSCMetrics | null;
   /** Loading state for RSC analysis */
   isAnalyzingRSC: boolean;
+  /** Error message for RSC analysis */
+  rscAnalysisError: string | null;
 }
 
 /**
@@ -186,6 +193,10 @@ interface ProfilerActions {
   exportData: () => string;
   /** Import data from JSON string */
   importData: (json: string) => void;
+  /** Validate import data and return validation result */
+  validateImportData: (json: string) => ImportValidationResult;
+  /** Import data with migration if needed */
+  importDataWithMigration: (json: string) => { success: boolean; error?: string; migrated?: boolean };
   /** Update profiler configuration */
   updateConfig: (config: Partial<ProfilerConfig>) => void;
   /** Select a specific commit */
@@ -228,8 +239,8 @@ interface ProfilerActions {
   clearRSCData: () => void;
   /** Set RSC analysis results */
   setRSCAnalysis: (analysis: RSCAnalysisResult) => void;
-  /** Trigger RSC analysis */
-  analyzeRSC: () => Promise<void>;
+  /** Trigger RSC analysis using Web Worker */
+  analyzeRSC: (config?: Partial<RSCAnalysisConfig>) => Promise<void>;
   /** Get total payload size across all payloads */
   getRSCTotalPayloadSize: () => number;
   /** Get overall cache hit rate */
@@ -276,7 +287,10 @@ const MIN_SIDEBAR_WIDTH = 180;
 const MAX_SIDEBAR_WIDTH = 600;
 
 // Store implementation
-const storeImplementation = (set: any, get: any): ProfilerStore => ({
+const storeImplementation = (
+  set: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  get: any // eslint-disable-line @typescript-eslint/no-explicit-any
+): ProfilerStore => ({
   // State
   isRecording: false,
   recordingStartTime: null,
@@ -307,6 +321,7 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
   rscAnalysis: null,
   rscMetrics: null,
   isAnalyzingRSC: false,
+  rscAnalysisError: null,
 
   // Actions
   startRecording: () => {
@@ -346,6 +361,7 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
       rscPayloads: [],
       rscAnalysis: null,
       rscMetrics: null,
+      rscAnalysisError: null,
     });
   },
 
@@ -390,32 +406,109 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
   },
 
   exportData: () => {
-    const { commits, recordingDuration } = get();
-    const data = {
-      version: 1,
-      commits,
-      recordingDuration,
-    };
-    return JSON.stringify(data);
+    const { commits, recordingDuration, analysisResults, rscPayloads, rscAnalysis } = get();
+    
+    // Extract React version from first commit if available
+    const reactVersion = commits[0]?.reactVersion ?? 'unknown';
+    
+    const profile: ExportedProfileV1 = createExportProfile(commits, recordingDuration, {
+      reactVersion,
+      analysisResults: analysisResults ?? undefined,
+      rscPayloads: rscPayloads.length > 0 ? rscPayloads : undefined,
+      rscAnalysis: rscAnalysis ?? undefined,
+    });
+    
+    return JSON.stringify(profile, null, 2);
   },
 
-  importData: (json: string) => {
+  validateImportData: (json: string): ImportValidationResult => {
     try {
       const data = JSON.parse(json);
+      return validateImportData(data);
+    } catch {
+      return {
+        isValid: false,
+        version: 'unknown',
+        isSupported: false,
+        migrationAvailable: false,
+        error: 'Invalid JSON file',
+      };
+    }
+  },
 
+  importDataWithMigration: (json: string) => {
+    try {
+      const data = JSON.parse(json);
+      
+      // Validate the import data
+      const validation = validateImportData(data);
+      
+      if (!validation.isValid) {
+        return { 
+          success: false, 
+          error: validation.error || 'Invalid import data' 
+        };
+      }
+
+      let profile: ExportedProfileV1;
+      let migrated = false;
+
+      // Check if migration is needed
+      if (validation.migrationAvailable && validation.migrationTarget) {
+        try {
+          profile = autoMigrateProfile(data);
+          migrated = true;
+        } catch (migrateError) {
+          return { 
+            success: false, 
+            error: migrateError instanceof MigrationError 
+              ? `Migration failed: ${migrateError.message}` 
+              : 'Failed to migrate profile to current format' 
+          };
+        }
+      } else if (isExportedProfileV1(data)) {
+        profile = data;
+      } else {
+        // Try auto-migration for unknown formats
+        try {
+          profile = autoMigrateProfile(data);
+          migrated = true;
+        } catch {
+          return { 
+            success: false, 
+            error: 'Unsupported profile format' 
+          };
+        }
+      }
+
+      // Import the data
       set({
-        commits: data.commits || [],
-        recordingDuration: data.recordingDuration || 0,
+        commits: profile.data.commits || [],
+        recordingDuration: profile.recordingDuration || 0,
+        rscPayloads: profile.data.rscPayloads || [],
+        rscAnalysis: profile.data.rscAnalysis || null,
+        analysisResults: profile.data.analysisResults || null,
+        wastedRenderReports: profile.data.analysisResults?.wastedRenderReports || [],
+        memoReports: profile.data.analysisResults?.memoReports || [],
         selectedCommitId: null,
         selectedComponent: null,
         selectedComponentName: null,
         timeTravelIndex: null,
         analysisError: null,
       });
+
+      return { success: true, migrated };
     } catch (error) {
-      set({
-        analysisError: error instanceof Error ? error.message : 'Invalid JSON data',
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Invalid JSON data';
+      set({ analysisError: errorMessage });
+      return { success: false, error: errorMessage };
+    }
+  },
+
+  importData: (json: string) => {
+    const result = get().importDataWithMigration(json);
+    if (!result.success) {
+      set({ analysisError: result.error || 'Import failed' });
     }
   },
 
@@ -588,8 +681,8 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
 
     for (const commit of commits) {
       for (const node of commit.nodes ?? []) {
-        if (node.id) {
-          allNodeIds.add(node.id);
+        if (node.id !== undefined && node.id !== null) {
+          allNodeIds.add(String(node.id));
         }
       }
     }
@@ -622,6 +715,7 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
       rscPayloads: [],
       rscAnalysis: null,
       rscMetrics: null,
+      rscAnalysisError: null,
     });
   },
 
@@ -632,14 +726,14 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
     });
   },
 
-  analyzeRSC: async () => {
-    set({ isAnalyzingRSC: true });
+  analyzeRSC: async (config?: Partial<RSCAnalysisConfig>) => {
+    set({ isAnalyzingRSC: true, rscAnalysisError: null });
 
     // Allow state update to propagate before starting analysis
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
-      const { rscPayloads } = get();
+      const { rscPayloads, commits } = get();
 
       if (rscPayloads.length === 0) {
         set({
@@ -648,7 +742,26 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
         return;
       }
 
-      // Aggregate metrics from all payloads
+      // Extract fiber data from commits for boundary detection
+      const fiberData = commits.flatMap((commit: CommitData) => commit.nodes ?? []);
+
+      // Convert payloads to raw data for worker (they're already parsed, so we need to serialize)
+      const rawPayloads = rscPayloads.map((payload: RSCPayload) => {
+        // If payload has chunks with raw data, use that; otherwise serialize the payload
+        const firstChunk = payload.chunks[0];
+        if (firstChunk && typeof firstChunk.data === 'string') {
+          // Reconstruct from chunks if available
+          return payload.chunks.map((chunk: RSCPayload['chunks'][0]) => chunk.data ?? '').join('\n');
+        }
+        // Otherwise serialize the parsed payload
+        return JSON.stringify(payload);
+      });
+
+      // Use the RSC worker for analysis
+      const analysisResult = await rscWorker.analyzeRSC(rawPayloads, fiberData, config);
+
+      // Calculate aggregated metrics from all payloads as fallback
+      // (the worker should provide this, but we keep this for compatibility)
       let totalPayloadSize = 0;
       const totalTransferTime = 0;
       const totalSerializationCost = 0;
@@ -737,10 +850,12 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
       set({
         isAnalyzingRSC: false,
         rscMetrics,
+        rscAnalysis: analysisResult,
       });
-    } catch (_error) {
+    } catch (error) {
       set({
         isAnalyzingRSC: false,
+        rscAnalysisError: error instanceof Error ? error.message : 'RSC analysis failed',
       });
     }
   },

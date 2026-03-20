@@ -35,3 +35,7 @@ export type { PanelProps, PanelSectionProps } from './Panel/Panel';
 
 // Import Dialog
 export { ImportDialog } from './ImportDialog/ImportDialog';
+
+// Keyboard Shortcuts Help
+export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp/KeyboardShortcutsHelp';
+export type { KeyboardShortcutsHelpProps } from './KeyboardShortcutsHelp/KeyboardShortcutsHelp';

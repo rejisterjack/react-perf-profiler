@@ -57,3 +57,16 @@ export {
   findRenderPeaks,
 } from './timelineGenerator';
 export type { TimelineEvent, TimelineData } from './timelineGenerator';
+
+// Error recovery utilities
+export {
+  clearPanelData,
+  clearSettings,
+  reloadPanel,
+  hardReset,
+  reportError,
+  getLastError,
+  clearLastError,
+  checkPanelHealth,
+} from './errorRecovery';
+export type { ErrorReport } from './errorRecovery';

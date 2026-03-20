@@ -11,7 +11,7 @@ const BRIDGE_SCRIPT_URL = chrome.runtime.getURL('bridge.js');
 // State
 let port: chrome.runtime.Port | null = null;
 let isBridgeInjected = false;
-const pendingMessages: any[] = [];
+const pendingMessages: unknown[] = [];
 
 // Message source identifiers
 const BRIDGE_SOURCE = 'react-perf-profiler-bridge';
@@ -21,7 +21,6 @@ const CONTENT_SOURCE = 'react-perf-profiler-content';
  * Initialize the content script
  */
 function init(): void {
-
   // Inject the bridge script into the page context
   injectBridgeScript();
 
@@ -178,6 +177,7 @@ function connectToBackground(): void {
       payload: { url: window.location.href },
     });
   } catch (_error) {
+    // Ignore connection errors
   }
 }
 
@@ -212,7 +212,7 @@ function handleBackgroundMessage(message: BackgroundMessage): void {
  * Send message to the injected bridge
  * Content Script -> Bridge via window.postMessage
  */
-function sendToBridge(payload: any): void {
+function sendToBridge(payload: unknown): void {
   const message = {
     source: CONTENT_SOURCE,
     payload,
@@ -238,6 +238,7 @@ function sendToBackground(message: Omit<BackgroundMessage, 'tabId'>): void {
   try {
     port.postMessage(message);
   } catch (_error) {
+    // Ignore post message errors
   }
 }
 
@@ -257,7 +258,9 @@ function reportError(error: string): void {
  */
 function handleVisibilityChange(): void {
   if (document.hidden) {
+    // Page is hidden, could pause profiling here
   } else {
+    // Page is visible again
 
     // Ensure connection is alive
     if (!port) {
@@ -270,7 +273,6 @@ function handleVisibilityChange(): void {
  * Clean up resources on disconnect/unload
  */
 function cleanup(): void {
-
   // Remove event listeners
   window.removeEventListener('message', handleBridgeMessage);
   window.removeEventListener('beforeunload', cleanup);
@@ -296,7 +298,7 @@ function cleanup(): void {
 function checkReactAvailability(): boolean {
   return !!(
     window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
-    (window as any).React ||
+    window.React ||
     document.querySelector('[data-reactroot]') ||
     document.querySelector('[data-reactid]')
   );

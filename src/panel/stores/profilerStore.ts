@@ -11,6 +11,11 @@ import type {
   MemoReport,
   ProfilerConfig,
 } from '@/shared/types';
+import type {
+  RSCPayload,
+  RSCAnalysisResult,
+  RSCMetrics,
+} from '@/shared/types/rsc';
 
 /**
  * Performance metrics for the profiler
@@ -147,6 +152,14 @@ export interface ProfilerState {
   componentTypeFilter: 'all' | 'memoized' | 'unmemoized';
   /** Filter for severity levels */
   severityFilter: ('critical' | 'warning' | 'info')[];
+  /** Array of captured RSC payloads */
+  rscPayloads: RSCPayload[];
+  /** Current RSC analysis results */
+  rscAnalysis: RSCAnalysisResult | null;
+  /** Aggregated RSC metrics */
+  rscMetrics: RSCMetrics | null;
+  /** Loading state for RSC analysis */
+  isAnalyzingRSC: boolean;
 }
 
 /**
@@ -209,6 +222,22 @@ interface ProfilerActions {
   collapseAllNodes: () => void;
   /** Toggle node expanded state */
   toggleNodeExpanded: (nodeId: string) => void;
+  /** Add a new RSC payload */
+  addRSCPayload: (payload: RSCPayload) => void;
+  /** Clear all RSC data */
+  clearRSCData: () => void;
+  /** Set RSC analysis results */
+  setRSCAnalysis: (analysis: RSCAnalysisResult) => void;
+  /** Trigger RSC analysis */
+  analyzeRSC: () => Promise<void>;
+  /** Get total payload size across all payloads */
+  getRSCTotalPayloadSize: () => number;
+  /** Get overall cache hit rate */
+  getRSCCacheHitRate: () => number;
+  /** Get total number of boundaries */
+  getRSCBoundaryCount: () => number;
+  /** Check if RSC data exists */
+  getRSCHasData: () => boolean;
 }
 
 /**
@@ -274,6 +303,10 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
   detailPanelWidth: 400,
   componentTypeFilter: 'all',
   severityFilter: ['critical', 'warning', 'info'],
+  rscPayloads: [],
+  rscAnalysis: null,
+  rscMetrics: null,
+  isAnalyzingRSC: false,
 
   // Actions
   startRecording: () => {
@@ -310,6 +343,9 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
       analysisError: null,
       recordingDuration: 0,
       recordingStartTime: null,
+      rscPayloads: [],
+      rscAnalysis: null,
+      rscMetrics: null,
     });
   },
 
@@ -574,6 +610,176 @@ const storeImplementation = (set: any, get: any): ProfilerStore => ({
       newExpanded.add(nodeId);
     }
     set({ expandedNodes: newExpanded });
+  },
+
+  addRSCPayload: (payload: RSCPayload) => {
+    const { rscPayloads } = get();
+    set({ rscPayloads: [...rscPayloads, payload] });
+  },
+
+  clearRSCData: () => {
+    set({
+      rscPayloads: [],
+      rscAnalysis: null,
+      rscMetrics: null,
+    });
+  },
+
+  setRSCAnalysis: (analysis: RSCAnalysisResult) => {
+    set({
+      rscAnalysis: analysis,
+      rscMetrics: analysis.metrics,
+    });
+  },
+
+  analyzeRSC: async () => {
+    set({ isAnalyzingRSC: true });
+
+    // Allow state update to propagate before starting analysis
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      const { rscPayloads } = get();
+
+      if (rscPayloads.length === 0) {
+        set({
+          isAnalyzingRSC: false,
+        });
+        return;
+      }
+
+      // Aggregate metrics from all payloads
+      let totalPayloadSize = 0;
+      const totalTransferTime = 0;
+      const totalSerializationCost = 0;
+      const totalDeserializationCost = 0;
+      let totalServerComponents = 0;
+      let totalClientComponents = 0;
+      let totalBoundaries = 0;
+      let totalCacheHits = 0;
+      let totalCacheMisses = 0;
+
+      const allBoundaryMetrics: NonNullable<RSCMetrics['boundaryMetrics']> = [];
+
+      for (const payload of rscPayloads) {
+        totalPayloadSize += payload.totalSize;
+        totalServerComponents += payload.serverComponentCount;
+        totalClientComponents += payload.clientComponentCount;
+        totalBoundaries += payload.boundaries.length;
+
+        for (const boundary of payload.boundaries) {
+          if (boundary.cacheStatus === 'hit') {
+            totalCacheHits++;
+          } else if (boundary.cacheStatus === 'miss') {
+            totalCacheMisses++;
+          }
+
+          allBoundaryMetrics.push({
+            boundaryId: boundary.id,
+            componentName: boundary.componentName,
+            renderTime: 0,
+            payloadSize: boundary.propsSize,
+            propsSize: boundary.propsSize,
+            cacheStatus: boundary.cacheStatus ?? 'none',
+            renderCount: 1,
+            causedCacheMiss: boundary.cacheStatus === 'miss',
+          });
+        }
+      }
+
+      const cacheHitRatio =
+        totalCacheHits + totalCacheMisses > 0
+          ? totalCacheHits / (totalCacheHits + totalCacheMisses)
+          : 0;
+
+      // Calculate stream metrics
+      const totalChunks = rscPayloads.reduce(
+        (sum: number, p: RSCPayload) => sum + p.chunks.length,
+        0
+      );
+      const chunkSizes = rscPayloads.flatMap((p: RSCPayload) =>
+        p.chunks.map((c) => c.size)
+      );
+
+      const streamMetrics: RSCMetrics['streamMetrics'] = {
+        chunkCount: totalChunks,
+        averageChunkSize:
+          chunkSizes.length > 0
+            ? chunkSizes.reduce((a: number, b: number) => a + b, 0) / chunkSizes.length
+            : 0,
+        maxChunkSize: chunkSizes.length > 0 ? Math.max(...chunkSizes) : 0,
+        minChunkSize:
+          chunkSizes.length > 0 ? Math.min(...chunkSizes) : 0,
+        boundaryChunks: rscPayloads.reduce(
+          (sum: number, p: RSCPayload) => sum + p.chunks.filter((c) => c.containsBoundary).length,
+          0
+        ),
+        interleavedChunks: 0,
+        timeToFirstChunk: 0,
+        streamDuration: 0,
+        suspenseResolutions: 0,
+        hadOutOfOrderChunks: false,
+      };
+
+      const rscMetrics: RSCMetrics = {
+        payloadSize: totalPayloadSize,
+        transferTime: totalTransferTime,
+        serializationCost: totalSerializationCost,
+        deserializationCost: totalDeserializationCost,
+        serverComponentCount: totalServerComponents,
+        clientComponentCount: totalClientComponents,
+        boundaryCount: totalBoundaries,
+        boundaryMetrics: allBoundaryMetrics,
+        streamMetrics,
+        cacheHitRatio,
+      };
+
+      set({
+        isAnalyzingRSC: false,
+        rscMetrics,
+      });
+    } catch (_error) {
+      set({
+        isAnalyzingRSC: false,
+      });
+    }
+  },
+
+  getRSCTotalPayloadSize: () => {
+    const { rscPayloads } = get();
+    return rscPayloads.reduce((sum: number, payload: RSCPayload) => sum + payload.totalSize, 0);
+  },
+
+  getRSCCacheHitRate: () => {
+    const { rscPayloads } = get();
+    let totalCacheHits = 0;
+    let totalCacheMisses = 0;
+
+    for (const payload of rscPayloads) {
+      for (const boundary of payload.boundaries) {
+        if (boundary.cacheStatus === 'hit') {
+          totalCacheHits++;
+        } else if (boundary.cacheStatus === 'miss') {
+          totalCacheMisses++;
+        }
+      }
+    }
+
+    const total = totalCacheHits + totalCacheMisses;
+    return total > 0 ? totalCacheHits / total : 0;
+  },
+
+  getRSCBoundaryCount: () => {
+    const { rscPayloads } = get();
+    return rscPayloads.reduce(
+      (sum: number, payload: RSCPayload) => sum + payload.boundaries.length,
+      0
+    );
+  },
+
+  getRSCHasData: () => {
+    const { rscPayloads } = get();
+    return rscPayloads.length > 0;
   },
 });
 

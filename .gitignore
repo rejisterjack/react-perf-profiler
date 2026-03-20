@@ -10,6 +10,8 @@ yarn.lock
 
 # Build output
 dist/
+dist-chrome/
+dist-firefox/
 dist-ssr/
 build/
 *.local

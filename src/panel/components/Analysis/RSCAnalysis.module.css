@@ -1,0 +1,857 @@
+/**
+ * RSC Analysis Component Styles
+ * React Server Components analysis UI
+ */
+
+/* ============================================================================
+   Main Container
+   ============================================================================ */
+
+.rscAnalysis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  padding: var(--spacing-5);
+  min-height: 100%;
+  background: var(--bg-primary);
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   Loading & Empty States
+   ============================================================================ */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  gap: var(--spacing-4);
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--spacing-8);
+  text-align: center;
+  color: var(--text-secondary);
+  gap: var(--spacing-3);
+}
+
+.empty p {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.empty small {
+  color: var(--text-tertiary);
+}
+
+.emptyText {
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--spacing-6);
+  margin: 0;
+}
+
+.allGood {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8);
+  text-align: center;
+  gap: var(--spacing-2);
+}
+
+.allGood p {
+  margin: 0;
+  color: var(--success);
+  font-weight: var(--font-weight-medium);
+}
+
+.allGood small {
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Summary Header
+   ============================================================================ */
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-5);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.summaryTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.summaryTitle h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.timestamp {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.scoreBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.scoreLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scoreValue {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+}
+
+.scoreGood {
+  color: var(--success);
+}
+
+.scoreWarning {
+  color: var(--warning);
+}
+
+.scoreBad {
+  color: var(--danger);
+}
+
+/* ============================================================================
+   Issues Summary
+   ============================================================================ */
+
+.issuesSummary {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-5);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.issueCount {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.issueCount span:first-of-type {
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  color: var(--text-primary);
+}
+
+.issueCount small {
+  color: var(--text-tertiary);
+}
+
+.lowCount {
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Content Grid
+   ============================================================================ */
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: var(--spacing-5);
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+
+/* ============================================================================
+   Metrics Card
+   ============================================================================ */
+
+.metricsCard {
+  display: flex;
+  gap: var(--spacing-5);
+  padding: var(--spacing-5);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.metricSection {
+  flex: 1;
+}
+
+.metricSection h4 {
+  margin: 0 0 var(--spacing-4) 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricDivider {
+  width: 1px;
+  background: var(--border-color);
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-4);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.metricValue {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  color: var(--text-primary);
+}
+
+.metricLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.serverValue {
+  color: var(--primary);
+}
+
+.clientValue {
+  color: var(--secondary);
+}
+
+.cacheGood {
+  color: var(--success);
+}
+
+.cacheWarning {
+  color: var(--warning);
+}
+
+.cacheBad {
+  color: var(--danger);
+}
+
+/* ============================================================================
+   Payload Size Bar
+   ============================================================================ */
+
+.sizeBar {
+  margin-top: var(--spacing-1);
+}
+
+.sizeBarTrack {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.sizeBarFill {
+  height: 100%;
+  border-radius: var(--border-radius-sm);
+  transition: width var(--transition-normal) ease-out;
+}
+
+.sizeGood {
+  background: var(--success);
+}
+
+.sizeWarning {
+  background: var(--warning);
+}
+
+.sizeError {
+  background: var(--danger);
+}
+
+/* ============================================================================
+   Boundaries Panel
+   ============================================================================ */
+
+.boundariesPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+.boundariesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-5);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.boundariesHeader h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.boundaryCounts {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.boundariesTable {
+  overflow-x: auto;
+}
+
+.boundariesTable table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.boundariesTable th,
+.boundariesTable td {
+  padding: var(--spacing-3) var(--spacing-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.boundariesTable th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.boundariesTable tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+.boundariesTable tr:last-child td {
+  border-bottom: none;
+}
+
+.componentCell code {
+  font-size: var(--font-size-xs);
+  color: var(--primary);
+  background: var(--bg-tertiary);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+}
+
+.numeric {
+  text-align: right;
+  font-family: var(--font-family-mono);
+}
+
+/* ============================================================================
+   Cache Status Indicator
+   ============================================================================ */
+
+.cacheIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-xs);
+  text-transform: capitalize;
+}
+
+.cacheHit {
+  color: var(--success);
+}
+
+.cacheMiss {
+  color: var(--danger);
+}
+
+.cacheStale {
+  color: var(--warning);
+}
+
+.cacheNone {
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Stream Panel
+   ============================================================================ */
+
+.streamPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-5);
+}
+
+.streamHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-4);
+}
+
+.streamHeader h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.streamingProgress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.chunkIndicator,
+.durationIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.chunkCount {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.streamMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+}
+
+.streamMetric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-1);
+}
+
+.streamValue {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  color: var(--text-primary);
+}
+
+.streamLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.streamMetric.warning {
+  color: var(--warning);
+}
+
+/* Timeline Bar */
+
+.timelineBar {
+  margin-top: var(--spacing-4);
+}
+
+.timelineTrack {
+  position: relative;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+
+.timelineProgress {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--border-radius-md);
+  transition: width var(--transition-normal) ease-out;
+}
+
+.timelineChunk {
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 12px;
+  background: var(--success);
+  border-radius: var(--border-radius-sm);
+  transform: translateX(-50%);
+}
+
+.timelineLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Issues Panel
+   ============================================================================ */
+
+.issuesPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-5);
+}
+
+.issuesPanel h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0 0 var(--spacing-4) 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.issueTotal {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-tertiary);
+}
+
+.issuesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.issue {
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--warning);
+}
+
+.issueHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.issueComponent {
+  flex: 1;
+  font-size: var(--font-size-xs);
+  color: var(--primary);
+}
+
+.issueDescription {
+  margin: 0 0 var(--spacing-2) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.issueSuggestion {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.issueMetric {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-2);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--danger);
+}
+
+.threshold {
+  color: var(--text-tertiary);
+}
+
+/* ============================================================================
+   Recommendations Panel
+   ============================================================================ */
+
+.recommendationsPanel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-5);
+}
+
+.recommendationsPanel h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0 0 var(--spacing-4) 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.recommendationTotal {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-tertiary);
+}
+
+.recommendationsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.recommendation {
+  padding: var(--spacing-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--info);
+}
+
+.recommendationHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.recommendationType {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.recommendationDescription {
+  margin: 0 0 var(--spacing-3) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.recommendationImpact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+.impactItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  color: var(--success);
+}
+
+.affectedComponents {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.affectedComponents small {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+.componentTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+}
+
+.componentTag {
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--primary);
+}
+
+.moreTag {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.codeExample {
+  margin-top: var(--spacing-3);
+}
+
+.codeExample summary {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.codeExample pre {
+  margin: var(--spacing-2) 0 0 0;
+  padding: var(--spacing-3);
+  background: var(--bg-primary);
+  border-radius: var(--border-radius-sm);
+  overflow-x: auto;
+}
+
+.codeExample code {
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricsCard {
+    flex-direction: column;
+  }
+
+  .metricDivider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .rscAnalysis {
+    padding: var(--spacing-4);
+    gap: var(--spacing-4);
+  }
+
+  .summaryHeader {
+    flex-direction: column;
+    gap: var(--spacing-4);
+    text-align: center;
+  }
+
+  .issuesSummary {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .streamMetrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .boundariesTable {
+    font-size: var(--font-size-xs);
+  }
+
+  .boundariesTable th,
+  .boundariesTable td {
+    padding: var(--spacing-2);
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .streamHeader {
+    flex-direction: column;
+    gap: var(--spacing-3);
+    align-items: flex-start;
+  }
+
+  .boundariesHeader {
+    flex-direction: column;
+    gap: var(--spacing-3);
+    align-items: flex-start;
+  }
+
+  .issueHeader {
+    flex-wrap: wrap;
+  }
+}

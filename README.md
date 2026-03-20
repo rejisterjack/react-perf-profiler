@@ -32,6 +32,7 @@ React's concurrent features and automatic batching make performance optimization
 | **Component Tree** | ![Tree](./docs/screenshots/tree.png) | Hierarchical view with wasted render indicators |
 | **Timeline** | ![Timeline](./docs/screenshots/timeline.png) | Scrollable timeline of all commits |
 | **Memo Report** | ![Memo](./docs/screenshots/memo.png) | Detailed memoization effectiveness analysis |
+| **RSC Analysis** | ![RSC](./docs/screenshots/rsc.png) | React Server Components payload & boundary analysis |
 
 ### Render Analytics Dashboard
 
@@ -67,6 +68,17 @@ interface WastedRenderAnalysis {
 - Color-coded by render duration
 - Zoom and pan through component tree
 
+### React Server Components Support
+- Detects server/client component boundaries
+- Analyzes RSC payload sizes and transfer times
+- Tracks cache hit/miss rates for server components
+- Identifies oversized props crossing boundaries
+
+### Cross-Browser Support
+- **Chrome**: Full support with Manifest V3
+- **Firefox**: Full support with Manifest V2
+- Unified API adapter for seamless cross-browser compatibility
+
 ---
 
 ## 🚀 Quick Start
@@ -85,7 +97,7 @@ pnpm dev
 # 1. Open chrome://extensions/
 # 2. Enable Developer mode
 # 3. Click "Load unpacked"
-# 4. Select the dist/ folder
+# 4. Select the `dist-chrome/` folder
 ```
 
 **First Profile:**
@@ -154,10 +166,12 @@ The React Perf Profiler is built as a Chrome Extension that integrates directly 
 
 ## 🚀 Installation
 
-### From Chrome Web Store
+### From Chrome Web Store / Firefox Add-ons
 *(Coming soon)*
 
 ### Developer Install
+
+#### Chrome
 
 ```bash
 # Clone the repository
@@ -167,7 +181,7 @@ cd react-perf-profiler
 # Install dependencies
 pnpm install
 
-# Build extension
+# Build for Chrome (Manifest V3)
 pnpm build
 
 # Or start dev mode with HMR
@@ -177,8 +191,28 @@ pnpm dev
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable **Developer mode** (toggle in top right)
 3. Click **Load unpacked**
-4. Select the `dist/` folder from the project directory
-5. Open React DevTools → Look for the **"Perf Profiler"** tab
+4. Select the `dist-chrome/` folder from the project directory
+5. Open React DevTools → Look for the **"⚡ Perf Profiler"** tab
+
+#### Firefox
+
+```bash
+# Build for Firefox (Manifest V2)
+pnpm build:firefox
+```
+
+1. Open Firefox and navigate to `about:debugging`
+2. Click **"This Firefox"** in the left sidebar
+3. Click **"Load Temporary Add-on"**
+4. Select the `dist-firefox/manifest.json` file
+5. Open React DevTools → Look for the **"⚡ Perf Profiler"** tab
+
+#### Build All
+
+```bash
+# Build for both Chrome and Firefox
+pnpm build:all
+```
 
 ---
 
@@ -254,6 +288,42 @@ The profiler analyzes your memoization strategy:
 │ Expected Improvement: 77% hit rate      │
 └─────────────────────────────────────────┘
 ```
+
+### React Server Components Analysis
+
+For Next.js App Router and other RSC frameworks, the profiler provides specialized analysis:
+
+```
+┌─────────────────────────────────────────┐
+│ RSC Analysis: Product Page              │
+├─────────────────────────────────────────┤
+│ Payload Size: 245 KB                    │
+│ Transfer Time: 89ms                     │
+│ Cache Hit Rate: 78%                     │
+│                                         │
+│ Server Components: 12                   │
+│ Client Boundaries: 3                    │
+│                                         │
+│ ⚠️ Issues Detected:                     │
+│ • Large props passed to ClientButton    │
+│   (45 KB - consider data colocation)    │
+│ • Cache miss on ProductReviews          │
+│   (stale-while-revalidate recommended)  │
+│                                         │
+│ 💡 Recommendations:                     │
+│ 1. Move heavy data to server components │
+│ 2. Add 'use cache' directive            │
+│ 3. Reduce boundary crossings            │
+│                                         │
+│ Expected Savings: 120 KB payload        │
+└─────────────────────────────────────────┘
+```
+
+**RSC Metrics Tracked:**
+- **Payload Size**: Total RSC payload transferred
+- **Cache Hit Rate**: Effectiveness of RSC caching
+- **Boundary Crossings**: Server → Client component transitions
+- **Serialization Cost**: Time spent serializing props for client boundaries
 
 ---
 
@@ -434,8 +504,8 @@ pnpm benchmark
 
 Contributions welcome! Areas of interest:
 
-- [ ] Firefox DevTools support
-- [ ] React Server Components analysis
+- [x] Firefox DevTools support
+- [x] React Server Components analysis
 - [ ] Export/import profile sessions
 - [ ] Custom metric plugins
 - [ ] Team sharing / cloud profiles

@@ -123,14 +123,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build extension
+      - name: Build Chrome extension
         run: pnpm run build
 
-      - name: Upload build artifact
+      - name: Upload Chrome build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extension-dist
-          path: dist/
+          name: extension-dist-chrome
+          path: dist-chrome/
+          retention-days: 7
+
+      - name: Build Firefox extension
+        run: pnpm run build:firefox
+
+      - name: Upload Firefox build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-dist-firefox
+          path: dist-firefox/
           retention-days: 7
 
   e2e-test:

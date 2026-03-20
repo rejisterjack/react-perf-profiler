@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { crx } from '@crxjs/vite-plugin';
 import { resolve } from 'path';
 import manifest from './src/manifest.json' assert { type: 'json' };
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -10,7 +11,13 @@ export default defineConfig(({ mode }) => ({
       include: '**/*.{jsx,tsx}',
     }),
     crx({ manifest }),
-  ],
+    mode === 'analyze' && visualizer({
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+      filename: 'dist/stats.html',
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -28,7 +35,7 @@ export default defineConfig(({ mode }) => ({
     devSourcemap: true,
   },
   build: {
-    outDir: 'dist',
+    outDir: 'dist-chrome',
     sourcemap: mode === 'development',
     rollupOptions: {
       input: {

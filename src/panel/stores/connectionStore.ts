@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { TIME_DURATION, RETRY_CONSTANTS } from '@/shared/constants';
 import type { PanelMessage } from '@/shared/types';
 
 /**
@@ -389,22 +390,26 @@ export const useConnectionStore = create<ConnectionStore>()(
           return;
         }
 
-        // Max retries check (5)
-        if (retryCount >= 5) {
+        // Max retries check
+        const MAX_RETRY_ATTEMPTS = 5;
+        if (retryCount >= MAX_RETRY_ATTEMPTS) {
           return;
         }
 
         set({ isReconnecting: true });
 
         try {
-          // Exponential backoff delay: min(30000, 2^retryCount * 1000)
-          const delay = Math.min(30000, 2 ** retryCount * 1000);
+          // Exponential backoff delay: min(MAX_DELAY, BASE^retryCount * MS_PER_SECOND)
+          const exponentialDelay =
+            RETRY_CONSTANTS.BACKOFF_BASE ** retryCount * TIME_DURATION.SECOND;
+          const delay = Math.min(TIME_DURATION.MAX_BACKOFF_DELAY_MS, exponentialDelay);
           await new Promise((resolve) => setTimeout(resolve, delay));
 
           get().connect();
 
-          // Wait a bit for connection
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          // Brief delay to allow connection to establish
+          const CONNECTION_WAIT_MS = 100;
+          await new Promise((resolve) => setTimeout(resolve, CONNECTION_WAIT_MS));
 
           if (!get().isConnected) {
             throw new Error('Reconnection failed');

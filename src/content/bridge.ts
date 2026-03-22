@@ -22,6 +22,12 @@ let initCheckInterval: ReturnType<typeof setInterval> | null = null;
 const MAX_RETRY_ATTEMPTS = 5;
 const INITIAL_RETRY_DELAY = 500;
 
+// Constants for exponential backoff retry logic
+/** Maximum delay between retries (30 seconds) */
+const MAX_RETRY_DELAY_MS = 30000;
+/** Base for exponential backoff calculation (2^n) */
+const BACKOFF_EXPONENT_BASE = 2;
+
 // Bridge state
 let isInitialized = false;
 let lastError: { type: string; message: string; timestamp: number } | null = null;
@@ -137,8 +143,9 @@ function scheduleRetry(): void {
 
   initRetryCount++;
 
-  // Calculate delay with exponential backoff: min(30000, 2^retryCount * 1000)
-  const delay = Math.min(30000, 2 ** initRetryCount * INITIAL_RETRY_DELAY);
+  // Calculate delay with exponential backoff: min(MAX_RETRY_DELAY, BASE^retryCount * INITIAL_DELAY)
+  const exponentialDelay = BACKOFF_EXPONENT_BASE ** initRetryCount * INITIAL_RETRY_DELAY;
+  const delay = Math.min(MAX_RETRY_DELAY_MS, exponentialDelay);
 
   sendMessage({
     type: 'RETRY_SCHEDULED',

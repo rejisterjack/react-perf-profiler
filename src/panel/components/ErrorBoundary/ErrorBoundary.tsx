@@ -8,6 +8,8 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Icon } from '../Common/Icon/Icon';
 import { Button } from '../Common/Button/Button';
 import { reloadPanel, resetPanel, reportError, clearLastError } from '@/panel/utils/errorRecovery';
+import { GITHUB_REPO_URL, GENERIC_ISSUE_REPORT_URL } from '@/shared/constants';
+import { logger } from '@/shared/logger';
 import styles from './ErrorBoundary.module.css';
 
 // =============================================================================
@@ -73,13 +75,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       errorInfo,
     });
 
-    // Log error to console for debugging
-    console.error('[React Perf Profiler] ErrorBoundary caught an error:', {
-      error,
-      errorInfo,
+    // Log error for debugging
+    logger.error('ErrorBoundary caught an error', {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
       context: this.props.context,
       errorId: this.state.errorId,
-      timestamp: new Date().toISOString(),
+      source: 'ErrorBoundary',
     });
 
     // Report error to analytics
@@ -143,13 +146,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       `## Environment\n\n` +
       `- Browser: ${navigator.userAgent}\n` +
       `- URL: ${window.location.href}\n` +
-      `- Extension Version: 1.0.0\n`
+      `- Extension Version: ${import.meta.env?.['VITE_APP_VERSION'] || '1.0.0'}\n`
     );
     
-    window.open(
-      `https://github.com/react-perf-profiler/react-perf-profiler/issues/new?title=${title}&body=${body}`,
-      '_blank'
-    );
+    // Use configurable GitHub URL with fallback
+    const baseUrl = GITHUB_REPO_URL;
+    const isValidGithubUrl = baseUrl.includes('github.com');
+    
+    if (isValidGithubUrl) {
+      window.open(
+        `${baseUrl}/issues/new?title=${title}&body=${body}`,
+        '_blank'
+      );
+    } else {
+      // Fallback to generic support URL
+      logger.warn('GitHub URL not configured, redirecting to support page', { 
+        source: 'ErrorBoundary',
+        fallbackUrl: GENERIC_ISSUE_REPORT_URL 
+      });
+      window.open(GENERIC_ISSUE_REPORT_URL, '_blank');
+    }
   };
 
   private handleCopyError = async (): Promise<void> => {
@@ -161,7 +177,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       // Could show a toast here
     } catch {
       // Fallback: select and copy manually
-      console.log('Failed to copy to clipboard');
+      logger.warn('Failed to copy error to clipboard', { errorId, source: 'ErrorBoundary' });
     }
   };
 

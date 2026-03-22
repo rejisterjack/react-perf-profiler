@@ -1,5 +1,12 @@
 import type React from 'react';
 import type { PerformanceMetrics } from '@/panel/stores/profilerStore';
+import {
+  MAX_PERFORMANCE_SCORE,
+  MIN_PERFORMANCE_SCORE,
+  RENDER_TIME_SCORE,
+  WASTED_RENDER_SCORE,
+  COMPONENT_COUNT_SCORE,
+} from '@/shared/constants';
 import { CircularProgress } from '../Common/CircularProgress/CircularProgress';
 import styles from './PerformanceScore.module.css';
 
@@ -29,7 +36,10 @@ export const PerformanceScore: React.FC<PerformanceScoreProps> = ({ score }) => 
       <div className={styles["categories"]}>
         <CategoryScore
           label="Wasted Renders"
-          value={Math.max(0, 100 - (score.wastedRenderRate || 0) * 2)}
+          value={Math.max(
+            MIN_PERFORMANCE_SCORE,
+            MAX_PERFORMANCE_SCORE - (score.wastedRenderRate || 0) * WASTED_RENDER_SCORE.MULTIPLIER
+          )}
           description="Avoid unnecessary re-renders"
         />
         <CategoryScore
@@ -39,12 +49,21 @@ export const PerformanceScore: React.FC<PerformanceScoreProps> = ({ score }) => 
         />
         <CategoryScore
           label="Render Time"
-          value={Math.max(0, 100 - (score.averageRenderTime || 0) * 5)}
+          value={Math.max(
+            MIN_PERFORMANCE_SCORE,
+            MAX_PERFORMANCE_SCORE - (score.averageRenderTime || 0) * RENDER_TIME_SCORE.MULTIPLIER
+          )}
           description="Stay under 16ms per frame"
         />
         <CategoryScore
           label="Component Count"
-          value={Math.min(100, Math.max(20, 100 - (score.totalComponents || 0) / 10))}
+          value={Math.min(
+            MAX_PERFORMANCE_SCORE,
+            Math.max(
+              COMPONENT_COUNT_SCORE.MIN_BASELINE,
+              MAX_PERFORMANCE_SCORE - (score.totalComponents || 0) / COMPONENT_COUNT_SCORE.DIVISOR
+            )
+          )}
           description="Reasonable tree complexity"
         />
       </div>

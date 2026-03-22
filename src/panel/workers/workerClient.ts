@@ -110,25 +110,35 @@ class AnalysisWorkerClient {
       function analyzeAll(commits) {
         const wastedRenderReports = analyzeWastedRenders(commits);
         const memoReports = analyzeMemo(commits);
-        
+
+        // Constants for scoring (duplicated here since inline worker has no imports)
+        const MAX_SCORE = 100;
+        const MIN_SCORE = 0;
+        const OPPORTUNITY_THRESHOLD = 20; // Minimum wasted % to be considered
+        const HIGH_IMPACT_THRESHOLD = 50; // Wasted % for high impact classification
+        const TOP_OPPORTUNITIES_LIMIT = 5;  // Maximum opportunities to return
+
         // Calculate performance score
+        // Score is inversely proportional to average wasted render rate
         const totalWastedRate = wastedRenderReports.reduce((sum, r) => sum + r.wastedRenderRate, 0);
         const avgWastedRate = wastedRenderReports.length > 0 ? totalWastedRate / wastedRenderReports.length : 0;
-        const performanceScore = Math.max(0, Math.round(100 - avgWastedRate));
-        
+        const calculatedScore = MAX_SCORE - avgWastedRate;
+        const performanceScore = Math.max(MIN_SCORE, Math.round(calculatedScore));
+
         // Generate top opportunities
+        // Filter to only components with significant wasted render rates
         const topOpportunities = wastedRenderReports
-          .filter(r => r.wastedRenderRate > 20)
+          .filter(r => r.wastedRenderRate > OPPORTUNITY_THRESHOLD)
           .sort((a, b) => b.wastedRenderRate - a.wastedRenderRate)
-          .slice(0, 5)
+          .slice(0, TOP_OPPORTUNITIES_LIMIT)
           .map(r => ({
             componentName: r.componentName,
             type: r.recommendedAction,
-            impact: r.wastedRenderRate > 50 ? 'high' : 'medium',
+            impact: r.wastedRenderRate > HIGH_IMPACT_THRESHOLD ? 'high' : 'medium',
             estimatedSavings: parseFloat(r.estimatedSavings) || 0,
             description: 'High wasted render rate detected',
           }));
-        
+
         return {
           timestamp: Date.now(),
           totalCommits: commits.length,

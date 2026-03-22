@@ -6,6 +6,12 @@
 import type { CommitData } from '../../content/types';
 import type { WastedRenderReport } from './wastedRenderAnalysis';
 import type { MemoEffectivenessReport } from './memoAnalysis';
+import {
+  MAX_PERFORMANCE_SCORE,
+  MIN_PERFORMANCE_SCORE,
+  RENDER_DURATION_SCORE,
+  COMPONENT_COMPLEXITY_SCORE,
+} from '@/shared/constants';
 
 /** Performance metrics with overall score and category breakdowns */
 export interface PerformanceMetrics {
@@ -254,10 +260,20 @@ export function scoreRenderTime(commits: CommitData[], threshold: number = 16): 
   const slowRenderRate = slowRenderCount / totalRenders;
 
   // Score based on average duration (ideal: < 8ms, bad: > 50ms)
-  const durationScore = Math.max(0, 100 - (averageDuration / 8) * 20);
+  // Reference duration is 8ms (leaving headroom within 16ms frame budget)
+  // Each 8ms over reference reduces score by PENALTY_MULTIPLIER (20) points
+  const durationScore = Math.max(
+    MIN_PERFORMANCE_SCORE,
+    MAX_PERFORMANCE_SCORE -
+      (averageDuration / RENDER_DURATION_SCORE.REFERENCE_MS) *
+        RENDER_DURATION_SCORE.PENALTY_MULTIPLIER
+  );
 
-  // Score based on slow render rate
-  const slowRenderScore = Math.max(0, 100 - slowRenderRate * 100);
+  // Score based on slow render rate (1:1 penalty with percentage)
+  const slowRenderScore = Math.max(
+    MIN_PERFORMANCE_SCORE,
+    MAX_PERFORMANCE_SCORE - slowRenderRate * MAX_PERFORMANCE_SCORE
+  );
 
   return Math.round((durationScore + slowRenderScore) / 2);
 }
@@ -288,8 +304,14 @@ export function scoreComponentCount(commits: CommitData[], threshold: number = 5
     return 100;
   }
 
+  // Calculate excess beyond threshold and apply penalty
+  // Each unit of excess reduces score by EXCESS_PENALTY_MULTIPLIER (50) points
   const excessRatio = (averageCount - threshold) / threshold;
-  return Math.max(0, Math.round(100 - excessRatio * 50));
+  const excessPenalty = excessRatio * COMPONENT_COMPLEXITY_SCORE.EXCESS_PENALTY_MULTIPLIER;
+  return Math.max(
+    MIN_PERFORMANCE_SCORE,
+    Math.round(MAX_PERFORMANCE_SCORE - excessPenalty)
+  );
 }
 
 /**

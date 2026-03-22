@@ -6,7 +6,9 @@
 import { useCallback, useState, useRef } from 'react';
 import { analysisWorker } from '@/panel/workers/workerClient';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { RANDOM_VARIATION } from '@/shared/constants';
 import type { AnalysisResult, CommitData } from '@/shared/types';
+import { logger } from '@/shared/logger';
 
 /**
  * Analysis stage for progress tracking
@@ -119,7 +121,8 @@ export function useAnalysis(): UseAnalysisReturn {
 
     const target = stages[targetStage];
     setProgress(prev => {
-      const next = prev + Math.random() * 5;
+      // Add small random increment to simulate progress variation
+      const next = prev + Math.random() * RANDOM_VARIATION.PROGRESS_INCREMENT_MAX;
       return Math.min(target.max, Math.max(target.min, next));
     });
   }, []);
@@ -181,9 +184,9 @@ export function useAnalysis(): UseAnalysisReturn {
       }
 
       if (validCommits.length !== commits.length) {
-        console.warn(
-          `[React Perf Profiler] Filtered out ${commits.length - validCommits.length} invalid commits`
-        );
+        logger.warn(`Filtered out ${commits.length - validCommits.length} invalid commits`, {
+          source: 'useAnalysis'
+        });
       }
 
       // Run the actual analysis
@@ -237,7 +240,7 @@ export function useAnalysis(): UseAnalysisReturn {
       setProgress(0);
 
       // Log detailed error for debugging
-      console.error('[React Perf Profiler] Analysis error:', err);
+      logger.error('Analysis error', { error: err instanceof Error ? err.message : String(err), source: 'useAnalysis' });
     } finally {
       clearInterval(progressInterval);
       abortControllerRef.current = null;

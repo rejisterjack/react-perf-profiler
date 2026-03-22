@@ -6,14 +6,15 @@
  */
 
 import { createDevToolsPanel, detectBrowser } from '@/shared/browser';
+import { logger } from '@/shared/logger';
 
 async function initializeDevToolsPanel(): Promise<void> {
   const browserType = detectBrowser();
-  console.log(`[React Perf Profiler] Initializing DevTools panel on ${browserType}`);
+  logger.info(`Initializing DevTools panel on ${browserType}`, { source: 'DevTools' });
 
   // Check if DevTools API is available
   if (browserType === 'unknown') {
-    console.error('[React Perf Profiler] DevTools API not available - unsupported browser');
+    logger.error('DevTools API not available - unsupported browser', { source: 'DevTools' });
     return;
   }
 
@@ -25,18 +26,21 @@ async function initializeDevToolsPanel(): Promise<void> {
       pagePath: 'panel/index.html',
     });
 
-    console.log(`[React Perf Profiler] Panel "${panel.title}" created successfully`);
+    logger.info(`Panel "${panel.title}" created successfully`, { source: 'DevTools' });
 
     // Set up panel show/hide event listeners
     panel.onShown(() => {
-      console.log('[React Perf Profiler] Panel shown');
+      logger.debug('Panel shown', { source: 'DevTools' });
     });
 
     panel.onHidden(() => {
-      console.log('[React Perf Profiler] Panel hidden');
+      logger.debug('Panel hidden', { source: 'DevTools' });
     });
   } catch (error) {
-    console.error('[React Perf Profiler] Failed to create DevTools panel:', error);
+    logger.error('Failed to create DevTools panel', { 
+      error: error instanceof Error ? error.message : String(error),
+      source: 'DevTools' 
+    });
   }
 }
 

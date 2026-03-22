@@ -15,6 +15,12 @@ import type {
   RSCAnalysisConfig,
 } from '@/shared/types/rsc';
 import { DEFAULT_RSC_ANALYSIS_CONFIG } from '@/shared/types/rsc';
+import {
+  MAX_PERFORMANCE_SCORE,
+  MIN_PERFORMANCE_SCORE,
+  RSC_ISSUE_PENALTIES,
+  RSC_PAYLOAD_SCORE,
+} from '@/shared/constants';
 
 // Import RSC parser functions - these run in the worker context
 import {
@@ -666,23 +672,32 @@ export function ServerComponent() { ... }`,
  * Calculates overall performance score
  */
 function calculatePerformanceScore(metrics: RSCMetrics, issues: RSCIssue[]): number {
-  let score = 100;
+  let score = MAX_PERFORMANCE_SCORE;
 
   // Deduct for large payload
+  // Payloads over SIZE_THRESHOLD_MB (1MB) get penalized based on size
   const payloadSizeMB = metrics.payloadSize / (1024 * 1024);
-  if (payloadSizeMB > 1) {
-    score -= Math.min(30, Math.round(payloadSizeMB * 10));
+  if (payloadSizeMB > RSC_PAYLOAD_SCORE.SIZE_THRESHOLD_MB) {
+    const sizePenalty = Math.round(payloadSizeMB * RSC_PAYLOAD_SCORE.SIZE_MULTIPLIER);
+    score -= Math.min(RSC_PAYLOAD_SCORE.MAX_SIZE_PENALTY, sizePenalty);
   }
 
   // Deduct for low cache hit ratio
-  score -= Math.round((1 - metrics.cacheHitRatio) * 20);
+  // Lower hit ratio = higher penalty (scaled by CACHE_MISS_MULTIPLIER)
+  score -= Math.round(
+    (1 - metrics.cacheHitRatio) * RSC_PAYLOAD_SCORE.CACHE_MISS_MULTIPLIER
+  );
 
-  // Deduct for issues
-  score -= issues.filter((i) => i.severity === 'critical').length * 15;
-  score -= issues.filter((i) => i.severity === 'high').length * 10;
-  score -= issues.filter((i) => i.severity === 'medium').length * 5;
+  // Deduct for issues based on severity
+  // Critical issues have highest impact, medium issues have lower impact
+  score -=
+    issues.filter((i) => i.severity === 'critical').length * RSC_ISSUE_PENALTIES.CRITICAL;
+  score -=
+    issues.filter((i) => i.severity === 'high').length * RSC_ISSUE_PENALTIES.HIGH;
+  score -=
+    issues.filter((i) => i.severity === 'medium').length * RSC_ISSUE_PENALTIES.MEDIUM;
 
-  return Math.max(0, Math.min(100, score));
+  return Math.max(MIN_PERFORMANCE_SCORE, Math.min(MAX_PERFORMANCE_SCORE, score));
 }
 
 /**

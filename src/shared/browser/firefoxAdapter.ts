@@ -11,6 +11,8 @@
 // Browser Detection
 // =============================================================================
 
+import { logger } from '../logger';
+
 export type BrowserType = 'chrome' | 'firefox' | 'unknown';
 
 /**
@@ -132,11 +134,11 @@ function createFirefoxPanel(
       pagePath,
       show: () => {
         // Firefox doesn't have a direct show method, panel is shown by user
-        console.warn('Panel show is not directly supported in Firefox DevTools API');
+        logger.warn('Panel show is not directly supported in Firefox DevTools API', { source: 'FirefoxAdapter' });
       },
       hide: () => {
         // Firefox doesn't have a direct hide method
-        console.warn('Panel hide is not directly supported in Firefox DevTools API');
+        logger.warn('Panel hide is not directly supported in Firefox DevTools API', { source: 'FirefoxAdapter' });
       },
       setHeight: (height: number) => {
         // Firefox-specific: may not be available in all versions
@@ -200,11 +202,11 @@ function createChromePanel(
         pagePath,
         show: () => {
           // Chrome doesn't have a direct show method
-          console.warn('Panel show is not directly supported in Chrome DevTools API');
+          logger.warn('Panel show is not directly supported in Chrome DevTools API', { source: 'FirefoxAdapter' });
         },
         hide: () => {
           // Chrome doesn't have a direct hide method
-          console.warn('Panel hide is not directly supported in Chrome DevTools API');
+          logger.warn('Panel hide is not directly supported in Chrome DevTools API', { source: 'FirefoxAdapter' });
         },
         onShown: (callback: () => void) => {
           shownCallbacks.push(callback);

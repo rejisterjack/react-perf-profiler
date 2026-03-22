@@ -39,7 +39,7 @@ export interface ExportMetadata {
   /** ISO timestamp when exported */
   exportedAt: string;
   /** Format identifier for validation */
-  format: 'react-perf-profiler-v1';
+  format: 'react-perf-profiler-v1' | 'react-perf-profiler-v2';
   /** Source URL where profiling occurred (if available) */
   sourceUrl?: string;
   /** Export file name (optional) */

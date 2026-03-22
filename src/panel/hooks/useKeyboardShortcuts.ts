@@ -65,6 +65,111 @@ export interface ShortcutFeedback {
 // =============================================================================
 
 /**
+ * Browser shortcuts that are reserved and may cause conflicts
+ * These should be avoided or used with caution
+ */
+export const RESERVED_BROWSER_SHORTCUTS: string[] = [
+  // Browser command palette / quick open
+  'ctrl+shift+p', // Chrome/Edge/Firefox command palette
+  'cmd+shift+p',  // macOS
+  // Common browser shortcuts
+  'ctrl+p',       // Print
+  'cmd+p',        // Print (macOS)
+  'ctrl+s',       // Save
+  'cmd+s',        // Save (macOS)
+  'ctrl+o',       // Open file
+  'cmd+o',        // Open file (macOS)
+  'ctrl+t',       // New tab
+  'cmd+t',        // New tab (macOS)
+  'ctrl+w',       // Close tab
+  'cmd+w',        // Close tab (macOS)
+  'ctrl+r',       // Reload
+  'cmd+r',        // Reload (macOS)
+  'f5',           // Reload
+  'ctrl+f',       // Find
+  'cmd+f',        // Find (macOS)
+  'ctrl+h',       // History
+  'cmd+y',        // History (macOS)
+  'ctrl+j',       // Downloads
+  'cmd+shift+j',  // Downloads (macOS)
+  'f12',          // DevTools
+  'ctrl+shift+i', // DevTools
+  'cmd+option+i', // DevTools (macOS)
+];
+
+/**
+ * Conflict warning information
+ */
+export interface ShortcutConflict {
+  shortcut: string;
+  severity: 'error' | 'warning';
+  message: string;
+  alternative?: string;
+}
+
+/**
+ * Check if a shortcut conflicts with browser defaults
+ */
+export const checkShortcutConflict = (shortcut: string): ShortcutConflict | null => {
+  const normalizedShortcut = shortcut.toLowerCase().replace(/\s/g, '');
+  
+  // Check against reserved browser shortcuts
+  if (RESERVED_BROWSER_SHORTCUTS.includes(normalizedShortcut)) {
+    const isCommandPalette = normalizedShortcut === 'ctrl+shift+p' || normalizedShortcut === 'cmd+shift+p';
+    
+    return {
+      shortcut,
+      severity: isCommandPalette ? 'error' : 'warning',
+      message: isCommandPalette
+        ? `\`${shortcut}\` conflicts with browser Command Palette (Quick Open). Users may accidentally trigger browser features.`
+        : `\`${shortcut}\` may conflict with browser shortcuts.`,
+      alternative: isCommandPalette 
+        ? (normalizedShortcut.startsWith('cmd') ? 'Cmd+Shift+R' : 'Ctrl+Shift+R')
+        : undefined,
+    };
+  }
+  
+  return null;
+};
+
+/**
+ * Validate all shortcuts and return any conflicts
+ */
+export const validateShortcuts = (shortcuts: ShortcutConfig[]): ShortcutConflict[] => {
+  const conflicts: ShortcutConflict[] = [];
+  
+  for (const shortcut of shortcuts) {
+    const conflict = checkShortcutConflict(shortcut.key);
+    if (conflict) {
+      conflicts.push(conflict);
+    }
+  }
+  
+  return conflicts;
+};
+
+/**
+ * Show conflict warning in console
+ */
+export const showConflictWarnings = (shortcuts: ShortcutConfig[]): void => {
+  const conflicts = validateShortcuts(shortcuts);
+  
+  if (conflicts.length === 0) return;
+  
+  console.warn('[React Perf Profiler] Keyboard shortcut conflicts detected:');
+  
+  for (const conflict of conflicts) {
+    const emoji = conflict.severity === 'error' ? '❌' : '⚠️';
+    console.warn(`  ${emoji} ${conflict.message}`);
+    if (conflict.alternative) {
+      console.warn(`     Suggested alternative: ${conflict.alternative}`);
+    }
+  }
+  
+  console.warn('  Consider using different shortcuts to avoid browser conflicts.');
+};
+
+/**
  * Check if the current platform is macOS
  */
 export const isMac = (): boolean => {
@@ -412,6 +517,11 @@ export const useKeyboardShortcuts = (
   // Update shortcuts when actions change
   useEffect(() => {
     shortcuts.current = createDefaultShortcuts(actions as ShortcutActions);
+    
+    // Check for conflicts and warn in development
+    if (import.meta.env?.DEV) {
+      showConflictWarnings(shortcuts.current);
+    }
   }, [actions]);
 
   // Cleanup timeout on unmount

@@ -35,6 +35,7 @@ export {
 
 // Import shared types for use in this file
 import type { CommitData, AnalysisResult } from '@/shared/types';
+import { pluginLogger } from '@/shared/logger';
 
 export type {
   // Plugin Interfaces
@@ -189,13 +190,17 @@ export function registerBuiltInPlugins(
       // Enable if requested
       if (shouldEnable) {
         pluginManager.enablePlugin(id).catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error(`Failed to enable plugin ${id}:`, error);
+          pluginLogger.error(`Failed to enable plugin ${id}`, { 
+            error: error instanceof Error ? error.message : String(error),
+            pluginId: id 
+          });
         });
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to register plugin ${id}:`, error);
+      pluginLogger.error(`Failed to register plugin ${id}`, { 
+        error: error instanceof Error ? error.message : String(error),
+        pluginId: id 
+      });
     }
   }
 }

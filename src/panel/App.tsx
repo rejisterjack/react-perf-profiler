@@ -4,8 +4,6 @@ import { PanelLayout } from './components/Layout/PanelLayout';
 import { Toolbar } from './components/Layout/Toolbar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeScreen } from './components/Layout/WelcomeScreen';
-// Loading components are available for future use
-// import { LoadingOverlay, InlineLoading } from './components/LoadingOverlay';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
 import styles from './App.module.css';

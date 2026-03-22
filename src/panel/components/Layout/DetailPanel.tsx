@@ -5,7 +5,7 @@
 
 import type React from 'react';
 import { forwardRef } from 'react';
-import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { useProfilerStore, type ComponentData } from '@/panel/stores/profilerStore';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './DetailPanel.module.css';
 
@@ -82,9 +82,7 @@ DetailPanel.displayName = 'DetailPanel';
 
 interface ComponentDetailsProps {
   name: string;
-  data: ReturnType<typeof useProfilerStore.getState>['componentData'] extends Map<string, infer V>
-    ? V
-    : never;
+  data: ComponentData | undefined;
   wastedReport: ReturnType<typeof useProfilerStore.getState>['wastedRenderReports'][0] | null;
   memoReport: ReturnType<typeof useProfilerStore.getState>['memoReports'][0] | null;
   onClose: () => void;

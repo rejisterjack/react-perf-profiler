@@ -96,6 +96,7 @@ export const DEFAULT_SETTINGS: Omit<
   enableAutoAnalysis: false,
   exportIncludeMetrics: true,
   exportIncludeReports: true,
+  maxComponentDataEntries: 1000,
 };
 
 // ============================================================================
@@ -150,6 +151,8 @@ export interface SettingsState {
   exportIncludeMetrics: boolean;
   /** Include reports in exports */
   exportIncludeReports: boolean;
+  /** Maximum number of component entries to keep in LRU cache */
+  maxComponentDataEntries: number;
 
   // ==========================================================================
   // State
@@ -279,6 +282,9 @@ const createActions = (
       case 'analysisWorkerCount':
         validatedValue = Math.max(1, Math.min(8, value as number)) as SettingsState[K];
         break;
+      case 'maxComponentDataEntries':
+        validatedValue = Math.max(100, Math.min(10000, value as number)) as SettingsState[K];
+        break;
     }
 
     set((state: SettingsState) => {
@@ -306,6 +312,7 @@ const createActions = (
       analysisWorkerCount: settings.analysisWorkerCount,
       enableTimeTravel: settings.enableTimeTravel,
       wastedRenderThreshold: settings.wastedRenderThreshold,
+      maxComponentDataEntries: settings.maxComponentDataEntries,
     };
   },
 

@@ -300,6 +300,7 @@ describe('settingsStore', () => {
         analysisWorkerCount: 4,
         enableTimeTravel: false,
         wastedRenderThreshold: 30,
+        maxComponentDataEntries: 1000,
       });
     });
   });

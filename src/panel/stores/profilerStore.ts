@@ -20,6 +20,11 @@ import type {
 } from '@/shared/types/rsc';
 import type { ExportedProfileV1, ImportValidationResult } from '@/shared/types/export';
 import { createExportProfile, validateImportData, isExportedProfileV1 } from '@/shared/types/export';
+import {
+  MAX_PERFORMANCE_SCORE,
+  MIN_PERFORMANCE_SCORE,
+  RENDER_TIME_SCORE,
+} from '@/shared/constants';
 import { autoMigrateProfileWithLogging, MigrationError, CorruptedProfileError } from '@/shared/export/migrations';
 import type { MigrationLogEntry } from '@/shared/types/export';
 import { rscWorker } from '@/panel/workers/workerClient';
@@ -145,8 +150,8 @@ export interface ProfilerState {
   analysisError: string | null;
   /** Performance score data */
   performanceScore: PerformanceMetrics | null;
-  /** Component data map */
-  componentData: Map<string, ComponentData>;
+  /** Component data map with LRU eviction */
+  componentData: ComponentDataLRUCache;
   /** Whether detail panel is open */
   isDetailPanelOpen: boolean;
   /** Width of the sidebar in pixels */
@@ -277,7 +282,176 @@ const defaultConfig: ProfilerConfig = {
   maxNodesPerCommit: 10000,
   analysisWorkerCount: 2,
   enableTimeTravel: true,
+  maxComponentDataEntries: 1000,
 };
+
+/** Maximum component data entries (absolute limit) */
+const MAX_COMPONENT_DATA_ENTRIES = 10000;
+
+/** Maximum RSC payloads to store */
+const MAX_RSC_PAYLOADS = 100;
+
+/** Maximum expanded nodes to track */
+const MAX_EXPANDED_NODES = 1000;
+
+/**
+ * LRU Cache manager for component data
+ * Tracks access order and evicts least recently used entries when limit is exceeded
+ */
+class ComponentDataLRUCache {
+  private cache: Map<string, ComponentData>;
+  private accessOrder: string[];
+  private maxSize: number;
+
+  constructor(maxSize: number = 1000) {
+    this.cache = new Map();
+    this.accessOrder = [];
+    this.maxSize = maxSize;
+  }
+
+  /**
+   * Get the current max size
+   */
+  getMaxSize(): number {
+    return this.maxSize;
+  }
+
+  /**
+   * Update max size and trigger eviction if needed
+   */
+  setMaxSize(newSize: number): void {
+    this.maxSize = Math.min(newSize, MAX_COMPONENT_DATA_ENTRIES);
+    this.enforceLimit();
+  }
+
+  /**
+   * Get a component and update its access order (mark as recently used)
+   */
+  get(key: string): ComponentData | undefined {
+    const data = this.cache.get(key);
+    if (data) {
+      this.updateAccessOrder(key);
+    }
+    return data;
+  }
+
+  /**
+   * Set a component and update access order
+   */
+  set(key: string, value: ComponentData): void {
+    if (this.cache.has(key)) {
+      // Update existing entry
+      this.cache.set(key, value);
+      this.updateAccessOrder(key);
+    } else {
+      // Add new entry
+      this.cache.set(key, value);
+      this.accessOrder.push(key);
+      this.enforceLimit();
+    }
+  }
+
+  /**
+   * Check if key exists in cache
+   */
+  has(key: string): boolean {
+    return this.cache.has(key);
+  }
+
+  /**
+   * Delete a component from cache
+   */
+  delete(key: string): boolean {
+    const index = this.accessOrder.indexOf(key);
+    if (index > -1) {
+      this.accessOrder.splice(index, 1);
+    }
+    return this.cache.delete(key);
+  }
+
+  /**
+   * Get all values
+   */
+  values(): IterableIterator<ComponentData> {
+    return this.cache.values();
+  }
+
+  /**
+   * Iterate over all entries with callback
+   */
+  forEach(
+    callbackfn: (value: ComponentData, key: string, map: Map<string, ComponentData>) => void
+  ): void {
+    this.cache.forEach(callbackfn);
+  }
+
+  /**
+   * Get all entries
+   */
+  entries(): IterableIterator<[string, ComponentData]> {
+    return this.cache.entries();
+  }
+
+  /**
+   * Get cache size
+   */
+  get size(): number {
+    return this.cache.size;
+  }
+
+  /**
+   * Get underlying map (for compatibility)
+   */
+  getMap(): Map<string, ComponentData> {
+    return this.cache;
+  }
+
+  /**
+   * Clear all entries
+   */
+  clear(): void {
+    this.cache.clear();
+    this.accessOrder = [];
+  }
+
+  /**
+   * Update access order for a key (move to end = most recently used)
+   */
+  private updateAccessOrder(key: string): void {
+    const index = this.accessOrder.indexOf(key);
+    if (index > -1) {
+      this.accessOrder.splice(index, 1);
+    }
+    this.accessOrder.push(key);
+  }
+
+  /**
+   * Enforce the size limit by evicting least recently used entries
+   */
+  private enforceLimit(): void {
+    while (this.accessOrder.length > this.maxSize) {
+      const lruKey = this.accessOrder.shift(); // Remove oldest (least recently used)
+      if (lruKey) {
+        this.cache.delete(lruKey);
+      }
+    }
+  }
+
+  /**
+   * Get keys in LRU order (oldest first)
+   */
+  getKeysByAccessOrder(): string[] {
+    return [...this.accessOrder];
+  }
+
+  /**
+   * Get eviction candidates (least recently used keys)
+   * @param count Number of candidates to return
+   */
+  getEvictionCandidates(count: number): string[] {
+    return this.accessOrder.slice(0, Math.min(count, this.accessOrder.length));
+  }
+}
 
 /** Maximum commits limit */
 const MAX_COMMITS = 500;
@@ -312,7 +486,7 @@ const storeImplementation = (
   isAnalyzing: false,
   analysisError: null,
   performanceScore: null,
-  componentData: new Map<string, ComponentData>(),
+  componentData: new ComponentDataLRUCache(defaultConfig.maxComponentDataEntries),
   isDetailPanelOpen: true,
   sidebarWidth: 280,
   detailPanelOpen: true,
@@ -355,7 +529,7 @@ const storeImplementation = (
       selectedComponentName: null,
       timeTravelIndex: null,
       performanceScore: null,
-      componentData: new Map<string, ComponentData>(),
+      componentData: new ComponentDataLRUCache(get().config.maxComponentDataEntries),
       expandedNodes: new Set<string>(),
       analysisError: null,
       recordingDuration: 0,
@@ -538,9 +712,15 @@ const storeImplementation = (
   },
 
   updateConfig: (newConfig: Partial<ProfilerConfig>) => {
-    set((state: ProfilerState) => ({
-      config: { ...state.config, ...newConfig },
-    }));
+    set((state: ProfilerState) => {
+      // Update cache size if maxComponentDataEntries changed
+      if (newConfig.maxComponentDataEntries !== undefined) {
+        state.componentData.setMaxSize(newConfig.maxComponentDataEntries);
+      }
+      return {
+        config: { ...state.config, ...newConfig },
+      };
+    });
   },
 
   selectCommit: (commitId: string | null) => {
@@ -608,15 +788,18 @@ const storeImplementation = (
       const wastedReports: WastedRenderReport[] = [];
       const memoReports: MemoReport[] = [];
 
-      // Aggregate component data
-      const componentMap = new Map<string, ComponentData>();
+      // Aggregate component data using LRU cache
+      const { componentData, config } = get();
+      
+      // Ensure cache size is up to date
+      componentData.setMaxSize(config.maxComponentDataEntries);
 
       for (const commit of commits) {
         for (const node of commit.nodes ?? []) {
           const name = node.displayName;
           if (!name) continue;
 
-          let data = componentMap.get(name);
+          let data = componentData.get(name);
           if (!data) {
             data = {
               name,
@@ -630,30 +813,43 @@ const storeImplementation = (
               commitIds: [],
               severity: 'none',
             };
-            componentMap.set(name, data);
           }
 
           data.renderCount++;
           data.totalDuration += node.actualDuration;
           data.commitIds.push(commit.id);
+          
+          // Set/update in LRU cache (this updates access order)
+          componentData.set(name, data);
         }
       }
 
       // Calculate averages
-      for (const data of componentMap.values()) {
+      for (const data of componentData.values()) {
         data.averageDuration = data.totalDuration / data.renderCount;
       }
 
       // Calculate performance score
-      const totalComponents = componentMap.size;
-      const totalRenderTime = Array.from(componentMap.values()).reduce(
+      const totalComponents = componentData.size;
+      const totalRenderTime = Array.from(componentData.values()).reduce(
         (sum, c) => sum + c.totalDuration,
         0
       );
       const avgRenderTime = totalComponents > 0 ? totalRenderTime / totalComponents : 0;
 
+      // Calculate performance score based on average render time
+      // Score decreases as average render time increases
+      // Formula: score = MAX - (avgRenderTime * MULTIPLIER)
+      // With MULTIPLIER=5: 20ms avg = 0 points, 10ms = 50 points, 5ms = 75 points
+      const calculatedScore =
+        MAX_PERFORMANCE_SCORE - avgRenderTime * RENDER_TIME_SCORE.MULTIPLIER;
+      const clampedScore = Math.max(
+        MIN_PERFORMANCE_SCORE,
+        Math.min(MAX_PERFORMANCE_SCORE, calculatedScore)
+      );
+
       const performanceScore: PerformanceMetrics = {
-        score: Math.max(0, Math.min(100, 100 - avgRenderTime * 5)),
+        score: clampedScore,
         averageRenderTime: avgRenderTime,
         wastedRenderRate: 0,
         averageMemoHitRate: 0,
@@ -663,7 +859,7 @@ const storeImplementation = (
       set({
         isAnalyzing: false,
         performanceScore,
-        componentData: componentMap,
+        componentData,
         wastedRenderReports: wastedReports,
         memoReports: memoReports,
       });
@@ -726,13 +922,28 @@ const storeImplementation = (
       newExpanded.delete(nodeId);
     } else {
       newExpanded.add(nodeId);
+      
+      // Enforce max expanded nodes limit using FIFO eviction
+      if (newExpanded.size > MAX_EXPANDED_NODES) {
+        const firstKey = newExpanded.values().next().value;
+        if (firstKey !== undefined) {
+          newExpanded.delete(firstKey);
+        }
+      }
     }
     set({ expandedNodes: newExpanded });
   },
 
   addRSCPayload: (payload: RSCPayload) => {
     const { rscPayloads } = get();
-    set({ rscPayloads: [...rscPayloads, payload] });
+    const newPayloads = [...rscPayloads, payload];
+    
+    // Enforce max RSC payloads limit
+    if (newPayloads.length > MAX_RSC_PAYLOADS) {
+      newPayloads.shift(); // Remove oldest
+    }
+    
+    set({ rscPayloads: newPayloads });
   },
 
   clearRSCData: () => {

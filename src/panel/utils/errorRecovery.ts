@@ -3,6 +3,9 @@
  * Functions for recovering from errors and managing panel state
  */
 
+import { logger } from '@/shared/logger';
+import { TIME_DURATION } from '@/shared/constants';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -81,9 +84,12 @@ export function clearPanelData(): void {
     }
 
     // Clear any temporary state from stores
-    console.info('[React Perf Profiler] Panel data cleared successfully');
+    logger.info('Panel data cleared successfully', { source: 'ErrorRecovery' });
   } catch (error) {
-    console.error('[React Perf Profiler] Failed to clear panel data:', error);
+    logger.error('Failed to clear panel data', { 
+      error: error instanceof Error ? error.message : String(error),
+      source: 'ErrorRecovery' 
+    });
   }
 }
 
@@ -94,9 +100,12 @@ export function clearPanelData(): void {
 export function clearSettings(): void {
   try {
     localStorage.removeItem(`${STORAGE_PREFIX}settings`);
-    console.info('[React Perf Profiler] Settings cleared successfully');
+    logger.info('Settings cleared successfully', { source: 'ErrorRecovery' });
   } catch (error) {
-    console.error('[React Perf Profiler] Failed to clear settings:', error);
+    logger.error('Failed to clear settings', { 
+      error: error instanceof Error ? error.message : String(error),
+      source: 'ErrorRecovery' 
+    });
   }
 }
 
@@ -107,14 +116,17 @@ export function clearSettings(): void {
  */
 export function reloadPanel(): void {
   try {
-    console.info('[React Perf Profiler] Reloading panel...');
+    logger.info('Reloading panel...', { source: 'ErrorRecovery' });
     
     // Attempt to reload the panel window
     if (typeof window !== 'undefined') {
       window.location.reload();
     }
   } catch (error) {
-    console.error('[React Perf Profiler] Failed to reload panel:', error);
+    logger.error('Failed to reload panel', { 
+      error: error instanceof Error ? error.message : String(error),
+      source: 'ErrorRecovery' 
+    });
     
     // Fallback: try to inform the user
     alert('Failed to reload the panel. Please close and reopen DevTools.');
@@ -127,7 +139,7 @@ export function reloadPanel(): void {
  */
 export function hardReset(): void {
   try {
-    console.warn('[React Perf Profiler] Performing hard reset...');
+    logger.warn('Performing hard reset...', { source: 'ErrorRecovery' });
     
     // Clear all data first
     clearPanelData();
@@ -136,7 +148,10 @@ export function hardReset(): void {
     // Then reload
     reloadPanel();
   } catch (error) {
-    console.error('[React Perf Profiler] Hard reset failed:', error);
+    logger.error('Hard reset failed', { 
+      error: error instanceof Error ? error.message : String(error),
+      source: 'ErrorRecovery' 
+    });
   }
 }
 
@@ -175,10 +190,11 @@ export function reportError(
       context: errorInfo?.context,
     };
 
-    // Log to console for debugging
-    console.error('[React Perf Profiler] Error Report:', {
+    // Log for debugging
+    logger.error('Error Report', {
       ...report,
       errorName: error.name,
+      source: 'ErrorRecovery',
     });
 
     // TODO: Implement actual analytics reporting
@@ -199,7 +215,10 @@ export function reportError(
 
   } catch (reportingError) {
     // Don't let error reporting fail
-    console.error('[React Perf Profiler] Failed to report error:', reportingError);
+    logger.error('Failed to report error', { 
+      error: reportingError instanceof Error ? reportingError.message : String(reportingError),
+      source: 'ErrorRecovery' 
+    });
   }
 }
 
@@ -253,7 +272,7 @@ export function checkPanelHealth(): { healthy: boolean; issues: string[] } {
 
     // Check if last error was recent (within last 5 minutes)
     const lastError = getLastError();
-    if (lastError && Date.now() - lastError.timestamp < 5 * 60 * 1000) {
+    if (lastError && Date.now() - lastError.timestamp < TIME_DURATION.FIVE_MINUTES) {
       issues.push('Recent error detected');
     }
 

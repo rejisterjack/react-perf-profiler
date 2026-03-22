@@ -6,6 +6,7 @@
 import { useCallback, useState, useRef } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import type { AnalysisResult, CommitData } from '@/shared/types';
+import { logger } from '@/shared/logger';
 
 /**
  * Export progress state
@@ -272,7 +273,7 @@ export function useExport(): UseExportReturn {
         message: 'Export failed',
       });
 
-      console.error('[React Perf Profiler] Export error:', err);
+      logger.error('Export error', { error: err instanceof Error ? err.message : String(err), source: 'useExport' });
     } finally {
       abortControllerRef.current = null;
     }
@@ -405,7 +406,7 @@ export function useExport(): UseExportReturn {
         message: 'Import failed',
       }));
 
-      console.error('[React Perf Profiler] Import error:', err);
+      logger.error('Import error', { error: err instanceof Error ? err.message : String(err), source: 'useExport' });
     } finally {
       abortControllerRef.current = null;
     }

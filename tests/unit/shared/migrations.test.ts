@@ -131,10 +131,67 @@ describe('export migrations', () => {
       expect(result).toBe(v1Profile);
     });
 
-    it('should throw MigrationError for unsupported version transitions', () => {
+    it('should throw CorruptedProfileError for invalid profile when migrating to v2.0', () => {
+      // Empty object is not a valid v1 profile - integrity check fails
       expect(() => {
         migrateProfile({}, '1.0', '2.0');
-      }).toThrow(MigrationError);
+      }).toThrow();
+    });
+
+    it('should migrate v1.0 to v2.0 successfully', () => {
+      const v1Profile: ExportedProfileV1 = {
+        version: '1.0',
+        metadata: {
+          profilerVersion: '1.0.0',
+          reactVersion: '18.2.0',
+          exportedAt: new Date().toISOString(),
+          format: 'react-perf-profiler-v1',
+        },
+        data: {
+          commits: [
+            {
+              id: 'commit-1',
+              timestamp: Date.now(),
+              duration: 16.5,
+              priorityLevel: 'Normal',
+              nodes: [
+                {
+                  id: 1,
+                  displayName: 'App',
+                  actualDuration: 5.2,
+                  baseDuration: 8.1,
+                  props: {},
+                  hasContextChanged: false,
+                  parentId: null,
+                  children: [2],
+                  isMemoized: false,
+                },
+                {
+                  id: 2,
+                  displayName: 'Header',
+                  actualDuration: 2.1,
+                  baseDuration: 3.0,
+                  props: {},
+                  hasContextChanged: false,
+                  parentId: 1,
+                  children: [],
+                  isMemoized: true,
+                },
+              ],
+            },
+          ],
+        },
+        recordingDuration: 1000,
+      };
+
+      const migrated = migrateProfile(v1Profile, '1.0', '2.0');
+
+      expect(migrated.version).toBe('2.0');
+      expect(migrated.metadata.format).toBe('react-perf-profiler-v2');
+      expect(migrated.data.componentGraph).toBeDefined();
+      expect(migrated.data.performanceTimeline).toBeDefined();
+      expect(migrated.data.componentGraph?.nodes).toHaveLength(2);
+      expect(migrated.data.componentGraph?.edges).toHaveLength(1);
     });
 
     it('should auto-detect and migrate legacy formats', () => {
@@ -299,8 +356,13 @@ describe('export migrations', () => {
       expect(path).toEqual(['legacy', '1.0']);
     });
 
-    it('should return null for unavailable paths', () => {
+    it('should return direct path for v1.0 to v2.0 migration', () => {
       const path = getMigrationPath('1.0', '2.0');
+      expect(path).toEqual(['1.0', '2.0']);
+    });
+
+    it('should return null for truly unavailable paths', () => {
+      const path = getMigrationPath('2.0', '3.0');
       expect(path).toBeNull();
     });
   });

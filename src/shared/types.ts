@@ -487,6 +487,8 @@ export interface ProfilerConfig {
   analysisWorkerCount: number;
   /** Enable time travel debugging */
   enableTimeTravel: boolean;
+  /** Maximum number of component entries to store in LRU cache */
+  maxComponentDataEntries: number;
 }
 
 /**

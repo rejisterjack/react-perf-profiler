@@ -6,13 +6,14 @@
 
 import type {
   ExportedProfileV1,
+  ExportedProfileV2,
   ExportedProfileLegacy,
   ExportedProfile,
   MigrationFunction,
   MigrationLogEntry,
   MigrationResult,
 } from '@/shared/types/export';
-import type { CommitData } from '@/shared/types';
+import type { CommitData, FiberNode } from '@/shared/types';
 
 /**
  * Migration error class
@@ -115,10 +116,9 @@ export function getMigrationPath(fromVersion: string, toVersion: string): string
     }
   }
 
-  // Future: v1.0 -> v2.0 chain
+  // v1.0 -> v2.0 direct migration available
   if (fromVersion === '1.0' && toVersion === '2.0') {
-    // This will be enabled when v2 migration is implemented
-    return null;
+    return ['1.0', '2.0'];
   }
 
   return null;
@@ -259,6 +259,138 @@ function migrateV1ToV1_1(
       ...profile.metadata,
       // Add any new v1.1 metadata fields here
     },
+  };
+}
+
+/**
+ * Build component relationships graph from commit data
+ * Extracts parent-child relationships between components
+ */
+function buildComponentGraph(commits: CommitData[]): ExportedProfileV2['data']['componentGraph'] {
+  const nodes = new Map<string, { id: string; name: string }>();
+  const edges = new Map<string, { source: string; target: string; type: string }>();
+
+  for (const commit of commits) {
+    if (!commit.nodes) continue;
+
+    for (const node of commit.nodes) {
+      // Add node for this component
+      if (!nodes.has(node.displayName)) {
+        nodes.set(node.displayName, {
+          id: node.displayName,
+          name: node.displayName,
+        });
+      }
+
+      // Add edges for parent relationships
+      if (node.parentId !== null) {
+        const parentNode = findNodeById(commit.nodes, node.parentId);
+        if (parentNode) {
+          const edgeKey = `${parentNode.displayName}->${node.displayName}`;
+          if (!edges.has(edgeKey)) {
+            edges.set(edgeKey, {
+              source: parentNode.displayName,
+              target: node.displayName,
+              type: 'parent-child',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    nodes: Array.from(nodes.values()),
+    edges: Array.from(edges.values()),
+  };
+}
+
+/**
+ * Find a node by ID in the nodes array
+ */
+function findNodeById(nodes: FiberNode[], id: number): FiberNode | undefined {
+  return nodes.find((n) => n.id === id);
+}
+
+/**
+ * Build performance timeline from commit data
+ * Extracts timing metrics for each commit
+ */
+function buildPerformanceTimeline(commits: CommitData[]): ExportedProfileV2['data']['performanceTimeline'] {
+  const timeline: ExportedProfileV2['data']['performanceTimeline'] = [];
+
+  for (const commit of commits) {
+    // Add commit duration metric
+    timeline.push({
+      timestamp: commit.timestamp,
+      metric: 'commitDuration',
+      value: commit.duration,
+    });
+
+    // Add render count metric (nodes that actually rendered)
+    if (commit.nodes) {
+      const renderCount = commit.nodes.filter((n) => n.actualDuration > 0).length;
+      timeline.push({
+        timestamp: commit.timestamp,
+        metric: 'renderCount',
+        value: renderCount,
+      });
+
+      // Add total actual duration across all nodes
+      const totalActualDuration = commit.nodes.reduce((sum, n) => sum + n.actualDuration, 0);
+      timeline.push({
+        timestamp: commit.timestamp,
+        metric: 'totalActualDuration',
+        value: totalActualDuration,
+      });
+    }
+  }
+
+  return timeline.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+/**
+ * Migrate v1.0 to v2.0
+ * Adds enhanced v2.0 fields:
+ * - componentGraph: Component relationships extracted from fiber tree
+ * - performanceTimeline: Chronological performance metrics
+ * Updates format identifier and version
+ */
+function migrateV1ToV2(
+  profile: ExportedProfileV1,
+  _fromVersion: string,
+  _toVersion: string
+): ExportedProfileV2 {
+  // Validate profile integrity
+  const integrity = validateProfileIntegrity(profile);
+  if (!integrity.valid) {
+    throw new CorruptedProfileError(
+      `Profile integrity check failed: ${integrity.errors.join(', ')}`,
+      { errors: integrity.errors }
+    );
+  }
+
+  const commits = profile.data.commits;
+
+  // Build new v2.0 structures from v1.0 data
+  const componentGraph = buildComponentGraph(commits);
+  const performanceTimeline = buildPerformanceTimeline(commits);
+
+  return {
+    version: '2.0',
+    metadata: {
+      ...profile.metadata,
+      format: 'react-perf-profiler-v2',
+    },
+    data: {
+      commits: profile.data.commits,
+      analysisResults: profile.data.analysisResults,
+      rscPayloads: profile.data.rscPayloads,
+      rscAnalysis: profile.data.rscAnalysis,
+      componentGraph,
+      performanceTimeline,
+    },
+    recordingDuration: profile.recordingDuration,
   };
 }
 
@@ -527,6 +659,8 @@ registerMigration('legacy', '1.0', migrateLegacyToV1);
 registerMigration('legacy-0', '1.0', migrateLegacyToV1);
 registerMigration('legacy-1', '1.0', migrateLegacyToV1);
 
-// Register future migrations (placeholders)
+// Register v1.x migrations
 registerMigration('1.0', '1.1', migrateV1ToV1_1 as MigrationFunction);
-// registerMigration('1.1', '2.0', migrateV1ToV2);
+
+// Register v2.0 migration
+registerMigration('1.0', '2.0', migrateV1ToV2 as unknown as MigrationFunction);

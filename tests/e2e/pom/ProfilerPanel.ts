@@ -3,7 +3,7 @@
  * Provides an abstraction layer for interacting with the profiler UI
  */
 
-import type { Page, Locator, BrowserContext, Download } from '@playwright/test';
+import { expect, type Page, type Locator, type BrowserContext, type Download } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -33,6 +33,22 @@ export interface ComponentInfo {
   severity: 'none' | 'info' | 'warning' | 'critical';
 }
 
+export interface WastedRenderInfo {
+  componentName: string;
+  totalRenders: number;
+  wastedRenders: number;
+  wastedRenderRate: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  recommendedAction: string;
+}
+
+export interface OptimizationRecommendation {
+  type: 'memo' | 'useMemo' | 'useCallback' | 'colocate' | 'none';
+  description: string;
+  componentName: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
 export class ProfilerPanel {
   readonly page: Page;
   readonly context: BrowserContext;
@@ -51,7 +67,8 @@ export class ProfilerPanel {
   
   // Tree view selectors
   private readonly treeView: Locator;
-  private readonly emptyState: Locator;
+  readonly emptyState: Locator;
+  private readonly sidebar: Locator;
   
   // Detail panel selectors
   private readonly detailPanel: Locator;
@@ -63,10 +80,14 @@ export class ProfilerPanel {
   
   // Import dialog selectors
   private readonly importDialog: Locator;
+  private readonly importDialogOverlay: Locator;
   private readonly importDropZone: Locator;
   private readonly importConfirmButton: Locator;
   private readonly importCancelButton: Locator;
+  private readonly importCloseButton: Locator;
   private readonly importFileInput: Locator;
+  private readonly importPreview: Locator;
+  private readonly importError: Locator;
   
   // Public accessors for tests
   readonly importButton: Locator;
@@ -76,48 +97,61 @@ export class ProfilerPanel {
   private readonly wastedRenderReport: Locator;
   private readonly memoEffectivenessReport: Locator;
   private readonly recommendationsPanel: Locator;
+  private readonly performanceScore: Locator;
+  
+  // Keyboard shortcuts help
+  private readonly keyboardShortcutsHelp: Locator;
 
   constructor(page: Page, context: BrowserContext) {
     this.page = page;
     this.context = context;
     
-    // Toolbar
+    // Toolbar - using data-testid where available, falling back to class selectors
     this.toolbar = page.locator('[class*="toolbar"]').first();
-    this.recordButton = page.locator('button:has-text("Record"), button:has([name="record"])').first();
-    this.stopButton = page.locator('button:has-text("Stop"), button:has([name="stop"])').first();
-    this.clearButton = page.locator('button:has-text("Clear"), button:has([name="trash"])').first();
-    this.exportButton = page.locator('button:has-text("Export"), button:has([name="download"])').first();
-    this.importButton = page.locator('button:has-text("Import"), button:has([name="upload"])').first();
+    this.recordButton = page.locator('button:has-text("Record"), button[aria-label*="record" i]').first();
+    this.stopButton = page.locator('button:has-text("Stop"), button[aria-label*="stop" i]').first();
+    this.clearButton = page.locator('button:has-text("Clear"), button[aria-label*="clear" i]').first();
+    this.exportButton = page.locator('button:has-text("Export"), button[aria-label*="export" i]').first();
+    this.importButton = page.locator('button:has-text("Import"), button[aria-label*="import" i]').first();
     this.connectionStatus = page.locator('[class*="connectionStatus"]').first();
     this.statsContainer = page.locator('[class*="stats"]').first();
     
     // View modes
     this.viewModeToggle = page.locator('[class*="viewModeToggle"]').first();
     
-    // Tree view
-    this.treeView = page.locator('[role="tree"], [class*="treeView"]').first();
+    // Sidebar and Tree view
+    this.sidebar = page.locator('[class*="sidebar"]').first();
+    this.treeView = page.locator('[role="tree"], [class*="treeView"], [class*="treeContainer"]').first();
     this.emptyState = page.locator('[class*="emptyState"]').first();
     
     // Detail panel
     this.detailPanel = page.locator('[class*="detailPanel"]').first();
-    this.detailPanelCloseButton = page.locator('[class*="detailPanel"] [aria-label*="Close"], [class*="detailPanel"] button:has([name="close"])').first();
+    this.detailPanelCloseButton = page.locator('[class*="detailPanel"] [aria-label*="Close"], [class*="detailPanel"] button[aria-label*="close" i]').first();
     
     // Welcome screen
     this.welcomeScreen = page.locator('[class*="welcomeScreen"]').first();
-    this.startProfilingButton = page.locator('[class*="welcomeScreen"] button:has-text("Start Profiling")').first();
+    this.startProfilingButton = page.locator('[class*="welcomeScreen"] button:has-text("Start Profiling"), button[class*="recordButton"]').first();
     
-    // Import dialog
-    this.importDialog = page.locator('[class*="dialog"]').filter({ hasText: 'Import Profile Data' });
+    // Import dialog - targeting the dialog by role and title
+    this.importDialogOverlay = page.locator('[class*="overlay"]').filter({ has: page.locator('text=Import Profile Data') });
+    this.importDialog = page.locator('[role="dialog"]').filter({ has: page.locator('text=Import Profile Data') });
     this.importDropZone = page.locator('[class*="dropZone"]').first();
-    this.importConfirmButton = page.locator('button:has-text("Import")').first();
-    this.importCancelButton = page.locator('button:has-text("Cancel")').first();
+    this.importConfirmButton = page.locator('[class*="importButton"]').first();
+    this.importCancelButton = page.locator('[class*="cancelButton"]').first();
+    this.importCloseButton = page.locator('[class*="closeButton"]').first();
     this.importFileInput = page.locator('input[type="file"]').first();
+    this.importPreview = page.locator('[class*="preview"]').first();
+    this.importError = page.locator('[class*="error"]').filter({ hasNot: page.locator('[class*="dropZone"]') }).first();
     
     // Analysis views
     this.analysisView = page.locator('[class*="analysisView"]').first();
-    this.wastedRenderReport = page.locator('[class*="report"]').filter({ hasText: 'Wasted Renders' }).first();
+    this.wastedRenderReport = page.locator('[class*="report"]').filter({ hasText: 'Wasted' }).first();
     this.memoEffectivenessReport = page.locator('[class*="report"]').filter({ hasText: 'Memo' }).first();
     this.recommendationsPanel = page.locator('[class*="recommendations"], [class*="optimization"]').first();
+    this.performanceScore = page.locator('[class*="performanceScore"]').first();
+    
+    // Keyboard shortcuts help
+    this.keyboardShortcutsHelp = page.locator('[class*="keyboardShortcutsHelp"]').first();
   }
 
   // ============================================================================
@@ -159,6 +193,13 @@ export class ProfilerPanel {
    */
   async waitForPanelLoad(): Promise<void> {
     await this.page.waitForSelector('[class*="app"], [class*="welcomeScreen"]', { timeout: 10000 });
+  }
+
+  /**
+   * Waits for the toolbar to be visible
+   */
+  async waitForToolbar(): Promise<void> {
+    await expect(this.toolbar).toBeVisible({ timeout: 5000 });
   }
 
   // ============================================================================
@@ -214,6 +255,14 @@ export class ProfilerPanel {
     return recordingAttr === 'true';
   }
 
+  /**
+   * Gets the recording state text
+   */
+  async getRecordingStateText(): Promise<string> {
+    const recordBtn = this.page.locator('button[aria-label*="record" i], button:has-text("Record"), button:has-text("Stop")').first();
+    return recordBtn.textContent() || '';
+  }
+
   // ============================================================================
   // Component Tree
   // ============================================================================
@@ -229,14 +278,14 @@ export class ProfilerPanel {
    * Gets all component nodes in the tree
    */
   async getComponentNodes(): Promise<Locator[]> {
-    return this.page.locator('[role="treeitem"], [class*="treeNode"]').all();
+    return this.page.locator('[role="treeitem"], [class*="treeNode"], [class*="placeholderItem"]').all();
   }
 
   /**
    * Gets component info by name
    */
   async getComponentByName(name: string): Promise<Locator | null> {
-    const component = this.page.locator(`[role="treeitem"]:has-text("${name}"), [class*="treeNode"]:has-text("${name}")`).first();
+    const component = this.page.locator(`[role="treeitem"]:has-text("${name}"), [class*="treeNode"]:has-text("${name}"), [class*="placeholderItem"]:has-text("${name}")`).first();
     const isVisible = await component.isVisible().catch(() => false);
     return isVisible ? component : null;
   }
@@ -296,7 +345,8 @@ export class ProfilerPanel {
    */
   async hasTreeData(): Promise<boolean> {
     const emptyState = await this.emptyState.isVisible().catch(() => false);
-    return !emptyState;
+    const welcomeScreen = await this.welcomeScreen.isVisible().catch(() => false);
+    return !emptyState && !welcomeScreen;
   }
 
   // ============================================================================
@@ -307,8 +357,20 @@ export class ProfilerPanel {
    * Switches to a different view mode
    */
   async switchViewMode(mode: 'tree' | 'flamegraph' | 'timeline' | 'analysis'): Promise<void> {
-    const modeButton = this.page.locator(`button:has-text("${mode}"), [data-mode="${mode}"]`).first();
-    await modeButton.click();
+    // Try to find by data-mode attribute first, then by text
+    const modeButton = this.page.locator(`[data-mode="${mode}"], button:has-text("${mode}")`).first();
+    
+    const isVisible = await modeButton.isVisible().catch(() => false);
+    if (isVisible) {
+      await modeButton.click();
+    } else {
+      // Fallback: use keyboard shortcut (1-4)
+      const modeIndex = ['tree', 'flamegraph', 'timeline', 'analysis'].indexOf(mode);
+      if (modeIndex !== -1) {
+        await this.page.keyboard.press(String(modeIndex + 1));
+      }
+    }
+    
     await this.page.waitForTimeout(300);
   }
 
@@ -317,7 +379,17 @@ export class ProfilerPanel {
    */
   async getCurrentViewMode(): Promise<string> {
     const activeButton = this.page.locator('[data-active="true"], [class*="active"]').first();
-    return activeButton.textContent() || 'unknown';
+    const text = await activeButton.textContent().catch(() => null);
+    if (text) return text.toLowerCase();
+    
+    // Try to infer from visible content
+    const analysisVisible = await this.analysisView.isVisible().catch(() => false);
+    if (analysisVisible) return 'analysis';
+    
+    const treeVisible = await this.treeView.isVisible().catch(() => false);
+    if (treeVisible) return 'tree';
+    
+    return 'unknown';
   }
 
   // ============================================================================
@@ -391,16 +463,87 @@ export class ProfilerPanel {
   }
 
   /**
+   * Gets wasted render information for all components
+   */
+  async getWastedRenderInfo(): Promise<WastedRenderInfo[]> {
+    const report = await this.getWastedRenderReport();
+    if (!report) return [];
+
+    const items = await report.locator('[class*="item"], li').all();
+    const results: WastedRenderInfo[] = [];
+
+    for (const item of items) {
+      const name = await item.locator('[class*="name"]').textContent().catch(() => null);
+      const text = await item.textContent().catch(() => '');
+      
+      // Parse render counts from text
+      const renderMatch = text.match(/(\d+)\s*renders?/);
+      const wastedMatch = text.match(/(\d+)\s*wasted/);
+      const rateMatch = text.match(/(\d+)%/);
+      
+      // Determine severity from badge
+      const hasCritical = await item.locator('[class*="error"], [class*="critical"]').count() > 0;
+      const hasWarning = await item.locator('[class*="warning"]').count() > 0;
+      const severity = hasCritical ? 'critical' : hasWarning ? 'high' : 'medium';
+
+      if (name) {
+        results.push({
+          componentName: name,
+          totalRenders: renderMatch ? parseInt(renderMatch[1], 10) : 0,
+          wastedRenders: wastedMatch ? parseInt(wastedMatch[1], 10) : 0,
+          wastedRenderRate: rateMatch ? parseInt(rateMatch[1], 10) : 0,
+          severity,
+          recommendedAction: this.extractRecommendedAction(text),
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Extracts recommended action from text
+   */
+  private extractRecommendedAction(text: string): string {
+    if (text.includes('React.memo')) return 'Wrap with React.memo';
+    if (text.includes('useMemo')) return 'Use useMemo for expensive calculations';
+    if (text.includes('useCallback')) return 'Wrap callbacks with useCallback';
+    if (text.includes('colocate')) return 'Colocate state to reduce prop drilling';
+    return 'Review component for optimization';
+  }
+
+  /**
    * Gets optimization recommendations
    */
-  async getRecommendations(): Promise<string[]> {
-    const recs = await this.page.locator('[class*="recommendation"], [class*="suggestion"]').all();
-    const texts: string[] = [];
+  async getRecommendations(): Promise<OptimizationRecommendation[]> {
+    const recs = await this.page.locator('[class*="recommendation"], [class*="suggestion"], [class*="issue"]').all();
+    const results: OptimizationRecommendation[] = [];
+    
     for (const rec of recs) {
       const text = await rec.textContent().catch(() => null);
-      if (text) texts.push(text.trim());
+      const componentName = await rec.locator('[class*="name"]').textContent().catch(() => '');
+      
+      if (text) {
+        let type: OptimizationRecommendation['type'] = 'none';
+        if (text.includes('memo')) type = 'memo';
+        else if (text.includes('useMemo')) type = 'useMemo';
+        else if (text.includes('useCallback')) type = 'useCallback';
+        else if (text.includes('colocate')) type = 'colocate';
+
+        const hasCritical = await rec.locator('[class*="error"], [class*="critical"]').count() > 0;
+        const hasWarning = await rec.locator('[class*="warning"]').count() > 0;
+        const severity = hasCritical ? 'critical' : hasWarning ? 'high' : 'medium';
+
+        results.push({
+          type,
+          description: text.trim(),
+          componentName: componentName || '',
+          severity,
+        });
+      }
     }
-    return texts;
+    
+    return results;
   }
 
   /**
@@ -411,7 +554,38 @@ export class ProfilerPanel {
     if (!report) return false;
     
     const hasItems = await report.locator('[class*="item"], li').count() > 0;
-    return hasItems;
+    const hasEmptyState = await report.locator('[class*="empty"]').count() > 0;
+    
+    return hasItems && !hasEmptyState;
+  }
+
+  /**
+   * Gets the count of critical wasted render issues
+   */
+  async getCriticalWastedRenderCount(): Promise<number> {
+    const report = await this.getWastedRenderReport();
+    if (!report) return 0;
+    
+    const badge = report.locator('[class*="badge"]').filter({ hasText: /Critical/ });
+    const text = await badge.textContent().catch(() => '0');
+    const match = text.match(/(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
+  /**
+   * Gets performance score information
+   */
+  async getPerformanceScoreInfo(): Promise<{ score: number; grade: string } | null> {
+    const score = await this.getPerformanceScore();
+    if (score === null) return null;
+    
+    let grade = 'F';
+    if (score >= 90) grade = 'A';
+    else if (score >= 80) grade = 'B';
+    else if (score >= 70) grade = 'C';
+    else if (score >= 60) grade = 'D';
+    
+    return { score, grade };
   }
 
   // ============================================================================
@@ -456,6 +630,57 @@ export class ProfilerPanel {
     
     // Wait for data to load
     await this.page.waitForTimeout(500);
+  }
+
+  /**
+   * Opens the import dialog
+   */
+  async openImportDialog(): Promise<void> {
+    await this.importButton.click();
+    await this.importDialog.waitFor({ state: 'visible', timeout: 5000 });
+  }
+
+  /**
+   * Closes the import dialog by clicking cancel
+   */
+  async cancelImport(): Promise<void> {
+    await this.importCancelButton.click();
+    await this.importDialog.waitFor({ state: 'hidden', timeout: 5000 });
+  }
+
+  /**
+   * Checks if import dialog is open
+   */
+  async isImportDialogOpen(): Promise<boolean> {
+    return this.importDialog.isVisible().catch(() => false);
+  }
+
+  /**
+   * Gets import preview information
+   */
+  async getImportPreview(): Promise<{ commitCount: number; version: string } | null> {
+    const preview = this.importPreview;
+    const isVisible = await preview.isVisible().catch(() => false);
+    if (!isVisible) return null;
+
+    const text = await preview.textContent() || '';
+    const commitMatch = text.match(/(\d+)\s*commits?/i);
+    const versionMatch = text.match(/version[:\s]+(\d+)/i);
+
+    return {
+      commitCount: commitMatch ? parseInt(commitMatch[1], 10) : 0,
+      version: versionMatch ? versionMatch[1] : 'unknown',
+    };
+  }
+
+  /**
+   * Checks if import has error
+   */
+  async getImportError(): Promise<string | null> {
+    const error = this.importError;
+    const isVisible = await error.isVisible().catch(() => false);
+    if (!isVisible) return null;
+    return error.textContent();
   }
 
   /**
@@ -515,11 +740,46 @@ export class ProfilerPanel {
   }
 
   /**
+   * Creates sample profile data with wasted renders for testing
+   */
+  createWastedRenderProfileData(): ProfileData {
+    return {
+      version: 1,
+      commits: Array.from({ length: 10 }, (_, i) => ({
+        id: `commit-${i}`,
+        timestamp: Date.now() + i * 100,
+        duration: 5 + Math.random() * 5,
+        nodes: [
+          {
+            id: 1,
+            displayName: 'UnmemoizedChild',
+            actualDuration: 2 + Math.random(),
+            isMemoized: false,
+          },
+          {
+            id: 2,
+            displayName: 'MemoizedChild',
+            actualDuration: 1 + Math.random() * 0.5,
+            isMemoized: true,
+          },
+          {
+            id: 3,
+            displayName: 'App',
+            actualDuration: 3 + Math.random(),
+            isMemoized: false,
+          },
+        ],
+      })),
+      recordingDuration: 1000,
+    };
+  }
+
+  /**
    * Saves sample profile data to a file
    */
-  async saveSampleProfileData(filePath: string): Promise<void> {
-    const data = this.createSampleProfileData();
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  async saveSampleProfileData(filePath: string, data?: ProfileData): Promise<void> {
+    const profileData = data || this.createSampleProfileData();
+    fs.writeFileSync(filePath, JSON.stringify(profileData, null, 2));
   }
 
   // ============================================================================
@@ -569,6 +829,29 @@ export class ProfilerPanel {
     await this.page.waitForTimeout(200);
   }
 
+  /**
+   * Presses the Space key to toggle recording
+   */
+  async pressSpace(): Promise<void> {
+    await this.page.keyboard.press('Space');
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Opens keyboard shortcuts help with '?' key
+   */
+  async openKeyboardShortcutsHelp(): Promise<void> {
+    await this.page.keyboard.press('?');
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Checks if keyboard shortcuts help is open
+   */
+  async isKeyboardShortcutsHelpOpen(): Promise<boolean> {
+    return this.keyboardShortcutsHelp.isVisible().catch(() => false);
+  }
+
   // ============================================================================
   // Stats & Metrics
   // ============================================================================
@@ -600,6 +883,17 @@ export class ProfilerPanel {
     return match ? parseFloat(match[1]) : null;
   }
 
+  /**
+   * Gets all stats as an object
+   */
+  async getAllStats(): Promise<{ commits: number; score: number | null; duration: number | null }> {
+    return {
+      commits: await this.getCommitCount(),
+      score: await this.getPerformanceScore(),
+      duration: await this.getRecordingDuration(),
+    };
+  }
+
   // ============================================================================
   // Connection Status
   // ============================================================================
@@ -623,6 +917,40 @@ export class ProfilerPanel {
       },
       { timeout }
     );
+  }
+
+  /**
+   * Gets connection status text
+   */
+  async getConnectionStatusText(): Promise<string> {
+    return this.connectionStatus.textContent() || '';
+  }
+
+  // ============================================================================
+  // Welcome Screen
+  // ============================================================================
+
+  /**
+   * Checks if welcome screen is visible
+   */
+  async isWelcomeScreenVisible(): Promise<boolean> {
+    return this.welcomeScreen.isVisible().catch(() => false);
+  }
+
+  /**
+   * Gets welcome screen shortcuts info
+   */
+  async getWelcomeScreenShortcuts(): Promise<string> {
+    const shortcutsSection = this.page.locator('[class*="shortcuts"]').first();
+    return shortcutsSection.textContent() || '';
+  }
+
+  /**
+   * Clicks start profiling button on welcome screen
+   */
+  async clickStartProfilingFromWelcome(): Promise<void> {
+    await this.startProfilingButton.click();
+    await this.page.waitForSelector('[data-recording="true"]', { timeout: 5000 });
   }
 
   // ============================================================================
@@ -651,6 +979,13 @@ export class ProfilerPanel {
    */
   async waitForElement(selector: string, timeout = 5000): Promise<void> {
     await this.page.waitForSelector(selector, { state: 'visible', timeout });
+  }
+
+  /**
+   * Gets page content for debugging
+   */
+  async getPageContent(): Promise<string> {
+    return this.page.content();
   }
 }
 

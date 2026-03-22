@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="920" height="680" viewBox="0 0 920 680" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgLarge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.05"/>
+    </pattern>
+    <filter id="glowLarge">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="920" height="680" fill="url(#bgLarge)"/>
+  <rect width="920" height="680" fill="url(#grid)"/>
+  
+  <!-- Left side: Branding -->
+  <g transform="translate(100, 340)">
+    <!-- React Logo -->
+    <g transform="scale(1.5)" filter="url(#glowLarge)">
+      <circle cx="0" cy="0" r="18" fill="#61DAFB"/>
+      <ellipse cx="0" cy="0" rx="50" ry="20" fill="none" stroke="#61DAFB" stroke-width="3" opacity="0.6"/>
+      <ellipse cx="0" cy="0" rx="50" ry="20" fill="none" stroke="#61DAFB" stroke-width="3" opacity="0.6" transform="rotate(60)"/>
+      <ellipse cx="0" cy="0" rx="50" ry="20" fill="none" stroke="#61DAFB" stroke-width="3" opacity="0.6" transform="rotate(120)"/>
+    </g>
+    
+    <!-- Lightning -->
+    <path d="M 80 -40 L 105 0 L 85 0 L 115 50 L 75 10 L 95 10 Z" 
+          fill="#FFD700" stroke="#FFA500" stroke-width="2" filter="url(#glowLarge)"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="460" y="280" font-family="system-ui, -apple-system, sans-serif" 
+        font-size="56" font-weight="bold" fill="#ffffff" text-anchor="middle">
+    React Perf Profiler
+  </text>
+  
+  <!-- Tagline -->
+  <text x="460" y="340" font-family="system-ui, -apple-system, sans-serif" 
+        font-size="24" fill="#a0a0a0" text-anchor="middle">
+    Advanced Performance Analysis for React Applications
+  </text>
+  
+  <!-- Feature list -->
+  <g transform="translate(460, 420)">
+    <text y="0" font-family="system-ui, sans-serif" font-size="18" 
+          fill="#61DAFB" text-anchor="middle">🔍 Wasted Render Detection</text>
+    <text y="40" font-family="system-ui, sans-serif" font-size="18" 
+          fill="#61DAFB" text-anchor="middle">📊 Interactive Flamegraph</text>
+    <text y="80" font-family="system-ui, sans-serif" font-size="18" 
+          fill="#61DAFB" text-anchor="middle">🧠 Memo Effectiveness Analysis</text>
+    <text y="120" font-family="system-ui, sans-serif" font-size="18" 
+          fill="#61DAFB" text-anchor="middle">🌊 React Server Components Support</text>
+  </g>
+  
+  <!-- Chrome & Firefox badges -->
+  <g transform="translate(460, 620)">
+    <rect x="-180" y="-20" width="170" height="40" rx="20" fill="#4285F4" opacity="0.9"/>
+    <text x="-95" y="8" font-family="system-ui, sans-serif" font-size="14" 
+          fill="#ffffff" text-anchor="middle">Chrome Web Store</text>
+    
+    <rect x="10" y="-20" width="170" height="40" rx="20" fill="#FF7139" opacity="0.9"/>
+    <text x="95" y="8" font-family="system-ui, sans-serif" font-size="14" 
+          fill="#ffffff" text-anchor="middle">Firefox Add-ons</text>
+  </g>
+</svg>

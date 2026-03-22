@@ -31,14 +31,34 @@ export type {
 };
 
 /**
+ * Bridge message type for communication between injected bridge and content script
+ */
+export type BridgeMessagePayloadType =
+  | 'COMMIT'
+  | 'INIT'
+  | 'ERROR'
+  | 'START'
+  | 'STOP'
+  | 'RETRY_SCHEDULED'
+  | 'DETECT_RESULT';
+
+/**
  * Message format for communication between the injected bridge and content script
  */
 export interface BridgeMessage {
   source: 'react-perf-profiler-bridge';
   payload: {
-    type: 'COMMIT' | 'INIT' | 'ERROR' | 'START' | 'STOP';
+    type: BridgeMessagePayloadType;
     data?: unknown;
     error?: string;
+    errorType?: string;
+    recoverable?: boolean;
+    retryCount?: number;
+    maxRetries?: number;
+    nextRetryIn?: number;
+    reactDetected?: boolean;
+    devtoolsDetected?: boolean;
+    isInitialized?: boolean;
   };
 }
 
@@ -86,8 +106,20 @@ export type BackgroundMessageType =
   | 'STOP_PROFILING'
   | 'COMMIT_DATA'
   | 'INIT'
+  | 'BRIDGE_INIT'
+  | 'BRIDGE_INJECTED'
+  | 'BRIDGE_ERROR'
+  | 'BRIDGE_RETRY_SCHEDULED'
+  | 'BRIDGE_STATUS'
+  | 'PROFILING_STARTED'
+  | 'PROFILING_STOPPED'
+  | 'REACT_DETECT_RESULT'
+  | 'DETECT_REACT'
+  | 'FORCE_INIT'
+  | 'GET_BRIDGE_STATUS'
   | 'ERROR'
-  | 'PING';
+  | 'PING'
+  | 'PONG';
 
 /**
  * Message format for background script communication

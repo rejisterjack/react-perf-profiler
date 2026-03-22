@@ -1,5 +1,6 @@
 /**
  * ViewModeToggle Component Styles
+ * Animated view mode toggle with smooth transitions
  */
 
 .viewModeToggle {
@@ -7,8 +8,20 @@
   gap: var(--spacing-1);
   background: var(--bg-tertiary);
   padding: var(--spacing-1);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  position: relative;
+}
+
+.viewModeToggle::before {
+  content: '';
+  position: absolute;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+  transition: 
+    transform var(--duration-normal) var(--ease-spring),
+    width var(--duration-normal) var(--ease-spring);
+  z-index: 0;
 }
 
 .modeButton {
@@ -18,23 +31,30 @@
   padding: var(--spacing-1) var(--spacing-2);
   background: transparent;
   border: none;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: 
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
   position: relative;
+  z-index: 1;
 }
 
 .modeButton:hover:not(:disabled) {
-  background: var(--bg-hover);
   color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .modeButton.active {
-  background: var(--primary);
-  color: #000;
+  color: var(--text-inverse);
+  background: var(--accent-primary);
+}
+
+.modeButton.active:hover {
+  background: var(--accent-hover);
 }
 
 .modeButton:disabled {
@@ -47,8 +67,23 @@
   cursor: not-allowed;
 }
 
+/* Icon animation */
+.modeButton svg {
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.modeButton:hover:not(:disabled) svg {
+  transform: scale(1.1);
+}
+
+.modeButton:active:not(:disabled) svg {
+  transform: scale(0.95);
+}
+
+/* Label */
 .label {
   display: none;
+  transition: opacity var(--duration-fast);
 }
 
 @media (min-width: 640px) {
@@ -57,22 +92,142 @@
   }
 }
 
+/* Shortcut */
 .shortcut {
   display: none;
   padding: 1px 4px;
   background: var(--bg-secondary);
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
   font-family: var(--font-family-mono);
   font-size: 10px;
   font-weight: var(--font-weight-semibold);
+  transition: 
+    background-color var(--duration-fast),
+    color var(--duration-fast);
 }
 
 .modeButton.active .shortcut {
   background: rgba(0, 0, 0, 0.2);
+  color: var(--text-inverse);
 }
 
 @media (min-width: 800px) {
   .shortcut {
     display: inline;
+  }
+}
+
+/* Active indicator animation */
+.activeIndicator {
+  position: absolute;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+  transition: 
+    transform var(--duration-normal) var(--ease-spring),
+    width var(--duration-normal) var(--ease-spring);
+  z-index: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Underline variant */
+.underline {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border-default);
+  border-radius: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.underline::before {
+  display: none;
+}
+
+.underline .modeButton {
+  border-radius: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  position: relative;
+}
+
+.underline .modeButton::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  transform: scaleX(0);
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.underline .modeButton.active::after {
+  transform: scaleX(1);
+}
+
+.underline .modeButton.active {
+  background: transparent;
+  color: var(--accent-primary);
+}
+
+/* Pill variant */
+.pill {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: var(--spacing-2);
+}
+
+.pill::before {
+  display: none;
+}
+
+.pill .modeButton {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  transition: all var(--duration-fast);
+}
+
+.pill .modeButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.pill .modeButton.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Icon only variant */
+.iconOnly .label,
+.iconOnly .shortcut {
+  display: none;
+}
+
+.iconOnly .modeButton {
+  padding: var(--spacing-2);
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .viewModeToggle::before,
+  .modeButton,
+  .modeButton svg,
+  .shortcut,
+  .activeIndicator,
+  .underline .modeButton::after {
+    transition: none;
+  }
+
+  .modeButton:hover:not(:disabled) svg {
+    transform: none;
+  }
+
+  .modeButton:active:not(:disabled) svg {
+    transform: none;
   }
 }

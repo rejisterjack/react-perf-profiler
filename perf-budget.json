@@ -10,6 +10,36 @@
   "maxSlowRenderPercentage": 0.1,
   "failOnWarning": false,
   "outputFormat": "human",
+  "bundleBudgets": {
+    "chrome": {
+      "total": 1000000,
+      "chunks": {
+        "panel": 512000,
+        "background": 102400,
+        "content": 153600,
+        "devtools": 51200,
+        "popup": 102400,
+        "vendor": 307200
+      }
+    },
+    "firefox": {
+      "total": 1000000,
+      "chunks": {
+        "panel": 512000,
+        "background": 102400,
+        "content": 153600,
+        "devtools": 51200,
+        "popup": 102400,
+        "vendor": 307200
+      }
+    }
+  },
+  "coverageThresholds": {
+    "lines": 70,
+    "functions": 70,
+    "branches": 60,
+    "statements": 70
+  },
   "budgets": [
     {
       "id": "wasted-render-rate",
@@ -64,6 +94,24 @@
       "severity": "warning",
       "enabled": true,
       "errorMessage": "More than 10% of renders exceed 16ms"
+    },
+    {
+      "id": "bundle-size-total",
+      "name": "Total Bundle Size",
+      "description": "Maximum total bundle size across all chunks",
+      "threshold": 1000000,
+      "severity": "error",
+      "enabled": true,
+      "errorMessage": "Total bundle size exceeds 1MB threshold"
+    },
+    {
+      "id": "bundle-size-panel",
+      "name": "Panel Chunk Size",
+      "description": "Maximum size for panel chunk",
+      "threshold": 512000,
+      "severity": "warning",
+      "enabled": true,
+      "errorMessage": "Panel chunk exceeds 500KB threshold"
     }
   ]
 }

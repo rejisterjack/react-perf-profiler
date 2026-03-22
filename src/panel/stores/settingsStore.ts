@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import type { StoreApi } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
@@ -180,8 +181,8 @@ export interface SettingsState {
 // ============================================================================
 
 const createActions = (
-  set: any, // eslint-disable-line @typescript-eslint/no-explicit-any
-  get: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  set: StoreApi<SettingsState>['setState'],
+  get: StoreApi<SettingsState>['getState']
 ): Omit<SettingsState, keyof typeof DEFAULT_SETTINGS | 'loaded'> => ({
   loadSettings: async () => {
     return new Promise((resolve) => {
@@ -189,6 +190,7 @@ const createActions = (
         if (chrome.runtime.lastError) {
           set((state: SettingsState) => {
             state.loaded = true;
+            return state;
           });
           resolve();
           return;
@@ -203,15 +205,18 @@ const createActions = (
             // Merge with defaults to ensure all keys exist
             set((state: SettingsState) => {
               Object.assign(state, DEFAULT_SETTINGS, parsed, { loaded: true });
+              return state;
             });
           } catch (_error) {
             set((state: SettingsState) => {
               state.loaded = true;
+              return state;
             });
           }
         } else {
           set((state: SettingsState) => {
             state.loaded = true;
+            return state;
           });
         }
 
@@ -278,6 +283,7 @@ const createActions = (
 
     set((state: SettingsState) => {
       state[key] = validatedValue;
+      return state;
     });
 
     // Auto-save after update
@@ -287,6 +293,7 @@ const createActions = (
   resetSettings: () => {
     set((state: SettingsState) => {
       Object.assign(state, DEFAULT_SETTINGS, { loaded: true });
+      return state;
     });
     get().saveSettings();
   },
@@ -311,6 +318,7 @@ const createActions = (
           (state[typedKey] as unknown) = value;
         }
       });
+      return state;
     });
     get().saveSettings();
   },

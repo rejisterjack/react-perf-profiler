@@ -4,6 +4,9 @@
   "description": "Chrome DevTools extension for profiling React performance",
   "type": "module",
   "packageManager": "pnpm@8.14.0",
+  "bin": {
+    "perf-check": "./dist/cli/perf-check.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -11,17 +14,23 @@
     "build:firefox": "tsc && vite build --config vite.config.firefox.ts",
     "build:firefox:dev": "tsc && vite build --config vite.config.firefox.ts --mode development",
     "build:all": "pnpm run build && pnpm run build:firefox",
+    "build:cli": "tsc src/cli/perf-check.ts --outDir dist/cli --esModuleInterop --module ESNext --moduleResolution node --target ES2020 --resolveJsonModule",
     "analyze": "vite build --mode analyze",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:coverage": "vitest run --coverage",
     "lint": "biome lint src",
     "lint:fix": "biome lint src --write",
     "format": "biome format src --write",
     "format:check": "biome format src",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "perf:check": "tsx src/cli/perf-check.ts",
+    "perf:check:bundles": "tsx src/cli/perf-check.ts --check-bundles",
+    "perf:check:coverage": "tsx src/cli/perf-check.ts --check-coverage",
+    "perf:check:all": "tsx src/cli/perf-check.ts --check-bundles --check-coverage --pr-comment"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.0.0",
@@ -45,9 +54,10 @@
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "jsdom": "^23.0.1",
     "rollup-plugin-visualizer": "^7.0.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
     "vitest": "^1.1.1"

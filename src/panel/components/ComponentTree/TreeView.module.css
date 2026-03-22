@@ -1,6 +1,6 @@
 /**
  * TreeView Component Styles
- * CSS Module for the virtualized tree view
+ * CSS Module for the virtualized tree view with smooth animations
  */
 
 /* Main tree view container */
@@ -8,14 +8,13 @@
   flex: 1;
   overflow: auto;
   position: relative;
-  background-color: var(--bg-primary, #1e1e1e);
-  color: var(--text-primary, #d4d4d4);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 13px;
-  line-height: 1.4;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   outline: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb, #424242) var(--scrollbar-track, #1e1e1e);
+  scroll-behavior: smooth;
 }
 
 /* Webkit scrollbar styling */
@@ -25,37 +24,45 @@
 }
 
 .treeView::-webkit-scrollbar-track {
-  background: var(--scrollbar-track, #1e1e1e);
+  background: var(--bg-secondary);
 }
 
 .treeView::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, #424242);
+  background: var(--border-default);
   border-radius: 5px;
-  border: 2px solid var(--scrollbar-track, #1e1e1e);
+  border: 2px solid var(--bg-secondary);
+  transition: background var(--duration-fast);
 }
 
 .treeView::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, #4f4f4f);
+  background: var(--text-tertiary);
 }
 
 .treeView::-webkit-scrollbar-corner {
-  background: var(--scrollbar-track, #1e1e1e);
+  background: var(--bg-secondary);
 }
 
 /* Focus state for keyboard navigation */
 .treeView:focus {
   outline: none;
-  box-shadow: inset 0 0 0 2px var(--focus-ring, #007acc);
+  box-shadow: inset 0 0 0 2px var(--accent-subtle);
 }
 
 /* Tree content container */
 .treeContent {
   will-change: transform;
+  transform: translateZ(0);
 }
 
 /* Individual virtual item wrapper */
 .virtualItem {
   will-change: transform;
+  transform: translateZ(0);
+  transition: opacity var(--duration-fast);
+}
+
+.virtualItem.entering {
+  animation: itemEnter var(--duration-fast) var(--ease-out);
 }
 
 /* Empty state styling */
@@ -65,29 +72,38 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: 2rem;
+  padding: var(--spacing-8);
   text-align: center;
-  color: var(--text-muted, #808080);
-  background-color: var(--bg-primary, #1e1e1e);
+  color: var(--text-tertiary);
+  background-color: var(--bg-primary);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
 }
 
 .emptyIcon {
   font-size: 48px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-4);
   opacity: 0.6;
+  transition: 
+    opacity var(--duration-normal) var(--ease-out),
+    transform var(--duration-normal) var(--ease-spring);
+}
+
+.emptyState:hover .emptyIcon {
+  opacity: 0.8;
+  transform: scale(1.05);
 }
 
 .emptyText {
-  font-size: 16px;
-  font-weight: 500;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-secondary, #cccccc);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  margin: 0 0 var(--spacing-2) 0;
+  color: var(--text-secondary);
 }
 
 .emptySubtext {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   margin: 0;
-  color: var(--text-muted, #808080);
+  color: var(--text-tertiary);
 }
 
 /* Loading state */
@@ -97,15 +113,16 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 1rem;
-  color: var(--text-muted, #808080);
+  gap: var(--spacing-4);
+  color: var(--text-tertiary);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
 }
 
 .loadingSpinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-color, #3e3e3e);
-  border-top-color: var(--primary-color, #007acc);
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-default);
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -116,30 +133,131 @@
   }
 }
 
-/* High contrast mode adjustments */
+/* Search highlight */
+.highlight {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  font-weight: var(--font-weight-medium);
+  animation: highlightPulse 2s var(--ease-in-out) infinite;
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    background-color: var(--warning-bg);
+  }
+  50% {
+    background-color: rgba(210, 153, 34, 0.3);
+  }
+}
+
+/* Filter indicator */
+.filterIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--accent-subtle);
+  border-bottom: 1px solid var(--border-default);
+  font-size: var(--font-size-xs);
+  color: var(--accent-primary);
+  animation: slideDown var(--duration-fast) var(--ease-out);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clearFilter {
+  margin-left: auto;
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  border: none;
+  color: var(--accent-primary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: 
+    background-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+.clearFilter:hover {
+  background: var(--accent-muted);
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes itemEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================================
+   High contrast mode adjustments
+   ============================================================================ */
+
 @media (prefers-contrast: high) {
   .treeView {
-    border: 1px solid var(--border-color, #6e6e6e);
+    border: 1px solid var(--border-default);
   }
 
   .treeView:focus {
-    outline: 2px solid var(--focus-ring, #007acc);
+    outline: 2px solid var(--accent-primary);
     outline-offset: -2px;
   }
 }
 
-/* Reduced motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  .loadingSpinner {
-    animation: none;
-  }
+/* ============================================================================
+   Reduced motion preferences
+   ============================================================================ */
 
-  .virtualItem {
-    will-change: auto;
+@media (prefers-reduced-motion: reduce) {
+  .treeView {
+    scroll-behavior: auto;
+  }
+  
+  .virtualItem,
+  .emptyState,
+  .emptyIcon,
+  .loadingState,
+  .loadingSpinner,
+  .highlight,
+  .filterIndicator {
+    animation: none;
+    transition: none;
   }
 }
 
-/* Print styles */
+/* ============================================================================
+   Print styles
+   ============================================================================ */
+
 @media print {
   .treeView {
     overflow: visible;
@@ -149,5 +267,9 @@
   .virtualItem {
     position: static;
     transform: none;
+  }
+  
+  .filterIndicator {
+    display: none;
   }
 }

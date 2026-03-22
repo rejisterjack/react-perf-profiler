@@ -20,6 +20,18 @@
  *   console.error('Budget violations:', result.violations);
  * }
  * ```
+ *
+ * @example
+ * ```typescript
+ * // Check bundle sizes
+ * import { checkBundleSizes, generateBudgetReport } from '@/shared/performance-budgets';
+ *
+ * const bundleResult = checkBundleSizes('./dist-chrome', 'chrome');
+ * const coverageResult = checkCoverage('./coverage');
+ *
+ * const report = generateBudgetReport(profileResult, [bundleResult], coverageResult);
+ * console.log(report);
+ * ```
  */
 
 // Re-export all types
@@ -30,6 +42,11 @@ export type {
   BudgetSeverity,
   BudgetSummary,
   BudgetViolation,
+  BundleBudget,
+  BundleBudgets,
+  BundleCheckResult,
+  CoverageCheckResult,
+  CoverageThresholds,
   PerformanceBudget,
   ProfileData,
   ProfileMetadata,
@@ -39,15 +56,22 @@ export type {
 export {
   DEFAULT_BUDGET_CONFIG,
   DEFAULT_BUDGETS,
+  DEFAULT_BUNDLE_BUDGETS,
+  DEFAULT_COVERAGE_THRESHOLDS,
   isBudgetConfig,
   isBudgetSeverity,
+  isBundleBudget,
+  isCoverageThresholds,
   isProfileData,
   loadBudgetConfig,
 } from './types';
 
 // Re-export budget checker functions
 export {
+  checkBundleSizes,
+  checkCoverage,
   checkPerformanceBudget,
   formatCheckResultHuman,
   formatCheckResultJson,
+  generateBudgetReport,
 } from './budgetChecker';

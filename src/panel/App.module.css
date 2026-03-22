@@ -1,3 +1,7 @@
+/**
+ * App Component Styles
+ */
+
 .app {
   display: flex;
   flex-direction: column;
@@ -7,24 +11,150 @@
   color: var(--text-primary, #d4d4d4);
 }
 
+/* ============================================================================
+   Error Container
+   ============================================================================ */
+
 .errorContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  gap: 16px;
+  padding: var(--spacing-6);
+  background: var(--bg-primary, #1e1e1e);
+  color: var(--text-primary, #d4d4d4);
+}
+
+.errorContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 480px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.errorIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger, #ef4444);
+  margin-bottom: var(--spacing-4);
+}
+
+.errorIcon svg {
+  width: 32px;
+  height: 32px;
 }
 
 .errorContainer h2 {
-  color: var(--error, #f14c4c);
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--font-size-xl, 1.5rem);
+  font-weight: 600;
+  color: var(--text-primary, #d4d4d4);
 }
 
-.errorContainer button {
-  padding: 8px 16px;
+.errorContainer p {
+  margin: 0 0 var(--spacing-6);
+  font-size: var(--font-size-base, 1rem);
+  color: var(--text-secondary, #9ca3af);
+  line-height: 1.5;
+}
+
+.errorActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.retryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-6);
   background: var(--primary, #0e639c);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius-md, 6px);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover:not(:disabled) {
+  background: var(--primary-hover, #1177bb);
+}
+
+.retryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.helpLink {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--primary, #0e639c);
+  text-decoration: none;
+}
+
+.helpLink:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   Recording State
+   ============================================================================ */
+
+.app[data-recording="true"] {
+  /* Optional: Add visual indicator when recording */
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  .errorContent {
+    padding: var(--spacing-4);
+  }
+
+  .errorContainer h2 {
+    font-size: var(--font-size-lg, 1.125rem);
+  }
+
+  .errorContainer p {
+    font-size: var(--font-size-sm, 0.875rem);
+  }
 }

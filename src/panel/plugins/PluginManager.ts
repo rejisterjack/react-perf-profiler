@@ -4,6 +4,18 @@
  *
  * Manages plugin lifecycle, hook execution, and error isolation.
  * Ensures that plugin failures don't break the profiler or other plugins.
+ *
+ * @example
+ * ```typescript
+ * import { PluginManager } from './PluginManager';
+ * import { myPlugin } from './built-in/MyPlugin';
+ *
+ * const manager = new PluginManager(api);
+ * manager.register(myPlugin);
+ *
+ * // Broadcast events to all enabled plugins
+ * await manager.executeOnCommit(commitData);
+ * ```
  */
 
 import type {
@@ -12,16 +24,12 @@ import type {
   PluginContext,
   PluginState,
   PluginStateMap,
-  PluginPanel,
-  PluginContextMenuItem,
   HookExecutionResult,
-  OnCommitHook,
-  OnAnalyzeHook,
-  OnExportHook,
-  OnImportHook,
-  OnRSCPayloadHook,
-  OnRSCAnalyzeHook,
+  PluginMetric,
+  PluginMetadata,
 } from './types';
+import type { CommitData, AnalysisResult } from '@/shared/types';
+import type { RSCPayload, RSCAnalysisResult } from '@/shared/types/rsc';
 
 // =============================================================================
 // Types
@@ -36,6 +44,7 @@ interface PluginEntry {
 type HookType =
   | 'onCommit'
   | 'onAnalyze'
+  | 'onAnalysisComplete'
   | 'onExport'
   | 'onImport'
   | 'onRSCPayload'
@@ -52,13 +61,23 @@ type HookType =
 
 /**
  * Custom error class for plugin-related errors
+ * Contains additional context about which plugin and hook caused the error
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await plugin.hooks.onCommit(commit, api, context);
+ * } catch (cause) {
+ *   throw new PluginError('Hook execution failed', pluginId, 'onCommit', cause);
+ * }
+ * ```
  */
 export class PluginError extends Error {
   constructor(
     message: string,
     public readonly pluginId: string,
     public readonly hookType?: HookType,
-    public readonly cause?: Error
+    public readonly originalError?: Error
   ) {
     super(message);
     this.name = 'PluginError';
@@ -67,7 +86,13 @@ export class PluginError extends Error {
 
 /**
  * Wraps a function with error isolation
- * Errors are caught and logged, but don't propagate
+ * Errors are caught and logged, but don't propagate to prevent breaking other plugins
+ *
+ * @param fn - The function to wrap
+ * @param pluginId - The plugin ID for error context
+ * @param hookType - The hook type for error context
+ * @param onError - Error handler callback
+ * @returns Wrapped function that catches errors
  */
 function withErrorIsolation<T extends (...args: unknown[]) => unknown>(
   fn: T,
@@ -98,7 +123,15 @@ function withErrorIsolation<T extends (...args: unknown[]) => unknown>(
 
 /**
  * Validates a plugin structure
+ * Ensures all required fields are present and valid
+ *
+ * @param plugin - The plugin to validate
  * @throws Error if plugin is invalid
+ *
+ * @example
+ * ```typescript
+ * validatePlugin(myPlugin); // Throws if invalid
+ * ```
  */
 export function validatePlugin(plugin: AnalysisPlugin): void {
   if (!plugin) {
@@ -139,6 +172,7 @@ export function validatePlugin(plugin: AnalysisPlugin): void {
     const validHooks: HookType[] = [
       'onCommit',
       'onAnalyze',
+      'onAnalysisComplete',
       'onExport',
       'onImport',
       'onRSCPayload',
@@ -161,6 +195,21 @@ export function validatePlugin(plugin: AnalysisPlugin): void {
       }
     }
   }
+
+  // Validate getMetrics if present
+  if (plugin.getMetrics && typeof plugin.getMetrics !== 'function') {
+    throw new Error('Plugin getMetrics must be a function');
+  }
+
+  // Validate getUI if present
+  if (plugin.getUI && typeof plugin.getUI !== 'function') {
+    throw new Error('Plugin getUI must be a function');
+  }
+
+  // validate destroy if present
+  if (plugin.destroy && typeof plugin.destroy !== 'function') {
+    throw new Error('Plugin destroy must be a function');
+  }
 }
 
 // =============================================================================
@@ -170,6 +219,35 @@ export function validatePlugin(plugin: AnalysisPlugin): void {
 /**
  * Plugin Manager
  * Central registry for all plugins. Manages registration, lifecycle, and hook execution.
+ *
+ * Features:
+ * - Plugin registration and unregistration
+ * - Enable/disable plugins
+ * - Event broadcasting to all enabled plugins
+ * - Plugin metadata storage
+ * - Error isolation (plugin failures don't break other plugins)
+ * - Metrics collection from plugins
+ *
+ * @example
+ * ```typescript
+ * const manager = new PluginManager(api);
+ *
+ * // Register a plugin
+ * manager.register(myPlugin);
+ *
+ * // Enable/disable plugins
+ * await manager.enablePlugin('plugin-id');
+ * await manager.disablePlugin('plugin-id');
+ *
+ * // Broadcast events
+ * await manager.executeOnCommit(commitData);
+ * await manager.executeOnAnalyze(commits);
+ *
+ * // Get plugin info
+ * const plugins = manager.getAllPlugins();
+ * const enabled = manager.getEnabledPlugins();
+ * const metrics = manager.getAllPluginMetrics();
+ * ```
  */
 export class PluginManager {
   private plugins: Map<string, PluginEntry> = new Map();
@@ -187,9 +265,21 @@ export class PluginManager {
 
   /**
    * Register a new plugin
+   * The plugin will be added to the registry but not automatically enabled
+   * unless enabledByDefault is true in its metadata.
+   *
    * @param plugin - The plugin to register
-   * @param initialSettings - Initial settings for the plugin
-   * @returns Unregister function
+   * @param initialSettings - Initial settings for the plugin (optional)
+   * @returns Unregister function that removes the plugin when called
+   * @throws Error if plugin is invalid or already registered
+   *
+   * @example
+   * ```typescript
+   * const unregister = manager.register(myPlugin, { option: 'value' });
+   *
+   * // Later...
+   * unregister(); // Removes the plugin
+   * ```
    */
   register(plugin: AnalysisPlugin, initialSettings?: Record<string, unknown>): () => void {
     validatePlugin(plugin);
@@ -236,7 +326,14 @@ export class PluginManager {
 
   /**
    * Unregister a plugin
+   * Disables the plugin first (running cleanup hooks), then removes it from the registry.
+   *
    * @param pluginId - Plugin ID to unregister
+   *
+   * @example
+   * ```typescript
+   * manager.unregister('my-plugin-id');
+   * ```
    */
   unregister(pluginId: string): void {
     const entry = this.plugins.get(pluginId);
@@ -270,7 +367,15 @@ export class PluginManager {
 
   /**
    * Enable a plugin
+   * Runs the onEnable hook if present and updates the plugin state.
+   *
    * @param pluginId - Plugin ID to enable
+   * @throws Error if plugin is not found
+   *
+   * @example
+   * ```typescript
+   * await manager.enablePlugin('my-plugin-id');
+   * ```
    */
   async enablePlugin(pluginId: string): Promise<void> {
     const entry = this.plugins.get(pluginId);
@@ -288,7 +393,7 @@ export class PluginManager {
     // Run onEnable hook
     if (entry.plugin.hooks?.onEnable) {
       const wrapped = withErrorIsolation(
-        entry.plugin.hooks.onEnable,
+        entry.plugin.hooks.onEnable as (...args: unknown[]) => unknown,
         pluginId,
         'onEnable',
         (error) => this.handlePluginError(error)
@@ -302,7 +407,16 @@ export class PluginManager {
 
   /**
    * Disable a plugin
+   * Runs the onDisable hook if present and updates the plugin state.
+   * Clears plugin panels and context menu items.
+   *
    * @param pluginId - Plugin ID to disable
+   * @throws Error if plugin is not found
+   *
+   * @example
+   * ```typescript
+   * await manager.disablePlugin('my-plugin-id');
+   * ```
    */
   async disablePlugin(pluginId: string): Promise<void> {
     const entry = this.plugins.get(pluginId);
@@ -317,7 +431,7 @@ export class PluginManager {
     // Run onDisable hook
     if (entry.plugin.hooks?.onDisable) {
       const wrapped = withErrorIsolation(
-        entry.plugin.hooks.onDisable,
+        entry.plugin.hooks.onDisable as (...args: unknown[]) => unknown,
         pluginId,
         'onDisable',
         (error) => this.handlePluginError(error)
@@ -336,7 +450,15 @@ export class PluginManager {
 
   /**
    * Toggle plugin enabled state
+   * Enables if disabled, disables if enabled.
+   *
    * @param pluginId - Plugin ID to toggle
+   * @throws Error if plugin is not found
+   *
+   * @example
+   * ```typescript
+   * await manager.togglePlugin('my-plugin-id');
+   * ```
    */
   async togglePlugin(pluginId: string): Promise<void> {
     const entry = this.plugins.get(pluginId);
@@ -357,7 +479,13 @@ export class PluginManager {
 
   /**
    * Execute a hook on all enabled plugins in sequence
-   * Results are merged according to the hook type
+   * Results are merged according to the hook type.
+   * Each plugin receives the result of the previous plugin (pipeline pattern).
+   *
+   * @param hookType - The type of hook to execute
+   * @param input - The initial input value
+   * @param mergeResults - Function to merge results from all plugins
+   * @returns The final merged result
    */
   private async executeHookSequential<T, R>(
     hookType: HookType,
@@ -406,7 +534,12 @@ export class PluginManager {
 
   /**
    * Execute a hook on all enabled plugins in parallel
-   * Results are collected as an array
+   * Results are collected as an array and processed by the provided function.
+   *
+   * @param hookType - The type of hook to execute
+   * @param input - The input value (same for all plugins)
+   * @param processResults - Function to process the array of results
+   * @returns The processed result
    */
   private async executeHookParallel<T, R>(
     hookType: HookType,
@@ -473,6 +606,9 @@ export class PluginManager {
 
   /**
    * Execute onCommit hooks - sequential, each can transform the commit
+   *
+   * @param commit - The commit data to process
+   * @returns The potentially transformed commit data
    */
   async executeOnCommit(commit: CommitData): Promise<CommitData> {
     return this.executeHookSequential<CommitData, CommitData>(
@@ -492,6 +628,9 @@ export class PluginManager {
 
   /**
    * Execute onAnalyze hooks - parallel, results are merged
+   *
+   * @param commits - Array of commits to analyze
+   * @returns Array of partial analysis results from all plugins
    */
   async executeOnAnalyze(
     commits: CommitData[]
@@ -504,7 +643,39 @@ export class PluginManager {
   }
 
   /**
+   * Execute onAnalysisComplete hooks - parallel, results are aggregated
+   *
+   * @param result - The completed analysis result
+   * @returns Array of plugin metrics from all plugins
+   */
+  async executeOnAnalysisComplete(
+    result: AnalysisResult
+  ): Promise<PluginMetric[]> {
+    return this.executeHookParallel(
+      'onAnalysisComplete',
+      result,
+      (hookResults) => {
+        const allMetrics: PluginMetric[] = [];
+        for (const hr of hookResults) {
+          if (hr.success && hr.data && Array.isArray(hr.data)) {
+            // Prefix metric IDs with plugin ID to avoid conflicts
+            const prefixedMetrics = (hr.data as PluginMetric[]).map((m) => ({
+              ...m,
+              id: `${hr.pluginId}:${m.id}`,
+            }));
+            allMetrics.push(...prefixedMetrics);
+          }
+        }
+        return allMetrics;
+      }
+    );
+  }
+
+  /**
    * Execute onExport hooks - sequential, each can add to export data
+   *
+   * @param data - The export data object
+   * @returns The merged export data
    */
   async executeOnExport(
     data: Record<string, unknown>
@@ -527,6 +698,8 @@ export class PluginManager {
 
   /**
    * Execute onImport hooks - parallel for side effects
+   *
+   * @param data - The import data object
    */
   async executeOnImport(data: Record<string, unknown>): Promise<void> {
     await this.executeHookParallel(
@@ -538,6 +711,9 @@ export class PluginManager {
 
   /**
    * Execute onRSCPayload hooks - sequential, each can transform the payload
+   *
+   * @param payload - The RSC payload to process
+   * @returns The potentially transformed payload
    */
   async executeOnRSCPayload(payload: RSCPayload): Promise<RSCPayload> {
     return this.executeHookSequential<RSCPayload, RSCPayload>(
@@ -556,6 +732,9 @@ export class PluginManager {
 
   /**
    * Execute onRSCAnalyze hooks - parallel, results are merged
+   *
+   * @param result - The RSC analysis result
+   * @returns Array of partial RSC analysis results
    */
   async executeOnRSCAnalyze(
     result: RSCAnalysisResult
@@ -571,7 +750,7 @@ export class PluginManager {
    * Execute onRecordingStart hooks
    */
   async executeOnRecordingStart(): Promise<void> {
-    const promises: Promise<void>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     for (const [pluginId, entry] of this.plugins) {
       if (!entry.state.enabled) continue;
@@ -596,7 +775,7 @@ export class PluginManager {
    * Execute onRecordingStop hooks
    */
   async executeOnRecordingStop(): Promise<void> {
-    const promises: Promise<void>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     for (const [pluginId, entry] of this.plugins) {
       if (!entry.state.enabled) continue;
@@ -621,7 +800,7 @@ export class PluginManager {
    * Execute onClearData hooks
    */
   async executeOnClearData(): Promise<void> {
-    const promises: Promise<void>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     for (const [pluginId, entry] of this.plugins) {
       if (!entry.state.enabled) continue;
@@ -643,11 +822,65 @@ export class PluginManager {
   }
 
   // ===========================================================================
+  // Metrics
+  // ===========================================================================
+
+  /**
+   * Get metrics from a specific plugin
+   *
+   * @param pluginId - The plugin ID
+   * @returns Array of plugin metrics, or empty array if plugin has no metrics
+   */
+  getPluginMetrics(pluginId: string): PluginMetric[] {
+    const entry = this.plugins.get(pluginId);
+    if (!entry || !entry.state.enabled || !entry.plugin.getMetrics) {
+      return [];
+    }
+
+    try {
+      const metrics = entry.plugin.getMetrics(this.api, entry.context);
+      // Prefix metric IDs with plugin ID to avoid conflicts
+      return metrics.map((m) => ({
+        ...m,
+        id: `${pluginId}:${m.id}`,
+        pluginId,
+        pluginName: entry.plugin.metadata.name,
+      }));
+    } catch (error) {
+      entry.context.log('error', 'Error getting plugin metrics:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get metrics from all enabled plugins
+   *
+   * @returns Array of all plugin metrics
+   */
+  getAllPluginMetrics(): PluginMetric[] {
+    const allMetrics: PluginMetric[] = [];
+
+    for (const [pluginId] of this.plugins) {
+      const metrics = this.getPluginMetrics(pluginId);
+      allMetrics.push(...metrics);
+    }
+
+    // Sort by priority (lower first), then by plugin ID
+    return allMetrics.sort((a, b) => {
+      const priorityDiff = (a.priority ?? 999) - (b.priority ?? 999);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (a.pluginId ?? '').localeCompare(b.pluginId ?? '');
+    });
+  }
+
+  // ===========================================================================
   // Queries
   // ===========================================================================
 
   /**
    * Get all registered plugins
+   *
+   * @returns Array of all registered plugins
    */
   getAllPlugins(): AnalysisPlugin[] {
     return Array.from(this.plugins.values()).map((entry) => entry.plugin);
@@ -655,6 +888,9 @@ export class PluginManager {
 
   /**
    * Get a specific plugin by ID
+   *
+   * @param pluginId - The plugin ID
+   * @returns The plugin, or undefined if not found
    */
   getPlugin(pluginId: string): AnalysisPlugin | undefined {
     return this.plugins.get(pluginId)?.plugin;
@@ -662,6 +898,9 @@ export class PluginManager {
 
   /**
    * Get plugin state
+   *
+   * @param pluginId - The plugin ID
+   * @returns The plugin state, or undefined if not found
    */
   getPluginState(pluginId: string): PluginState | undefined {
     return this.plugins.get(pluginId)?.state;
@@ -669,6 +908,8 @@ export class PluginManager {
 
   /**
    * Get all enabled plugins
+   *
+   * @returns Array of enabled plugins
    */
   getEnabledPlugins(): AnalysisPlugin[] {
     return Array.from(this.plugins.values())
@@ -678,6 +919,8 @@ export class PluginManager {
 
   /**
    * Get all plugin states
+   *
+   * @returns Map of plugin ID to plugin state
    */
   getAllPluginStates(): PluginStateMap {
     const map = new Map<string, PluginState>();
@@ -689,13 +932,43 @@ export class PluginManager {
 
   /**
    * Check if a plugin is enabled
+   *
+   * @param pluginId - The plugin ID
+   * @returns True if plugin is enabled
    */
   isPluginEnabled(pluginId: string): boolean {
     return this.plugins.get(pluginId)?.state.enabled ?? false;
   }
 
   /**
+   * Get plugin metadata
+   *
+   * @param pluginId - The plugin ID
+   * @returns The plugin metadata, or undefined if not found
+   */
+  getPluginMetadata(pluginId: string): PluginMetadata | undefined {
+    return this.plugins.get(pluginId)?.plugin.metadata;
+  }
+
+  /**
+   * Get all plugin metadata
+   *
+   * @returns Array of all plugin metadata
+   */
+  getAllPluginMetadata(): PluginMetadata[] {
+    return Array.from(this.plugins.values()).map((entry) => entry.plugin.metadata);
+  }
+
+  // ===========================================================================
+  // Settings
+  // ===========================================================================
+
+  /**
    * Update plugin settings
+   *
+   * @param pluginId - The plugin ID
+   * @param settings - The settings to update (merged with existing)
+   * @throws Error if plugin is not found
    */
   updatePluginSettings(pluginId: string, settings: Record<string, unknown>): void {
     const entry = this.plugins.get(pluginId);
@@ -713,6 +986,10 @@ export class PluginManager {
 
   /**
    * Get plugin settings
+   *
+   * @param pluginId - The plugin ID
+   * @returns The plugin settings
+   * @throws Error if plugin is not found
    */
   getPluginSettings<T = Record<string, unknown>>(pluginId: string): T {
     const entry = this.plugins.get(pluginId);
@@ -723,12 +1000,32 @@ export class PluginManager {
     return entry.state.settings as T;
   }
 
+  /**
+   * Reset plugin settings to defaults
+   *
+   * @param pluginId - The plugin ID
+   * @throws Error if plugin is not found
+   */
+  resetPluginSettings(pluginId: string): void {
+    const entry = this.plugins.get(pluginId);
+    if (!entry) {
+      throw new Error(`Plugin '${pluginId}' not found`);
+    }
+
+    entry.state.settings = this.getDefaultSettings(entry.plugin);
+    entry.context.emit('plugin:data:changed', { pluginId, key: 'settings' });
+  }
+
   // ===========================================================================
   // Event Handling
   // ===========================================================================
 
   /**
    * Register a global error handler
+   * Handlers are called whenever a plugin hook throws an error.
+   *
+   * @param handler - The error handler function
+   * @returns Unregister function
    */
   onError(handler: (error: PluginError) => void): () => void {
     this.globalErrorHandlers.add(handler);
@@ -821,6 +1118,10 @@ let globalPluginManager: PluginManager | null = null;
 
 /**
  * Get or create the global plugin manager instance
+ *
+ * @param api - Optional API instance to create the manager with
+ * @returns The global plugin manager
+ * @throws Error if the manager hasn't been initialized and no API is provided
  */
 export function getPluginManager(api?: PluginAPI): PluginManager {
   if (!globalPluginManager && api) {

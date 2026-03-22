@@ -369,7 +369,19 @@ export type PanelMessage =
   | { type: 'COMMIT_DATA'; payload: CommitData }
   | { type: 'CONNECTION_STATUS'; payload: { connected: boolean } }
   | { type: 'PONG' }
-  | { type: 'ERROR'; payload: { message: string } };
+  | { type: 'ERROR'; payload: { message: string; errorType?: string; recoverable?: boolean } }
+  // Bridge-related messages
+  | { type: 'BRIDGE_INIT'; payload: { success?: boolean; reactVersion?: string; supportsFiber?: boolean; rendererCount?: number; state?: string } }
+  | { type: 'BRIDGE_ERROR'; payload: { message: string; errorType?: string; recoverable?: boolean } }
+  | { type: 'GET_BRIDGE_STATUS' }
+  | { type: 'BRIDGE_STATUS'; payload: { state: string; error?: { type: string; message: string; recoverable: boolean } | null; retryCount: number; isInjected: boolean; reactDetected: boolean } }
+  | { type: 'DETECT_REACT' }
+  | { type: 'REACT_DETECT_RESULT'; payload: { reactDetected?: boolean; devtoolsDetected?: boolean; isInitialized?: boolean } }
+  | { type: 'FORCE_INIT' }
+  // Analysis-related messages
+  | { type: 'ANALYSIS_STARTED' }
+  | { type: 'ANALYSIS_PROGRESS'; payload: { stage: string; progress: number } }
+  | { type: 'ANALYSIS_COMPLETE'; payload: AnalysisResult };
 
 /**
  * Message type values

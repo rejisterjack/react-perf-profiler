@@ -7,7 +7,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Icon } from '../Common/Icon/Icon';
 import { Button } from '../Common/Button/Button';
-import { reloadPanel, reportError } from '@/panel/utils/errorRecovery';
+import { reloadPanel, resetPanel, reportError, clearLastError } from '@/panel/utils/errorRecovery';
 import styles from './ErrorBoundary.module.css';
 
 // =============================================================================
@@ -23,6 +23,10 @@ export interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   /** Context name for the error message (e.g., "Component Tree", "Timeline") */
   context?: string;
+  /** Whether to show the reset button (clears all data) */
+  showReset?: boolean;
+  /** Whether to use compact mode (for smaller areas like sidebar) */
+  compact?: boolean;
 }
 
 interface ErrorBoundaryState {
@@ -32,6 +36,10 @@ interface ErrorBoundaryState {
   error: Error | null;
   /** React error info containing component stack */
   errorInfo: ErrorInfo | null;
+  /** Whether error details are expanded */
+  detailsExpanded: boolean;
+  /** Error ID for tracking */
+  errorId: string;
 }
 
 // =============================================================================
@@ -45,6 +53,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       hasError: false,
       error: null,
       errorInfo: null,
+      detailsExpanded: false,
+      errorId: '',
     };
   }
 
@@ -53,6 +63,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return {
       hasError: true,
       error,
+      errorId: `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     };
   }
 
@@ -63,27 +74,66 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     });
 
     // Log error to console for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('[React Perf Profiler] ErrorBoundary caught an error:', {
+      error,
+      errorInfo,
+      context: this.props.context,
+      errorId: this.state.errorId,
+      timestamp: new Date().toISOString(),
+    });
 
-    // Report error to analytics (if implemented)
-    reportError(error, { componentStack: errorInfo.componentStack ?? undefined });
+    // Report error to analytics
+    reportError(error, { 
+      componentStack: errorInfo.componentStack ?? undefined,
+      context: this.props.context,
+      errorId: this.state.errorId,
+    });
 
     // Call optional onError callback
     this.props.onError?.(error, errorInfo);
   }
 
   private handleReload = (): void => {
+    clearLastError();
     reloadPanel();
   };
 
+  private handleReset = (): void => {
+    const confirmed = window.confirm(
+      'This will clear all profiler data and reset the panel. Continue?'
+    );
+    if (confirmed) {
+      clearLastError();
+      resetPanel();
+    }
+  };
+
+  private handleRetry = (): void => {
+    // Clear the error state and try to re-render
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      errorId: '',
+    });
+  };
+
+  private handleToggleDetails = (): void => {
+    this.setState(prev => ({
+      detailsExpanded: !prev.detailsExpanded,
+    }));
+  };
+
   private handleReportIssue = (): void => {
-    const { error, errorInfo } = this.state;
+    const { error, errorInfo, errorId } = this.state;
     const title = encodeURIComponent(`[Bug] Error in React Perf Profiler: ${error?.message || 'Unknown error'}`);
     const body = encodeURIComponent(
       `## Error Description\n\n` +
+      `**Error ID:** ${errorId}\n` +
       `**Error Message:** ${error?.message || 'No error message'}\n\n` +
       `**Stack Trace:**\n\`\`\`\n${error?.stack || 'No stack trace'}\n\`\`\`\n\n` +
       `**Component Stack:**\n\`\`\`\n${errorInfo?.componentStack || 'No component stack'}\n\`\`\`\n\n` +
+      `**Context:** ${this.props.context || 'Unknown'}\n\n` +
       `## Steps to Reproduce\n\n` +
       `1. \n` +
       `2. \n` +
@@ -91,8 +141,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       `## Expected Behavior\n\n` +
       `## Actual Behavior\n\n` +
       `## Environment\n\n` +
-      `- Browser: \n` +
-      `- React Version: \n` +
+      `- Browser: ${navigator.userAgent}\n` +
+      `- URL: ${window.location.href}\n` +
       `- Extension Version: 1.0.0\n`
     );
     
@@ -102,9 +152,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     );
   };
 
+  private handleCopyError = async (): Promise<void> => {
+    const { error, errorInfo, errorId } = this.state;
+    const errorText = `[${errorId}] ${error?.name}: ${error?.message}\n\nStack:\n${error?.stack}\n\nComponent Stack:\n${errorInfo?.componentStack}`;
+    
+    try {
+      await navigator.clipboard.writeText(errorText);
+      // Could show a toast here
+    } catch {
+      // Fallback: select and copy manually
+      console.log('Failed to copy to clipboard');
+    }
+  };
+
   override render(): ReactNode {
-    const { hasError, error } = this.state;
-    const { children, fallback, context } = this.props;
+    const { hasError, error, errorInfo, detailsExpanded, errorId } = this.state;
+    const { children, fallback, context, showReset = true, compact = false } = this.props;
 
     if (!hasError) {
       return children;
@@ -115,33 +178,56 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return fallback;
     }
 
+    const containerClass = compact ? styles["compact"] : '';
+
     // Default error UI
     return (
-      <div className={styles["errorBoundary"]} role="alert" aria-live="assertive">
+      <div 
+        className={`${styles["errorBoundary"]} ${containerClass}`} 
+        role="alert" 
+        aria-live="assertive"
+      >
         <div className={styles["errorContent"]}>
           <div className={styles["errorIcon"]}>
-            <Icon name="error" size={48} />
+            <Icon name="error" size={compact ? 32 : 48} />
           </div>
           
           <h2 className={styles["errorTitle"]}>
-            Something went wrong
+            {compact ? 'Something went wrong' : 'Oops! Something went wrong'}
           </h2>
           
           <p className={styles["errorMessage"]}>
             {context 
-              ? `Something went wrong in the ${context}. Try reloading the panel.`
-              : 'The profiler encountered an error. Your data has been saved.'
+              ? `An error occurred in ${context}. Don't worry - your profiling data is safe.`
+              : "The profiler encountered an unexpected error. Your data has been preserved."
             }
           </p>
 
           {error && (
-            <details className={styles["errorDetails"]}>
-              <summary>Error details</summary>
+            <details 
+              className={styles["errorDetails"]} 
+              open={detailsExpanded}
+              onToggle={this.handleToggleDetails}
+            >
+              <summary>Error Details {errorId && <span className={styles["errorId"]}>ID: {errorId}</span>}</summary>
               <div className={styles["errorDetailsContent"]}>
-                <p className={styles["errorType"]}>{error.name}: {error.message}</p>
-                {this.state.errorInfo?.componentStack && (
+                <div className={styles["errorType"]}
+                  role="button"
+                  tabIndex={0}
+                  onClick={this.handleCopyError}
+                  onKeyDown={(e) => e.key === 'Enter' && this.handleCopyError()}
+                >
+                  <span>{error.name}: {error.message}</span>
+                  <Icon name="copy" size={14} className={styles["copyIcon"]} />
+                </div>
+                {errorInfo?.componentStack && (
                   <pre className={styles["componentStack"]}>
-                    {this.state.errorInfo.componentStack}
+                    {errorInfo.componentStack}
+                  </pre>
+                )}
+                {error.stack && (
+                  <pre className={styles["stackTrace"]}>
+                    {error.stack}
                   </pre>
                 )}
               </div>
@@ -151,20 +237,45 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className={styles["errorActions"]}>
             <Button
               variant="primary"
-              size="md"
+              size={compact ? 'sm' : 'md'}
               icon="refresh"
               onClick={this.handleReload}
+              title="Reload the panel to recover from this error"
             >
               Reload Panel
             </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              icon="copy"
+            {!compact && (
+              <Button
+                variant="secondary"
+                size="md"
+                icon="play"
+                onClick={this.handleRetry}
+                title="Try to continue without reloading"
+              >
+                Try Again
+              </Button>
+            )}
+            {showReset && (
+              <Button
+                variant="danger"
+                size={compact ? 'sm' : 'md'}
+                icon="trash"
+                onClick={this.handleReset}
+                title="Clear all data and reset the panel (use as last resort)"
+              >
+                Reset
+              </Button>
+            )}
+          </div>
+
+          <div className={styles["secondaryActions"]}>
+            <button 
+              className={styles["reportLink"]} 
               onClick={this.handleReportIssue}
             >
-              Report Issue
-            </Button>
+              <Icon name="warning" size={14} />
+              Report this issue on GitHub
+            </button>
           </div>
         </div>
       </div>

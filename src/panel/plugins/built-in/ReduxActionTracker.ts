@@ -4,9 +4,30 @@
  *
  * Tracks Redux actions dispatched during profiling and correlates them with React commits.
  * Useful for identifying which actions trigger unnecessary re-renders.
+ *
+ * @example
+ * ```typescript
+ * import { reduxActionTracker } from './built-in/ReduxActionTracker';
+ *
+ * // Register plugin
+ * pluginManager.register(reduxActionTracker);
+ *
+ * // In your app, dispatch actions with metadata
+ * store.dispatch({
+ *   type: 'USER_UPDATE',
+ *   payload: userData,
+ *   __reduxProfiler: { track: true }
+ * });
+ * ```
  */
 
-import type { AnalysisPlugin, CommitData, AnalysisResult, PluginAPI, PluginContext } from '../types';
+import type {
+  AnalysisPlugin,
+  PluginAPI,
+  PluginContext,
+  PluginMetric,
+} from '../types';
+import type { CommitData, AnalysisResult } from '@/shared/types';
 
 // =============================================================================
 // Types
@@ -71,17 +92,10 @@ const ACTION_WINDOW_MS = 50; // Window to correlate actions with commits
  *
  * @example
  * ```typescript
- * import { reduxActionTracker } from './built-in/ReduxActionTracker';
+ * import { reduxActionTracker } from 'react-perf-profiler/panel/plugins/built-in/ReduxActionTracker';
  *
  * // Register plugin
  * pluginManager.register(reduxActionTracker);
- *
- * // In your app, dispatch actions with metadata
- * store.dispatch({
- *   type: 'USER_UPDATE',
- *   payload: userData,
- *   __reduxProfiler: { track: true }
- * });
  * ```
  */
 export const reduxActionTracker: AnalysisPlugin = {
@@ -90,6 +104,7 @@ export const reduxActionTracker: AnalysisPlugin = {
     name: 'Redux Action Tracker',
     version: '1.0.0',
     description: 'Tracks Redux actions and correlates them with React commits',
+    author: 'React Perf Profiler Team',
     enabledByDefault: false,
     settingsSchema: [
       {
@@ -178,7 +193,7 @@ export const reduxActionTracker: AnalysisPlugin = {
      * Called during analysis phase
      * Generates Redux-specific analysis results
      */
-    onAnalyze(commits: CommitData[], api: PluginAPI, context: PluginContext): Partial<AnalysisResult> {
+    onAnalyze(_commits: CommitData[], api: PluginAPI, context: PluginContext): Partial<AnalysisResult> {
       const state = api.getPluginData<ReduxTrackingState>(DATA_KEY);
       if (!state || state.actions.length === 0) {
         return {};
@@ -189,7 +204,7 @@ export const reduxActionTracker: AnalysisPlugin = {
       }>();
 
       const ignoredTypes = new Set(
-        (settings.ignoredActionTypes ?? '').split(',').map((s) => s.trim())
+        (settings.ignoredActionTypes ?? '').split(',').map((s: string) => s.trim())
       );
 
       // Filter out ignored actions
@@ -250,13 +265,75 @@ export const reduxActionTracker: AnalysisPlugin = {
     },
 
     /**
+     * Called when analysis completes
+     * Returns metrics to display in the metrics panel
+     */
+    onAnalysisComplete(
+      _result: AnalysisResult,
+      api: PluginAPI,
+      _context: PluginContext
+    ): PluginMetric[] {
+      const state = api.getPluginData<ReduxTrackingState>(DATA_KEY);
+      if (!state) return [];
+
+      const metrics: PluginMetric[] = [
+        {
+          id: 'total-actions',
+          name: 'Total Actions',
+          value: state.metrics.totalActions,
+          formattedValue: String(state.metrics.totalActions),
+          description: 'Total Redux actions tracked',
+          category: 'Redux',
+          priority: 1,
+        },
+        {
+          id: 'actions-causing-rerenders',
+          name: 'Actions → Renders',
+          value: state.metrics.actionsCausingRerenders,
+          formattedValue: String(state.metrics.actionsCausingRerenders),
+          description: 'Actions that caused React re-renders',
+          category: 'Redux',
+          trend: state.metrics.actionsCausingRerenders > 0 ? 'up' : 'neutral',
+          trendPositive: state.metrics.actionsCausingRerenders === 0,
+          priority: 2,
+        },
+        {
+          id: 'avg-time-to-commit',
+          name: 'Avg Time to Commit',
+          value: Number(state.metrics.averageTimeToCommit.toFixed(2)),
+          formattedValue: `${state.metrics.averageTimeToCommit.toFixed(2)}ms`,
+          unit: 'ms',
+          description: 'Average time from action to React commit',
+          category: 'Redux',
+          priority: 3,
+        },
+      ];
+
+      // Add top expensive action type if available
+      if (state.metrics.mostExpensiveActionTypes.length > 0) {
+        const top = state.metrics.mostExpensiveActionTypes[0]!;
+        metrics.push({
+          id: 'top-action-type',
+          name: 'Top Action Type',
+          value: top.type,
+          formattedValue: `${top.type} (${top.count})`,
+          description: 'Most frequent action type causing re-renders',
+          category: 'Redux',
+          priority: 4,
+        });
+      }
+
+      return metrics;
+    },
+
+    /**
      * Called when exporting data
      * Includes Redux tracking data in export
      */
     onExport(
       data: Record<string, unknown>,
       api: PluginAPI,
-      context: PluginContext
+      _context: PluginContext
     ): Record<string, unknown> {
       const state = api.getPluginData<ReduxTrackingState>(DATA_KEY);
       if (!state) {
@@ -283,7 +360,7 @@ export const reduxActionTracker: AnalysisPlugin = {
       api: PluginAPI,
       context: PluginContext
     ): void {
-      const reduxData = data.reduxTracking as
+      const reduxData = data['reduxTracking'] as
         | {
             version: string;
             actions: TrackedAction[];
@@ -335,6 +412,48 @@ export const reduxActionTracker: AnalysisPlugin = {
       context.log('info', 'Redux tracking data cleared');
     },
   },
+
+  /**
+   * Get metrics for display in the metrics panel
+   */
+  getMetrics(api: PluginAPI): PluginMetric[] {
+    const state = api.getPluginData<ReduxTrackingState>(DATA_KEY);
+    if (!state) return [];
+
+    return [
+      {
+        id: 'redux-action-count',
+        name: 'Redux Actions',
+        value: state.metrics.totalActions,
+        formattedValue: `${state.metrics.totalActions} actions`,
+        description: 'Total Redux actions tracked during profiling',
+        category: 'Redux',
+      },
+      {
+        id: 'redux-rerender-rate',
+        name: 'Action Render Rate',
+        value:
+          state.metrics.totalActions > 0
+            ? Math.round(
+                (state.metrics.actionsCausingRerenders / state.metrics.totalActions) * 100
+              )
+            : 0,
+        formattedValue:
+          state.metrics.totalActions > 0
+            ? `${Math.round(
+                (state.metrics.actionsCausingRerenders / state.metrics.totalActions) * 100
+              )}%`
+            : '0%',
+        description: 'Percentage of actions causing re-renders',
+        category: 'Redux',
+        trend:
+          state.metrics.actionsCausingRerenders / state.metrics.totalActions > 0.5
+            ? 'up'
+            : 'neutral',
+        trendPositive: state.metrics.actionsCausingRerenders / state.metrics.totalActions < 0.3,
+      },
+    ];
+  },
 };
 
 // =============================================================================
@@ -357,7 +476,7 @@ export const reduxActionTracker: AnalysisPlugin = {
  * ```
  */
 export function createReduxProfilerMiddleware() {
-  return (store: unknown) => (next: (action: unknown) => unknown) => (action: unknown) => {
+  return (_store: unknown) => (next: (action: unknown) => unknown) => (action: unknown) => {
     // Track the action
     trackReduxAction(action as { type: string; payload?: unknown });
 
@@ -369,12 +488,24 @@ export function createReduxProfilerMiddleware() {
 /**
  * Track a Redux action manually
  * Call this from your app to track actions with the profiler
+ *
+ * @param action - The Redux action to track
+ *
+ * @example
+ * ```typescript
+ * trackReduxAction({ type: 'USER_LOGIN', payload: { userId: 123 } });
+ * ```
  */
 export function trackReduxAction(action: { type: string; payload?: unknown }): void {
   // This function would be called from the app side
   // In a real implementation, this would send a message to the profiler
   // For now, we just log it
-  if (typeof window !== 'undefined' && (window as unknown as { __REACT_PROFILER__?: { trackAction?: (action: TrackedAction) => void } }).__REACT_PROFILER__?.trackAction) {
+  const profilerHook = (
+    typeof window !== 'undefined' &&
+    (window as unknown as { __REACT_PROFILER__?: { trackAction?: (action: TrackedAction) => void } }).__REACT_PROFILER__
+  );
+  
+  if (profilerHook && profilerHook.trackAction) {
     const trackedAction: TrackedAction = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: action.type,
@@ -384,7 +515,7 @@ export function trackReduxAction(action: { type: string; payload?: unknown }): v
       causedRerender: false,
     };
 
-    (window as unknown as { __REACT_PROFILER__: { trackAction: (action: TrackedAction) => void } }).__REACT_PROFILER__.trackAction(trackedAction);
+    profilerHook.trackAction(trackedAction);
   }
 }
 

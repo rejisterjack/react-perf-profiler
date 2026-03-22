@@ -3,7 +3,7 @@
  * Comprehensive keyboard shortcut management for React Perf Profiler
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 
 // =============================================================================
 // Types
@@ -27,6 +27,8 @@ export interface ShortcutConfig {
   stopPropagation?: boolean;
   /** Whether shortcut requires an input element to NOT be focused */
   requireNonInput?: boolean;
+  /** Visual feedback message when shortcut is triggered */
+  feedbackMessage?: string;
 }
 
 export type ShortcutCategory =
@@ -34,6 +36,7 @@ export type ShortcutCategory =
   | 'navigation'
   | 'views'
   | 'data'
+  | 'analysis'
   | 'help';
 
 export interface ShortcutGroup {
@@ -49,6 +52,12 @@ export interface UseKeyboardShortcutsOptions {
   containerRef?: React.RefObject<HTMLElement>;
   /** Additional condition to enable shortcuts */
   when?: boolean;
+}
+
+export interface ShortcutFeedback {
+  message: string;
+  timestamp: number;
+  id: string;
 }
 
 // =============================================================================
@@ -164,12 +173,13 @@ export const createDefaultShortcuts = (
 ): ShortcutConfig[] => [
   // Recording
   {
-    key: 'space',
+    key: isMac() ? 'cmd+shift+p' : 'ctrl+shift+p',
     handler: actions.toggleRecording,
     description: 'Start/Stop profiling',
     category: 'recording',
     preventDefault: true,
     requireNonInput: true,
+    feedbackMessage: 'Profiling toggled',
   },
 
   // Navigation
@@ -207,16 +217,24 @@ export const createDefaultShortcuts = (
   },
   {
     key: 'enter',
-    handler: actions.openDetails,
-    description: 'Open component details',
+    handler: actions.selectNode,
+    description: 'Select component / Expand node',
     category: 'navigation',
     preventDefault: false,
     requireNonInput: true,
   },
   {
+    key: 'space',
+    handler: actions.toggleNodeExpansion,
+    description: 'Toggle node expansion',
+    category: 'navigation',
+    preventDefault: true,
+    requireNonInput: true,
+  },
+  {
     key: 'escape',
     handler: actions.closePanel,
-    description: 'Close detail panel / dialogs',
+    description: 'Close detail panel / Cancel operation',
     category: 'navigation',
     preventDefault: false,
     requireNonInput: false, // Allow escape even in inputs
@@ -230,6 +248,7 @@ export const createDefaultShortcuts = (
     category: 'views',
     preventDefault: false,
     requireNonInput: true,
+    feedbackMessage: 'Tree view',
   },
   {
     key: '2',
@@ -238,6 +257,7 @@ export const createDefaultShortcuts = (
     category: 'views',
     preventDefault: false,
     requireNonInput: true,
+    feedbackMessage: 'Flamegraph view',
   },
   {
     key: '3',
@@ -246,6 +266,7 @@ export const createDefaultShortcuts = (
     category: 'views',
     preventDefault: false,
     requireNonInput: true,
+    feedbackMessage: 'Timeline view',
   },
   {
     key: '4',
@@ -254,40 +275,46 @@ export const createDefaultShortcuts = (
     category: 'views',
     preventDefault: false,
     requireNonInput: true,
+    feedbackMessage: 'Analysis view',
   },
 
   // Data
   {
-    key: isMac() ? 'cmd+s' : 'ctrl+s',
+    key: isMac() ? 'cmd+e' : 'ctrl+e',
     handler: actions.exportData,
-    description: 'Export profile data',
+    description: 'Export profile',
     category: 'data',
     preventDefault: true,
     requireNonInput: true,
+    feedbackMessage: 'Profile exported',
   },
   {
     key: isMac() ? 'cmd+o' : 'ctrl+o',
     handler: actions.importData,
-    description: 'Import profile data',
+    description: 'Import profile',
     category: 'data',
     preventDefault: true,
     requireNonInput: true,
   },
   {
-    key: isMac() ? 'cmd+delete' : 'ctrl+delete',
+    key: 'c',
     handler: actions.clearData,
     description: 'Clear all data',
     category: 'data',
-    preventDefault: true,
+    preventDefault: false,
     requireNonInput: true,
+    feedbackMessage: 'Data cleared',
   },
+
+  // Analysis
   {
-    key: isMac() ? 'cmd+backspace' : 'ctrl+backspace',
-    handler: actions.clearData,
-    description: 'Clear all data (alternative)',
-    category: 'data',
-    preventDefault: true,
+    key: 'r',
+    handler: actions.runAnalysis,
+    description: 'Run analysis',
+    category: 'analysis',
+    preventDefault: false,
     requireNonInput: true,
+    feedbackMessage: 'Running analysis...',
   },
 
   // Help
@@ -311,12 +338,14 @@ export interface ShortcutActions {
   nextCommit: () => void;
   navigateUp: () => void;
   navigateDown: () => void;
-  openDetails: () => void;
+  selectNode: () => void;
+  toggleNodeExpansion: () => void;
   closePanel: () => void;
   setViewMode: (mode: 'tree' | 'flamegraph' | 'timeline' | 'analysis') => void;
   exportData: () => void;
   importData: () => void;
   clearData: () => void;
+  runAnalysis: () => void;
   toggleHelp: () => void;
 }
 
@@ -342,9 +371,40 @@ export const useKeyboardShortcuts = (
 ): {
   shortcuts: ShortcutConfig[];
   isEnabled: boolean;
+  feedback: ShortcutFeedback | null;
+  clearFeedback: () => void;
 } => {
   const { enabled = true, when = true } = options;
   const isEnabled = enabled && when;
+
+  // State for visual feedback
+  const [feedback, setFeedback] = useState<ShortcutFeedback | null>(null);
+  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Show feedback message
+  const showFeedback = useCallback((message: string) => {
+    // Clear existing timeout
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+
+    // Set new feedback
+    const id = Math.random().toString(36).substring(7);
+    setFeedback({ message, timestamp: Date.now(), id });
+
+    // Auto-clear after 2 seconds
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setFeedback(null);
+    }, 2000);
+  }, []);
+
+  // Clear feedback manually
+  const clearFeedback = useCallback(() => {
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+    setFeedback(null);
+  }, []);
 
   // Create shortcuts configuration
   const shortcuts = useRef<ShortcutConfig[]>([]);
@@ -353,6 +413,15 @@ export const useKeyboardShortcuts = (
   useEffect(() => {
     shortcuts.current = createDefaultShortcuts(actions as ShortcutActions);
   }, [actions]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Main keyboard handler
   const handleKeyDown = useCallback(
@@ -375,11 +444,16 @@ export const useKeyboardShortcuts = (
           event.stopPropagation();
         }
 
+        // Show visual feedback if configured
+        if (shortcut.feedbackMessage) {
+          showFeedback(shortcut.feedbackMessage);
+        }
+
         shortcut.handler(event);
         break; // Only execute first matching shortcut
       }
     },
-    [isEnabled]
+    [isEnabled, showFeedback]
   );
 
   // Attach/detach event listener
@@ -397,6 +471,8 @@ export const useKeyboardShortcuts = (
   return {
     shortcuts: shortcuts.current,
     isEnabled,
+    feedback,
+    clearFeedback,
   };
 };
 
@@ -415,6 +491,7 @@ export const groupShortcutsByCategory = (
     navigation: [],
     views: [],
     data: [],
+    analysis: [],
     help: [],
   };
 
@@ -427,6 +504,7 @@ export const groupShortcutsByCategory = (
     { category: 'navigation', label: 'Navigation', shortcuts: groups.navigation },
     { category: 'views', label: 'Views', shortcuts: groups.views },
     { category: 'data', label: 'Data Management', shortcuts: groups.data },
+    { category: 'analysis', label: 'Analysis', shortcuts: groups.analysis },
     { category: 'help', label: 'Help', shortcuts: groups.help },
   ];
   

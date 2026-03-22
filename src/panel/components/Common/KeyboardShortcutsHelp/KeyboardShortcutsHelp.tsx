@@ -3,7 +3,8 @@
  * Displays all available keyboard shortcuts grouped by category
  */
 
-import React, { useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../Icon/Icon';
 import {
@@ -145,22 +146,18 @@ interface ShortcutRowProps {
 
 const ShortcutRow: React.FC<ShortcutRowProps> = ({ shortcut }) => {
   const formattedKeys = formatShortcut(shortcut.key);
-  const keyParts = formattedKeys.split(' ');
+  const keyParts = formattedKeys.split(mac ? ' ' : '+').filter(p => p !== '+');
 
   return (
     <div className={styles['shortcutItem']}>
       <span className={styles['shortcutDescription']}>{shortcut.description}</span>
       <span className={styles['shortcutKeys']}>
         {keyParts.map((part, index) => {
-          const isSeparator = part === '+' || part === ' ';
+          const isSeparator = part === ' ';
           const isWide = part.length > 1 && !isSeparator;
 
           if (isSeparator) {
-            return (
-              <span key={index} className={styles['keyPlus']}>
-                {part === ' ' ? '' : part}
-              </span>
-            );
+            return null;
           }
 
           return (
@@ -176,5 +173,8 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ shortcut }) => {
     </div>
   );
 };
+
+// Helper to detect Mac for key formatting display
+const mac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
 export default KeyboardShortcutsHelp;

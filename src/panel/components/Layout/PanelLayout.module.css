@@ -1,6 +1,6 @@
 /**
  * PanelLayout Component Styles
- * Main 3-panel layout with resizable panels
+ * Main 3-panel layout with resizable panels and smooth animations
  */
 
 .panelLayout {
@@ -17,47 +17,53 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 300px;
+  animation: viewEnter var(--duration-slow) var(--ease-out);
 }
 
 /* ============================================================================
-   Resizer Handle
+   Resizer Handle with Animation
    ============================================================================ */
 
 .resizer {
   width: var(--resizer-width);
-  background: var(--border-color);
+  background: var(--border-default);
   cursor: col-resize;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast);
   flex-shrink: 0;
   position: relative;
+  z-index: var(--z-sticky);
 }
 
 .resizer:hover,
 .resizer.active {
-  background: var(--primary);
+  background: var(--accent-primary);
+  transform: scaleX(1.5);
 }
 
 .resizer::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(0);
   width: 2px;
   height: 24px;
-  background: var(--border-color-light);
+  background: var(--bg-primary);
+  border-radius: 1px;
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
 .resizer:hover::after,
 .resizer.active::after {
   opacity: 0.5;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .resizer:focus-visible {
   outline: none;
-  background: var(--primary);
+  background: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 /* ============================================================================
@@ -70,6 +76,122 @@
   z-index: var(--z-modal);
   cursor: col-resize;
   background: transparent;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+/* ============================================================================
+   Sidebar Animation
+   ============================================================================ */
+
+.sidebar {
+  animation: slideInFromLeft var(--duration-slow) var(--ease-out);
+}
+
+.sidebar.collapsed {
+  animation: slideOutToLeft var(--duration-normal) var(--ease-in) forwards;
+}
+
+/* ============================================================================
+   Detail Panel Animation
+   ============================================================================ */
+
+.detailPanel {
+  animation: panelSlideIn var(--duration-slow) var(--ease-spring);
+}
+
+.detailPanel.closing {
+  animation: panelSlideOut var(--duration-normal) var(--ease-in) forwards;
+}
+
+/* ============================================================================
+   View Mode Transitions
+   ============================================================================ */
+
+.viewContainer {
+  animation: viewEnter var(--duration-normal) var(--ease-out);
+}
+
+.viewContainer.exiting {
+  animation: viewExit var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes viewEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes viewExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ============================================================================
@@ -99,5 +221,22 @@
 
   .resizeOverlay {
     cursor: row-resize;
+  }
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .panelLayout,
+  .mainContent,
+  .sidebar,
+  .detailPanel,
+  .viewContainer,
+  .resizer,
+  .resizer::after {
+    animation: none;
+    transition: none;
   }
 }

@@ -3,7 +3,7 @@
  * Toggle buttons for switching between different visualization modes
  */
 
-import React from 'react';
+import type React from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Icon, type IconName } from '../Common/Icon/Icon';
 import styles from './ViewModeToggle.module.css';

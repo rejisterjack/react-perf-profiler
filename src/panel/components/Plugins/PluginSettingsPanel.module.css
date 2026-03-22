@@ -1,0 +1,230 @@
+/**
+ * Plugin Settings Panel Styles
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.emptyIcon {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty p {
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+
+.empty small {
+  opacity: 0.7;
+}
+
+/* Plugin List */
+.pluginList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Plugin Card */
+.pluginCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.pluginCard:hover {
+  border-color: var(--border-hover);
+}
+
+.pluginCard.enabled {
+  border-left: 3px solid var(--primary-color);
+}
+
+.pluginCard.error {
+  border-left: 3px solid var(--error-color, #ef4444);
+}
+
+.pluginHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 16px;
+}
+
+.pluginInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.pluginNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pluginName {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pluginMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.version {
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.author {
+  opacity: 0.8;
+}
+
+.description {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.pluginCapabilities {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.capability {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pluginActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Plugin Settings */
+.pluginSettings {
+  padding: 16px;
+  padding-top: 0;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary, rgba(0, 0, 0, 0.02));
+}
+
+.settingRow {
+  margin-bottom: 16px;
+}
+
+.settingRow:last-child {
+  margin-bottom: 0;
+}
+
+.settingLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.required {
+  color: var(--error-color, #ef4444);
+  margin-left: 2px;
+}
+
+.settingDescription {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Input Types */
+.numberInput,
+.stringInput,
+.selectInput,
+.arrayInput {
+  width: 100%;
+}
+
+.select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.select option {
+  padding: 8px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .pluginHeader {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .pluginActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .pluginCard {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+  }
+  
+  .pluginSettings {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  .version {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://react-perf-profiler.dev/perf-budget.schema.json",
+  "title": "React Perf Profiler Budget Configuration",
+  "description": "Configuration file for performance budgets in React Perf Profiler CI/CD integration",
+  "type": "object",
+  "required": ["version", "wastedRenderThreshold", "memoHitRateThreshold", "maxRenderTimeMs", "maxRSCPayloadSize", "minPerformanceScore", "maxSlowRenderPercentage", "budgets"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Path to this schema file"
+    },
+    "version": {
+      "type": "integer",
+      "description": "Configuration version",
+      "minimum": 1,
+      "default": 1
+    },
+    "projectName": {
+      "type": "string",
+      "description": "Name of the project"
+    },
+    "wastedRenderThreshold": {
+      "type": "number",
+      "description": "Maximum percentage of renders that should be wasted (0-1)",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.1
+    },
+    "memoHitRateThreshold": {
+      "type": "number",
+      "description": "Minimum memoization hit rate for memoized components (0-1)",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.8
+    },
+    "maxRenderTimeMs": {
+      "type": "number",
+      "description": "Maximum average render time per component in milliseconds (16ms = 60fps)",
+      "minimum": 0,
+      "default": 16
+    },
+    "maxRSCPayloadSize": {
+      "type": "integer",
+      "description": "Maximum RSC payload size in bytes",
+      "minimum": 0,
+      "default": 100000
+    },
+    "minPerformanceScore": {
+      "type": "integer",
+      "description": "Minimum overall performance score (0-100)",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 70
+    },
+    "maxSlowRenderPercentage": {
+      "type": "number",
+      "description": "Maximum percentage of renders exceeding maxRenderTimeMs (0-1)",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.1
+    },
+    "failOnWarning": {
+      "type": "boolean",
+      "description": "Whether to fail CI on warning-level violations",
+      "default": false
+    },
+    "outputFormat": {
+      "type": "string",
+      "description": "Output format for CI",
+      "enum": ["json", "human"],
+      "default": "human"
+    },
+    "bundleBudgets": {
+      "type": "object",
+      "description": "Bundle size budgets for Chrome and Firefox",
+      "properties": {
+        "chrome": {
+          "$ref": "#/definitions/bundleBudget"
+        },
+        "firefox": {
+          "$ref": "#/definitions/bundleBudget"
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverageThresholds": {
+      "type": "object",
+      "description": "Test coverage thresholds",
+      "properties": {
+        "lines": {
+          "type": "integer",
+          "description": "Lines coverage percentage threshold",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 70
+        },
+        "functions": {
+          "type": "integer",
+          "description": "Functions coverage percentage threshold",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 70
+        },
+        "branches": {
+          "type": "integer",
+          "description": "Branches coverage percentage threshold",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 60
+        },
+        "statements": {
+          "type": "integer",
+          "description": "Statements coverage percentage threshold",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 70
+        }
+      },
+      "additionalProperties": false
+    },
+    "budgets": {
+      "type": "array",
+      "description": "Individual performance budget configurations",
+      "items": {
+        "$ref": "#/definitions/performanceBudget"
+      }
+    }
+  },
+  "definitions": {
+    "bundleBudget": {
+      "type": "object",
+      "description": "Bundle size budget for a specific browser target",
+      "required": ["total", "chunks"],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "description": "Maximum total bundle size in bytes",
+          "minimum": 0,
+          "default": 1000000
+        },
+        "chunks": {
+          "type": "object",
+          "description": "Per-chunk size budgets",
+          "required": ["panel", "background", "content", "devtools", "popup", "vendor"],
+          "properties": {
+            "panel": {
+              "type": "integer",
+              "description": "Panel chunk budget in bytes",
+              "minimum": 0,
+              "default": 512000
+            },
+            "background": {
+              "type": "integer",
+              "description": "Background script budget in bytes",
+              "minimum": 0,
+              "default": 102400
+            },
+            "content": {
+              "type": "integer",
+              "description": "Content script budget in bytes",
+              "minimum": 0,
+              "default": 153600
+            },
+            "devtools": {
+              "type": "integer",
+              "description": "Devtools page budget in bytes",
+              "minimum": 0,
+              "default": 51200
+            },
+            "popup": {
+              "type": "integer",
+              "description": "Popup budget in bytes",
+              "minimum": 0,
+              "default": 102400
+            },
+            "vendor": {
+              "type": "integer",
+              "description": "Vendor/shared chunk budget in bytes",
+              "minimum": 0,
+              "default": 307200
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "performanceBudget": {
+      "type": "object",
+      "description": "Individual performance budget configuration",
+      "required": ["id", "name", "threshold", "severity", "enabled"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the budget"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Budget description"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Threshold value"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Severity when threshold is exceeded",
+          "enum": ["error", "warning", "info"],
+          "default": "error"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this budget is enabled",
+          "default": true
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "Custom error message when budget is exceeded"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

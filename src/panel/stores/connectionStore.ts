@@ -8,6 +8,11 @@ import { devtools } from 'zustand/middleware';
 import type { PanelMessage } from '@/shared/types';
 
 /**
+ * Bridge initialization state
+ */
+export type BridgeState = 'pending' | 'success' | 'failed' | 'not-detected';
+
+/**
  * State interface for the connection store
  */
 export interface ConnectionState {
@@ -33,6 +38,14 @@ export interface ConnectionState {
   isReconnecting: boolean;
   /** Current tab ID */
   tabId: number | null;
+  /** Bridge initialization state */
+  bridgeState: BridgeState;
+  /** Bridge error details */
+  bridgeError: { type: string; message: string; recoverable: boolean } | null;
+  /** Whether React was detected on the page */
+  reactDetected: boolean | null;
+  /** Whether React DevTools was detected */
+  devtoolsDetected: boolean | null;
 }
 
 /**
@@ -65,6 +78,14 @@ interface ConnectionActions {
   addMessageHandler: (handler: (message: PanelMessage) => void) => () => void;
   /** Clear the last error */
   clearError: () => void;
+  /** Set bridge state */
+  setBridgeState: (state: BridgeState) => void;
+  /** Set bridge error */
+  setBridgeError: (error: { type: string; message: string; recoverable: boolean } | null) => void;
+  /** Set React detection state */
+  setReactDetected: (detected: boolean) => void;
+  /** Set DevTools detection state */
+  setDevtoolsDetected: (detected: boolean) => void;
 }
 
 /**
@@ -92,6 +113,10 @@ export const useConnectionStore = create<ConnectionStore>()(
       retryCount: 0,
       isReconnecting: false,
       tabId: null,
+      bridgeState: 'pending',
+      bridgeError: null,
+      reactDetected: null,
+      devtoolsDetected: null,
 
       // Actions
       connect: () => {
@@ -155,8 +180,55 @@ export const useConnectionStore = create<ConnectionStore>()(
                   // This is just to acknowledge receipt
                   break;
 
+                case 'BRIDGE_INIT':
+                  // Bridge initialization status
+                  if (message.payload?.success) {
+                    set({
+                      bridgeState: 'success',
+                      bridgeError: null,
+                      reactDetected: true,
+                      devtoolsDetected: true,
+                    });
+                  }
+                  break;
+
+                case 'BRIDGE_ERROR':
+                  // Bridge error
+                  set({
+                    bridgeState: 'failed',
+                    bridgeError: {
+                      type: message.payload?.errorType || 'UNKNOWN',
+                      message: message.payload?.message || 'Bridge error',
+                      recoverable: message.payload?.recoverable !== false,
+                    },
+                  });
+                  break;
+
+                case 'REACT_DETECT_RESULT':
+                  // React detection result
+                  if (message.payload) {
+                    set({
+                      reactDetected: message.payload.reactDetected ?? null,
+                      devtoolsDetected: message.payload.devtoolsDetected ?? null,
+                      bridgeState: message.payload.reactDetected && message.payload.devtoolsDetected
+                        ? 'success'
+                        : message.payload.reactDetected
+                          ? 'not-detected'
+                          : 'failed',
+                    });
+                  }
+                  break;
+
                 case 'ERROR':
-                  set({ error: message.payload.message, lastError: message.payload.message });
+                  set({ 
+                    error: message.payload.message, 
+                    lastError: message.payload.message,
+                    bridgeError: message.payload.errorType ? {
+                      type: message.payload.errorType,
+                      message: message.payload.message,
+                      recoverable: message.payload.recoverable !== false,
+                    } : null,
+                  });
                   break;
               }
             });
@@ -170,6 +242,7 @@ export const useConnectionStore = create<ConnectionStore>()(
                 port: null,
                 error: errorMsg,
                 lastError: errorMsg,
+                bridgeState: 'pending',
               });
             });
 
@@ -177,6 +250,9 @@ export const useConnectionStore = create<ConnectionStore>()(
 
             // Flush pending messages immediately after connection
             get().flushPendingMessages();
+            
+            // Request bridge status
+            newPort.postMessage({ type: 'GET_BRIDGE_STATUS' });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Failed to connect';
             set({
@@ -206,6 +282,10 @@ export const useConnectionStore = create<ConnectionStore>()(
           retryCount: 0,
           isReconnecting: false,
           tabId: null,
+          bridgeState: 'pending',
+          bridgeError: null,
+          reactDetected: null,
+          devtoolsDetected: null,
         });
       },
 
@@ -382,7 +462,23 @@ export const useConnectionStore = create<ConnectionStore>()(
       },
 
       clearError: () => {
-        set({ error: null, lastError: null });
+        set({ error: null, lastError: null, bridgeError: null });
+      },
+
+      setBridgeState: (bridgeState) => {
+        set({ bridgeState });
+      },
+
+      setBridgeError: (bridgeError) => {
+        set({ bridgeError });
+      },
+
+      setReactDetected: (reactDetected) => {
+        set({ reactDetected });
+      },
+
+      setDevtoolsDetected: (devtoolsDetected) => {
+        set({ devtoolsDetected });
       },
     }),
     { name: 'ConnectionStore' }

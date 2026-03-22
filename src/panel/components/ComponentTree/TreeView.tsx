@@ -5,7 +5,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useMemo, useRef, memo } from 'react';
+import { useCallback, useMemo, useRef, memo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { selectTreeData } from '@/panel/stores/selectors';
@@ -180,6 +180,35 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
   const containerClasses = useMemo(() => {
     return [styles["treeView"], className].filter(Boolean).join(' ');
   }, [className]);
+
+  // Listen for custom navigation events from keyboard shortcuts
+  useEffect(() => {
+    const handleNavigateUp = () => {
+      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponentName);
+      const prevIndex = Math.max(selectedIndex - 1, 0);
+      if (prevIndex >= 0 && treeDataArray[prevIndex]) {
+        selectComponent(treeDataArray[prevIndex].name);
+        virtualizer.scrollToIndex(prevIndex, { align: 'center' });
+      }
+    };
+
+    const handleNavigateDown = () => {
+      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponentName);
+      const nextIndex = Math.min(selectedIndex + 1, treeDataArray.length - 1);
+      if (nextIndex >= 0 && treeDataArray[nextIndex]) {
+        selectComponent(treeDataArray[nextIndex].name);
+        virtualizer.scrollToIndex(nextIndex, { align: 'center' });
+      }
+    };
+
+    window.addEventListener('profiler:navigateUp', handleNavigateUp);
+    window.addEventListener('profiler:navigateDown', handleNavigateDown);
+
+    return () => {
+      window.removeEventListener('profiler:navigateUp', handleNavigateUp);
+      window.removeEventListener('profiler:navigateDown', handleNavigateDown);
+    };
+  }, [treeDataArray, selectedComponentName, selectComponent, virtualizer]);
 
   // Empty state when no data
   if (treeDataArray.length === 0) {

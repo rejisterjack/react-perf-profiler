@@ -1,5 +1,6 @@
 /**
  * Flamegraph Component Styles
+ * Animated flamegraph with smooth interactions
  */
 
 .flamegraphContainer {
@@ -20,8 +21,20 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   background: var(--bg-secondary);
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-default), transparent);
+  opacity: 0.5;
 }
 
 .title {
@@ -29,6 +42,7 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   margin: 0;
+  transition: color var(--duration-fast);
 }
 
 .legend {
@@ -43,12 +57,23 @@
   gap: var(--spacing-2);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  transition: color var(--duration-fast);
+}
+
+.legendItem:hover {
+  color: var(--text-primary);
 }
 
 .legendColor {
   width: 12px;
   height: 12px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
+  transition: transform var(--duration-fast) var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+}
+
+.legendItem:hover .legendColor {
+  transform: scale(1.2);
 }
 
 /* ============================================================================
@@ -64,11 +89,21 @@
 .flameRect {
   stroke: transparent;
   stroke-width: 0;
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  transition: 
+    filter var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  transform-origin: center;
 }
 
 .flameRect:hover {
-  filter: brightness(1.2);
+  filter: brightness(1.2) saturate(1.1);
+}
+
+.flameRect.selected {
+  stroke: var(--accent-primary);
+  stroke-width: 2;
+  filter: brightness(1.1);
 }
 
 .flameLabel {
@@ -76,11 +111,11 @@
   font-weight: var(--font-weight-medium);
   fill: var(--text-inverse);
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .flameDuration {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--font-weight-normal);
   fill: rgba(255, 255, 255, 0.8);
   pointer-events: none;
@@ -93,24 +128,18 @@
 .tooltip {
   position: fixed;
   z-index: var(--z-tooltip);
-  min-width: 180px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
+  min-width: 200px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   pointer-events: none;
-  animation: tooltipFadeIn 150ms ease;
+  animation: tooltipEnter var(--duration-fast) var(--ease-out);
+  backdrop-filter: blur(8px);
 }
 
-@keyframes tooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.tooltip.exiting {
+  animation: tooltipExit var(--duration-fast) var(--ease-in) forwards;
 }
 
 .tooltipHeader {
@@ -119,8 +148,11 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+  border-bottom: 1px solid var(--border-default);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 .tooltipContent {
@@ -134,6 +166,10 @@
   gap: var(--spacing-4);
   padding: var(--spacing-1) 0;
   font-size: var(--font-size-sm);
+}
+
+.tooltipRow:not(:last-child) {
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .tooltipLabel {
@@ -150,12 +186,66 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 6px;
-  background: rgba(78, 201, 176, 0.2);
-  color: #4ec9b0;
+  background: var(--success-bg);
+  color: var(--success);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid rgba(78, 201, 176, 0.4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--success-border);
+  animation: scaleIn var(--duration-fast) var(--ease-spring);
+}
+
+/* ============================================================================
+   Zoom Controls
+   ============================================================================ */
+
+.zoomControls {
+  position: absolute;
+  bottom: var(--spacing-4);
+  right: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-1);
+  box-shadow: var(--shadow-md);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+.zoomButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: 
+    background-color var(--duration-fast),
+    color var(--duration-fast),
+    transform var(--duration-fast);
+}
+
+.zoomButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.zoomButton:active {
+  transform: scale(0.95);
+}
+
+.zoomLevel {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--spacing-1) 0;
+  font-family: var(--font-family-mono);
 }
 
 /* ============================================================================
@@ -171,17 +261,27 @@
   color: var(--text-secondary);
   text-align: center;
   padding: var(--spacing-8);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
 }
 
 .emptyIcon {
   font-size: 48px;
   margin-bottom: var(--spacing-4);
   opacity: 0.5;
+  transition: 
+    opacity var(--duration-normal),
+    transform var(--duration-normal) var(--ease-spring);
+}
+
+.empty:hover .emptyIcon {
+  opacity: 0.7;
+  transform: scale(1.05);
 }
 
 .empty p {
   font-size: var(--font-size-lg);
   margin: 0;
+  color: var(--text-secondary);
 }
 
 /* ============================================================================
@@ -196,16 +296,26 @@
   height: 100%;
   color: var(--text-secondary);
   gap: var(--spacing-4);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
 }
 
 .spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--primary);
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-default);
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
+.loading p {
+  font-size: var(--font-size-md);
+  margin: 0;
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
 
 @keyframes spin {
   to {
@@ -213,7 +323,67 @@
   }
 }
 
-.loading p {
-  font-size: var(--font-size-md);
-  margin: 0;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tooltipEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tooltipExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .flameRect,
+  .tooltip,
+  .zoomButton,
+  .legendColor,
+  .emptyIcon,
+  .spinner,
+  .zoomControls,
+  .empty,
+  .loading {
+    animation: none;
+    transition: none;
+  }
+
+  .flameRect:hover {
+    filter: brightness(1.1);
+  }
 }

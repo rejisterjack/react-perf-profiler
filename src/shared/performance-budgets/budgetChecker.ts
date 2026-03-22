@@ -4,10 +4,12 @@
  *
  * Core logic for checking performance profiles against configured budgets.
  * Provides comprehensive violation detection with severity levels and recommendations.
+ * Includes bundle size checking and test coverage validation for CI/CD integration.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { analyzeWastedRenders } from '@/panel/utils/wastedRenderAnalysis';
-import { analyzeMemoEffectiveness } from '@/panel/utils/memoAnalysis';
 import { calculatePerformanceScore } from '@/panel/utils/performanceScore';
 import type { CommitData, FiberData } from '@/content/types';
 import type { MemoEffectivenessReport } from '@/panel/utils/memoAnalysis';
@@ -20,8 +22,12 @@ import type {
   ProfileMetadata,
   ProfileData,
   BudgetSeverity,
+  BundleCheckResult,
+  CoverageCheckResult,
+  BundleBudgets,
+  CoverageThresholds,
 } from './types';
-import { DEFAULT_BUDGET_CONFIG } from './types';
+import { DEFAULT_BUDGET_CONFIG, DEFAULT_BUNDLE_BUDGETS, DEFAULT_COVERAGE_THRESHOLDS } from './types';
 
 /**
  * Component metrics extracted from profile data
@@ -142,6 +148,339 @@ export function checkPerformanceBudget(
 }
 
 /**
+ * Checks bundle sizes against configured budgets
+ *
+ * @param bundlePath - Path to the bundle directory
+ * @param target - Target browser ('chrome' or 'firefox')
+ * @param budgets - Bundle budget configuration
+ * @returns Bundle check result
+ *
+ * @example
+ * ```typescript
+ * const result = checkBundleSizes('./dist-chrome', 'chrome', config.bundleBudgets);
+ * if (!result.passed) {
+ *   console.error('Bundle budget exceeded:', result.violations);
+ * }
+ * ```
+ */
+export function checkBundleSizes(
+  bundlePath: string,
+  target: 'chrome' | 'firefox',
+  budgets: BundleBudgets = DEFAULT_BUNDLE_BUDGETS
+): BundleCheckResult {
+  const timestamp = Date.now();
+  const budget = budgets[target];
+  const violations: BudgetViolation[] = [];
+  const chunks: BundleCheckResult['chunks'] = [];
+
+  let totalSize = 0;
+
+  // Check if directory exists
+  if (!fs.existsSync(bundlePath)) {
+    return {
+      passed: false,
+      target,
+      totalSize: 0,
+      totalBudget: budget.total,
+      chunks: [],
+      violations: [{
+        id: `violation-bundle-missing-${timestamp}`,
+        budgetId: 'bundle-missing',
+        budgetName: 'Bundle Directory Missing',
+        severity: 'error',
+        actualValue: 0,
+        threshold: 1,
+        difference: 1,
+        percentageOver: 100,
+        message: `Bundle directory not found: ${bundlePath}`,
+        recommendation: 'Ensure the build completes successfully',
+        timestamp,
+      }],
+    };
+  }
+
+  // Map file patterns to chunk names
+  const chunkPatterns: Array<{ name: string; pattern: RegExp; budget: number }> = [
+    { name: 'panel', pattern: /panel|devtools.*panel/i, budget: budget.chunks.panel },
+    { name: 'background', pattern: /background|service.worker/i, budget: budget.chunks.background },
+    { name: 'content', pattern: /content/i, budget: budget.chunks.content },
+    { name: 'devtools', pattern: /devtools(?!.*panel)/i, budget: budget.chunks.devtools },
+    { name: 'popup', pattern: /popup/i, budget: budget.chunks.popup },
+    { name: 'vendor', pattern: /vendor|react|d3|zustand/i, budget: budget.chunks.vendor },
+  ];
+
+  // Find all JS files in bundle directory
+  const jsFiles = findJsFiles(bundlePath);
+
+  // Check each file against chunk patterns
+  for (const file of jsFiles) {
+    const stats = fs.statSync(file);
+    const size = stats.size;
+    totalSize += size;
+
+    const basename = path.basename(file);
+    const chunkMatch = chunkPatterns.find(p => p.pattern.test(basename));
+    const chunkName = chunkMatch?.name || 'other';
+    const chunkBudget = chunkMatch?.budget || budget.chunks.vendor;
+
+    const passed = size <= chunkBudget;
+    const percentageOver = passed ? 0 : ((size / chunkBudget) - 1) * 100;
+
+    chunks.push({
+      name: chunkName,
+      size,
+      budget: chunkBudget,
+      passed,
+      percentageOver: passed ? undefined : percentageOver,
+    });
+
+    // Create violation if over budget
+    if (!passed) {
+      violations.push({
+        id: `violation-bundle-${chunkName}-${timestamp}`,
+        budgetId: `bundle-size-${chunkName}`,
+        budgetName: `${chunkName} Chunk Size`,
+        description: `Maximum size for ${chunkName} chunk`,
+        severity: 'error',
+        actualValue: size,
+        threshold: chunkBudget,
+        difference: size - chunkBudget,
+        percentageOver,
+        message: `${chunkName} chunk size is ${(size / 1024).toFixed(1)}KB (budget: ${(chunkBudget / 1024).toFixed(1)}KB)`,
+        recommendation: 'Consider code splitting, tree shaking, or reducing dependencies',
+        timestamp,
+      });
+    }
+  }
+
+  // Check total bundle size
+  const totalPassed = totalSize <= budget.total;
+  if (!totalPassed) {
+    violations.push({
+      id: `violation-bundle-total-${timestamp}`,
+      budgetId: 'bundle-size-total',
+      budgetName: 'Total Bundle Size',
+      description: 'Maximum total bundle size',
+      severity: 'error',
+      actualValue: totalSize,
+      threshold: budget.total,
+      difference: totalSize - budget.total,
+      percentageOver: ((totalSize / budget.total) - 1) * 100,
+      message: `Total bundle size is ${(totalSize / 1024).toFixed(1)}KB (budget: ${(budget.total / 1024).toFixed(1)}KB)`,
+      recommendation: 'Review all chunks and optimize large dependencies',
+      timestamp,
+    });
+  }
+
+  return {
+    passed: totalPassed && violations.length === 0,
+    target,
+    totalSize,
+    totalBudget: budget.total,
+    chunks,
+    violations,
+  };
+}
+
+/**
+ * Checks test coverage against configured thresholds
+ *
+ * @param coveragePath - Path to coverage report directory
+ * @param thresholds - Coverage thresholds
+ * @returns Coverage check result
+ */
+export function checkCoverage(
+  coveragePath: string,
+  thresholds: CoverageThresholds = DEFAULT_COVERAGE_THRESHOLDS
+): CoverageCheckResult {
+  const timestamp = Date.now();
+  const violations: BudgetViolation[] = [];
+
+  // Default values
+  let lines = 0;
+  let functions = 0;
+  let branches = 0;
+  let statements = 0;
+
+  // Try to read coverage summary
+  const summaryPath = path.join(coveragePath, 'coverage-summary.json');
+  if (fs.existsSync(summaryPath)) {
+    try {
+      const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+      lines = summary.total?.lines?.pct || 0;
+      functions = summary.total?.functions?.pct || 0;
+      branches = summary.total?.branches?.pct || 0;
+      statements = summary.total?.statements?.pct || 0;
+    } catch {
+      // Use default values if parsing fails
+    }
+  }
+
+  // Check each metric against threshold
+  const metrics: Array<{ name: string; value: number; threshold: number }> = [
+    { name: 'Lines', value: lines, threshold: thresholds.lines },
+    { name: 'Functions', value: functions, threshold: thresholds.functions },
+    { name: 'Branches', value: branches, threshold: thresholds.branches },
+    { name: 'Statements', value: statements, threshold: thresholds.statements },
+  ];
+
+  for (const metric of metrics) {
+    if (metric.value < metric.threshold) {
+      violations.push({
+        id: `violation-coverage-${metric.name.toLowerCase()}-${timestamp}`,
+        budgetId: `coverage-${metric.name.toLowerCase()}`,
+        budgetName: `${metric.name} Coverage`,
+        description: `Minimum ${metric.name.toLowerCase()} coverage percentage`,
+        severity: 'error',
+        actualValue: metric.value,
+        threshold: metric.threshold,
+        difference: metric.threshold - metric.value,
+        percentageOver: ((metric.threshold - metric.value) / metric.threshold) * 100,
+        message: `${metric.name} coverage is ${metric.value.toFixed(1)}% (threshold: ${metric.threshold}%)`,
+        recommendation: `Add tests to improve ${metric.name.toLowerCase()} coverage`,
+        timestamp,
+      });
+    }
+  }
+
+  return {
+    passed: violations.length === 0,
+    lines,
+    functions,
+    branches,
+    statements,
+    violations,
+  };
+}
+
+/**
+ * Finds all JavaScript files in a directory recursively
+ */
+function findJsFiles(dir: string): string[] {
+  const files: string[] = [];
+
+  if (!fs.existsSync(dir)) {
+    return files;
+  }
+
+  const items = fs.readdirSync(dir);
+
+  for (const item of items) {
+    const fullPath = path.join(dir, item);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      files.push(...findJsFiles(fullPath));
+    } else if (/\.(js|mjs|cjs)$/.test(item)) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+/**
+ * Generates a comprehensive budget report for CI
+ *
+ * @param profileResult - Performance profile check result
+ * @param bundleResults - Bundle check results
+ * @param coverageResult - Coverage check result
+ * @returns Formatted report string
+ */
+export function generateBudgetReport(
+  profileResult?: BudgetCheckResult,
+  bundleResults?: BundleCheckResult[],
+  coverageResult?: CoverageCheckResult
+): string {
+  const lines: string[] = [];
+
+  lines.push('## 📊 Performance Report');
+  lines.push('');
+
+  // Overall status
+  const allPassed = 
+    (!profileResult || profileResult.passed) &&
+    (!bundleResults || bundleResults.every(r => r.passed)) &&
+    (!coverageResult || coverageResult.passed);
+
+  lines.push(allPassed ? '✅ **All checks passed!**' : '❌ **Some checks failed**');
+  lines.push('');
+
+  // Bundle sizes section
+  if (bundleResults && bundleResults.length > 0) {
+    lines.push('### Bundle Sizes');
+    lines.push('');
+    lines.push('| Target | Chunk | Size | Budget | Status |');
+    lines.push('|--------|-------|------|--------|--------|');
+
+    for (const result of bundleResults) {
+      for (const chunk of result.chunks) {
+        const status = chunk.passed ? '✅ Pass' : '🔴 Fail';
+        lines.push(`| ${result.target} | ${chunk.name} | ${(chunk.size / 1024).toFixed(1)}KB | ${(chunk.budget / 1024).toFixed(1)}KB | ${status} |`);
+      }
+      lines.push(`| ${result.target} | **Total** | **${(result.totalSize / 1024).toFixed(1)}KB** | **${(result.totalBudget / 1024).toFixed(1)}KB** | **${result.passed ? '✅ Pass' : '🔴 Fail'}** |`);
+    }
+    lines.push('');
+  }
+
+  // Test coverage section
+  if (coverageResult) {
+    lines.push('### Test Coverage');
+    lines.push('');
+    lines.push('| Metric | Actual | Threshold | Status |');
+    lines.push('|--------|--------|-----------|--------|');
+
+    const metrics = [
+      { name: 'Lines', value: coverageResult.lines, threshold: coverageResult.lines },
+      { name: 'Functions', value: coverageResult.functions, threshold: coverageResult.functions },
+      { name: 'Branches', value: coverageResult.branches, threshold: coverageResult.branches },
+      { name: 'Statements', value: coverageResult.statements, threshold: coverageResult.statements },
+    ];
+
+    for (const metric of metrics) {
+      const passed = metric.value >= metric.threshold;
+      const status = passed ? '✅ Pass' : '🔴 Fail';
+      lines.push(`| ${metric.name} | ${metric.value.toFixed(1)}% | ${metric.threshold}% | ${status} |`);
+    }
+    lines.push('');
+  }
+
+  // Performance budgets section
+  if (profileResult) {
+    lines.push('### Performance Budgets');
+    lines.push('');
+    lines.push('| Check | Result |');
+    lines.push('|-------|--------|');
+    lines.push(`| Overall Status | ${profileResult.passed ? '✅ Passed' : '🔴 Failed'} |`);
+    lines.push(`| Performance Score | ${profileResult.summary.performanceScore.toFixed(1)}/100 |`);
+    lines.push(`| Total Violations | ${profileResult.totalViolations} |`);
+    lines.push(`| Errors | ${profileResult.errorCount} |`);
+    lines.push(`| Warnings | ${profileResult.warningCount} |`);
+    lines.push('');
+
+    // Violations table
+    if (profileResult.violations.length > 0) {
+      lines.push('#### Violations');
+      lines.push('');
+      lines.push('| Severity | Budget | Message |');
+      lines.push('|----------|--------|---------|');
+
+      for (const v of profileResult.violations.slice(0, 10)) {
+        const severity = v.severity === 'error' ? '🔴 Error' : v.severity === 'warning' ? '🟡 Warning' : '🔵 Info';
+        lines.push(`| ${severity} | ${v.budgetName} | ${v.message} |`);
+      }
+
+      if (profileResult.violations.length > 10) {
+        lines.push(`| ... | ... | *and ${profileResult.violations.length - 10} more* |`);
+      }
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
  * Extracts metrics from profile data
  */
 function extractMetrics(profile: ProfileData): ExtractedMetrics {
@@ -196,7 +535,7 @@ function extractMetrics(profile: ProfileData): ExtractedMetrics {
     rscPayloadSize = profile.rscAnalysis.metrics.payloadSize;
   } else if (profile.rscPayloads) {
     // Estimate size from payloads
-    rscPayloadSize = profile.rscPayloads.reduce((sum, p) => {
+    rscPayloadSize = profile.rscPayloads.reduce((sum: number, p: unknown) => {
       const payload = p as { totalSize?: number };
       return sum + (payload.totalSize || 0);
     }, 0);
@@ -217,7 +556,7 @@ function extractMetrics(profile: ProfileData): ExtractedMetrics {
  * Generates memo effectiveness reports from metrics
  */
 function generateMemoReports(
-  commits: CommitData[],
+  _commits: CommitData[],
   metrics: ExtractedMetrics
 ): MemoEffectivenessReport[] {
   const reports: MemoEffectivenessReport[] = [];
@@ -225,7 +564,6 @@ function generateMemoReports(
   metrics.isMemoized.forEach((memoized, componentName) => {
     if (!memoized) return;
 
-    const renderCount = metrics.renderCounts.get(componentName) || 0;
     const hitRate = metrics.memoHitRates.get(componentName) || 0;
 
     reports.push({
@@ -524,7 +862,7 @@ function generateSummary(
   // Calculate average memo hit rate
   const avgMemoHitRate =
     memoReports.length > 0
-      ? memoReports.reduce((sum, r) => sum + r.currentHitRate, 0) / memoReports.length
+      ? memoReports.reduce((sum: number, r) => sum + r.currentHitRate, 0) / memoReports.length
       : 0;
 
   // Calculate average render time
@@ -581,6 +919,34 @@ export function formatCheckResultHuman(result: BudgetCheckResult): string {
   }
   lines.push(`  • Budgets Passed: ${result.summary.budgetsPassedPercentage.toFixed(1)}%`);
   lines.push('');
+
+  // Bundle results
+  if (result.bundleResults && result.bundleResults.length > 0) {
+    lines.push('📦 Bundle Sizes:');
+    lines.push('');
+
+    for (const bundle of result.bundleResults) {
+      lines.push(`  ${bundle.target.toUpperCase()}:`);
+      lines.push(`    Total: ${(bundle.totalSize / 1024).toFixed(1)}KB / ${(bundle.totalBudget / 1024).toFixed(1)}KB`);
+      
+      for (const chunk of bundle.chunks) {
+        const icon = chunk.passed ? '✅' : '🔴';
+        lines.push(`    ${icon} ${chunk.name}: ${(chunk.size / 1024).toFixed(1)}KB`);
+      }
+      lines.push('');
+    }
+  }
+
+  // Coverage results
+  if (result.coverageResult) {
+    lines.push('🧪 Test Coverage:');
+    lines.push(`  Lines: ${result.coverageResult.lines.toFixed(1)}%`);
+    lines.push(`  Functions: ${result.coverageResult.functions.toFixed(1)}%`);
+    lines.push(`  Branches: ${result.coverageResult.branches.toFixed(1)}%`);
+    lines.push(`  Statements: ${result.coverageResult.statements.toFixed(1)}%`);
+    lines.push(`  Status: ${result.coverageResult.passed ? '✅ PASSED' : '❌ FAILED'}`);
+    lines.push('');
+  }
 
   // Violations
   if (result.violations.length > 0) {

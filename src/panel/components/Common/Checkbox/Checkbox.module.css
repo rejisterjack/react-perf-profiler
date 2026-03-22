@@ -1,126 +1,288 @@
-.checkbox {
+/**
+ * Checkbox Component Styles
+ * Animated checkbox with smooth state transitions
+ */
+
+.checkboxWrapper {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-2);
   cursor: pointer;
-  font-family: var(--font-family-base);
   user-select: none;
 }
 
-.checkbox.disabled {
-  opacity: 0.6;
+.checkboxWrapper.disabled {
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
-.input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.checkmark {
+.checkbox {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 18px;
   height: 18px;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
-.checkmark:hover {
-  border-color: var(--color-border-hover);
-}
-
-/* Focus state */
-.input:focus-visible + .checkmark {
-  box-shadow:
-    0 0 0 2px var(--color-bg-primary),
-    0 0 0 4px var(--color-accent-primary);
-}
-
-/* Checked state */
-.input:checked + .checkmark {
-  background: var(--color-accent-primary);
-  border-color: var(--color-accent-primary);
-}
-
-.checkIcon {
+/* Hide native checkbox */
+.nativeCheckbox {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
-  fill: white;
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 }
 
-.input:checked + .checkmark .checkIcon {
-  opacity: 1;
+.nativeCheckbox:disabled {
+  cursor: not-allowed;
+}
+
+/* Custom checkbox appearance */
+.checkboxVisual {
+  width: 18px;
+  height: 18px;
+  background: var(--bg-input);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  transition: 
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-spring);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox:hover .checkboxVisual {
+  border-color: var(--border-default);
+}
+
+.nativeCheckbox:focus ~ .checkboxVisual {
+  box-shadow: var(--shadow-focus);
+}
+
+.nativeCheckbox:checked ~ .checkboxVisual {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.nativeCheckbox:checked ~ .checkboxVisual:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.nativeCheckbox:disabled ~ .checkboxVisual {
+  background: var(--bg-tertiary);
+  border-color: var(--border-default);
 }
 
 /* Indeterminate state */
-.input:indeterminate + .checkmark::after {
-  content: "";
+.nativeCheckbox:indeterminate ~ .checkboxVisual {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Checkmark icon */
+.checkIcon {
+  color: var(--text-inverse);
+  width: 12px;
+  height: 12px;
+  transform: scale(0);
+  opacity: 0;
+  transition: 
+    transform var(--duration-fast) var(--ease-spring),
+    opacity var(--duration-fast);
+}
+
+.nativeCheckbox:checked ~ .checkboxVisual .checkIcon,
+.nativeCheckbox:indeterminate ~ .checkboxVisual .checkIcon {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Indeterminate dash */
+.indeterminateIcon {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   width: 10px;
   height: 2px;
-  background: white;
+  background: var(--text-inverse);
   border-radius: 1px;
+  transform: scale(0);
+  opacity: 0;
+  transition: 
+    transform var(--duration-fast) var(--ease-spring),
+    opacity var(--duration-fast);
 }
 
+.nativeCheckbox:indeterminate ~ .checkboxVisual .indeterminateIcon {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.nativeCheckbox:indeterminate ~ .checkboxVisual .checkIcon {
+  transform: scale(0);
+  opacity: 0;
+}
+
+/* Press animation */
+.nativeCheckbox:active ~ .checkboxVisual {
+  transform: scale(0.9);
+}
+
+/* Label */
 .label {
   font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  line-height: 1.4;
+  color: var(--text-primary);
+  transition: color var(--duration-fast);
 }
 
-/* Variants */
-.error .checkmark {
-  border-color: var(--color-status-error);
+.checkboxWrapper:hover .label {
+  color: var(--text-primary);
 }
 
-.error .input:checked + .checkmark {
-  background: var(--color-status-error);
-  border-color: var(--color-status-error);
+.checkboxWrapper.disabled .label {
+  color: var(--text-tertiary);
 }
 
-.warning .checkmark {
-  border-color: var(--color-status-warning);
+/* Sizes */
+.sm .checkbox,
+.sm .checkboxVisual {
+  width: 14px;
+  height: 14px;
 }
 
-.warning .input:checked + .checkmark {
-  background: var(--color-status-warning);
-  border-color: var(--color-status-warning);
+.sm .checkIcon {
+  width: 10px;
+  height: 10px;
 }
 
-.info .checkmark {
-  border-color: #5856d6;
+.sm .indeterminateIcon {
+  width: 8px;
+  height: 2px;
 }
 
-.info .input:checked + .checkmark {
-  background: #5856d6;
-  border-color: #5856d6;
+.sm .label {
+  font-size: var(--font-size-xs);
 }
 
-/* Disabled state */
-.input:disabled + .checkmark {
-  background: var(--color-bg-tertiary);
-  border-color: var(--color-border-primary);
+.lg .checkbox,
+.lg .checkboxVisual {
+  width: 22px;
+  height: 22px;
 }
 
-.input:disabled:checked + .checkmark {
-  background: var(--color-text-tertiary);
-  border-color: var(--color-text-tertiary);
+.lg .checkIcon {
+  width: 16px;
+  height: 16px;
 }
 
-.input:disabled ~ .label {
-  color: var(--color-text-tertiary);
+.lg .indeterminateIcon {
+  width: 12px;
+  height: 2px;
+}
+
+.lg .label {
+  font-size: var(--font-size-base);
+}
+
+/* Switch variant */
+.switchWrapper {
+  --switch-width: 44px;
+  --switch-height: 24px;
+  --thumb-size: 18px;
+}
+
+.switchWrapper.sm {
+  --switch-width: 36px;
+  --switch-height: 20px;
+  --thumb-size: 14px;
+}
+
+.switchWrapper.lg {
+  --switch-width: 56px;
+  --switch-height: 30px;
+  --thumb-size: 24px;
+}
+
+.switch {
+  position: relative;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  flex-shrink: 0;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  transition: 
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast);
+  border: 1px solid var(--border-default);
+}
+
+.nativeCheckbox:checked ~ .switchTrack {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.nativeCheckbox:disabled ~ .switchTrack {
+  background: var(--bg-tertiary);
+  border-color: var(--border-default);
+  opacity: 0.5;
+}
+
+.nativeCheckbox:focus ~ .switchTrack {
+  box-shadow: var(--shadow-focus);
+}
+
+.switchThumb {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  background: var(--text-inverse);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  transition: 
+    transform var(--duration-normal) var(--ease-spring),
+    background-color var(--duration-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.nativeCheckbox:checked ~ .switchTrack .switchThumb {
+  transform: translateY(-50%) translateX(calc(var(--switch-width) - var(--thumb-size) - 6px));
+}
+
+.nativeCheckbox:active ~ .switchTrack .switchThumb {
+  transform: translateY(-50%) scale(0.9);
+}
+
+.nativeCheckbox:active:checked ~ .switchTrack .switchThumb {
+  transform: translateY(-50%) translateX(calc(var(--switch-width) - var(--thumb-size) - 6px)) scale(0.9);
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .checkboxVisual,
+  .checkIcon,
+  .indeterminateIcon,
+  .switchTrack,
+  .switchThumb,
+  .label {
+    transition: none;
+  }
+
+  .nativeCheckbox:active ~ .checkboxVisual,
+  .nativeCheckbox:active ~ .switchTrack .switchThumb {
+    transform: none;
+  }
 }

@@ -21,8 +21,21 @@ export { useComponentData } from './useComponentData';
 export type { UseComponentDataReturn } from './useComponentData';
 
 // Performance analysis hook
-export { useAnalysis } from './useAnalysis';
-export type { UseAnalysisReturn } from './useAnalysis';
+export { useAnalysis, useRSCAnalysis } from './useAnalysis';
+export type { 
+  UseAnalysisReturn, 
+  UseRSCAnalysisReturn,
+  AnalysisStage,
+} from './useAnalysis';
+
+// Export/Import hook
+export { useExport } from './useExport';
+export type { 
+  UseExportReturn, 
+  ExportOptions, 
+  ExportProgress, 
+  ImportProgress 
+} from './useExport';
 
 // Virtual list for performance
 export { useVirtualList } from './useVirtualList';

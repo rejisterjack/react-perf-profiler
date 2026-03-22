@@ -1,85 +1,224 @@
+/**
+ * Input Component Styles
+ * Polished input with smooth focus transitions
+ */
+
 .inputWrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-1);
   width: 100%;
 }
 
 .label {
-  font-family: var(--font-family-base);
   font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  transition: color var(--duration-fast);
 }
 
 .inputContainer {
   position: relative;
   display: flex;
   align-items: center;
-  width: 100%;
-}
-
-.icon {
-  position: absolute;
-  left: var(--space-sm);
-  color: var(--color-text-tertiary);
-  pointer-events: none;
 }
 
 .input {
   width: 100%;
-  height: 32px;
-  padding: 0 var(--space-md);
+  height: 36px;
+  padding: 0 var(--space-3);
   font-family: var(--font-family-base);
   font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-primary);
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   outline: none;
-  transition: all var(--transition-fast);
+  transition: 
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
 .input::placeholder {
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
+  transition: color var(--duration-fast);
 }
 
 .input:hover {
-  border-color: var(--color-border-hover);
+  border-color: var(--border-default);
 }
 
 .input:focus {
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
+  background: var(--bg-secondary);
 }
 
+.input:focus::placeholder {
+  color: var(--text-secondary);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-tertiary);
+}
+
+.input.error {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.input.error:focus {
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--danger);
+}
+
+/* With icon */
 .withIcon {
-  padding-left: 36px;
+  padding-left: 40px;
 }
 
-.hasError {
-  border-color: var(--color-status-error);
+.icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-tertiary);
+  transition: color var(--duration-fast);
+  pointer-events: none;
 }
 
-.hasError:hover,
-.hasError:focus {
-  border-color: var(--color-status-error);
-  box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2);
+.input:focus ~ .icon,
+.inputContainer:hover .icon {
+  color: var(--accent-primary);
 }
 
-.errorText {
-  font-family: var(--font-family-base);
+/* With action */
+.withAction {
+  padding-right: 80px;
+}
+
+.action {
+  position: absolute;
+  right: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Clear button */
+.clearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: 
+    color var(--duration-fast),
+    background-color var(--duration-fast),
+    opacity var(--duration-fast),
+    transform var(--duration-fast);
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.inputContainer:hover .clearButton,
+.input:focus ~ .clearButton {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.clearButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.clearButton:active {
+  transform: scale(0.9);
+}
+
+/* Error message */
+.errorMessage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--font-size-xs);
-  color: var(--color-status-error);
+  color: var(--danger);
+  animation: shake var(--duration-normal) var(--ease-out);
 }
 
-/* Dark theme adjustments */
-@media (prefers-color-scheme: dark) {
-  .input:focus {
-    box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.25);
+/* Helper text */
+.helperText {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  transition: color var(--duration-fast);
+}
+
+.inputWrapper:hover .helperText {
+  color: var(--text-secondary);
+}
+
+/* Sizes */
+.sm {
+  height: 28px;
+  font-size: var(--font-size-xs);
+}
+
+.lg {
+  height: 44px;
+  font-size: var(--font-size-base);
+}
+
+/* Textarea */
+.textarea {
+  min-height: 80px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-normal);
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-4px);
+  }
+  40%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .input,
+  .label,
+  .icon,
+  .clearButton,
+  .helperText,
+  .input::placeholder {
+    transition: none;
   }
 
-  .hasError:focus {
-    box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.25);
+  .clearButton {
+    opacity: 1;
+    transform: none;
+  }
+
+  .errorMessage {
+    animation: none;
   }
 }

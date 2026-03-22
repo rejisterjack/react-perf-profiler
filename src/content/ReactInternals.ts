@@ -236,6 +236,17 @@ declare global {
     __REACT_PERF_PROFILER_ACTIVE__?: boolean;
     /** Profiler cleanup function */
     __REACT_PERF_PROFILER_CLEANUP__?: () => void;
+    /** React detection function */
+    __REACT_PERF_PROFILER_DETECT_REACT__?: () => boolean;
+    /** Get detailed React detection info */
+    __REACT_PERF_PROFILER_GET_INFO__?: () => {
+      detected: boolean;
+      devtoolsHook: boolean;
+      reactGlobal: boolean;
+      reactRoot: boolean;
+      reactId: boolean;
+      rootContainer: boolean;
+    };
     /** Global React object (if available) */
     React?: { version?: string };
     /** Legacy React internal */

@@ -279,8 +279,7 @@ export function formatBytes(bytes: number): string {
  * Deep clone an object, handling circular references
  */
 export function deepClone<T>(obj: T): T {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const seen = new WeakMap<any, any>();
+  const seen = new WeakMap<WeakKey, unknown>();
 
   function clone(value: unknown): unknown {
     if (value === null || typeof value !== 'object') {
@@ -292,8 +291,7 @@ export function deepClone<T>(obj: T): T {
     }
 
     if (Array.isArray(value)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const cloned: any[] = [];
+      const cloned: unknown[] = [];
       seen.set(value, cloned);
       value.forEach((item, index) => {
         cloned[index] = clone(item);
@@ -309,8 +307,7 @@ export function deepClone<T>(obj: T): T {
       return new RegExp(value.source, value.flags);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cloned: Record<string, any> = {};
+    const cloned: Record<string, unknown> = {};
     seen.set(value, cloned);
 
     for (const key of Object.keys(value)) {

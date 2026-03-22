@@ -37,7 +37,7 @@ describe('export types', () => {
     });
 
     it('should return false for unsupported versions', () => {
-      expect(isVersionSupported('2.0')).toBe(false);
+      expect(isVersionSupported('3.0')).toBe(false);
       expect(isVersionSupported('0.5')).toBe(false);
       expect(isVersionSupported('unknown')).toBe(false);
     });
@@ -67,7 +67,7 @@ describe('export types', () => {
     });
 
     it('should return unsupported for unknown versions', () => {
-      const result = getVersionCompatibility('2.0');
+      const result = getVersionCompatibility('3.0');
       expect(result.canImport).toBe(false);
       expect(result.needsMigration).toBe(false);
       expect(result.warning).toContain('Unsupported');

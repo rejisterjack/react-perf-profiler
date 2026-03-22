@@ -1,70 +1,173 @@
+/**
+ * Panel Component Styles
+ * Polished panel with smooth animations and interactions
+ */
+
 .panel {
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  transition: 
+    box-shadow var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  animation: panelEnter var(--duration-normal) var(--ease-out);
 }
+
+.panel:hover {
+  border-color: var(--border-default);
+}
+
+.panel.elevated {
+  box-shadow: var(--shadow-md);
+}
+
+.panel.elevated:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.panel.collapsed {
+  animation: panelCollapse var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border-primary);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-default);
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-default), transparent);
+  opacity: 0.5;
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .headerRight {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-1);
 }
 
 .headerIcon {
-  color: var(--color-accent-primary);
+  color: var(--accent-primary);
   flex-shrink: 0;
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.header:hover .headerIcon {
+  transform: scale(1.1);
 }
 
 .title {
   margin: 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--duration-fast);
 }
+
+.header:hover .title {
+  color: var(--accent-primary);
+}
+
+/* Collapse button */
+.collapseButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: 
+    color var(--duration-fast),
+    background-color var(--duration-fast),
+    transform var(--duration-normal);
+}
+
+.collapseButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.collapseButton.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* ============================================================================
+   Body
+   ============================================================================ */
 
 .body {
   flex: 1;
   min-height: 0;
-  padding: var(--space-lg);
+  padding: var(--space-4);
   overflow: auto;
+  scroll-behavior: smooth;
+  animation: contentEnter var(--duration-normal) var(--ease-out);
 }
+
+.body > * {
+  animation: fadeInUp var(--duration-normal) var(--ease-out);
+  animation-fill-mode: both;
+}
+
+.body > *:nth-child(1) { animation-delay: 0ms; }
+.body > *:nth-child(2) { animation-delay: 50ms; }
+.body > *:nth-child(3) { animation-delay: 100ms; }
+.body > *:nth-child(4) { animation-delay: 150ms; }
+.body > *:nth-child(5) { animation-delay: 200ms; }
+
+/* ============================================================================
+   Footer
+   ============================================================================ */
 
 .footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border-primary);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-default);
 }
 
-/* Panel Section */
+/* ============================================================================
+   Panel Section
+   ============================================================================ */
+
 .section {
-  border-bottom: 1px solid var(--color-border-primary);
+  border-bottom: 1px solid var(--border-default);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
 }
 
 .section:last-child {
@@ -74,13 +177,14 @@
 .sectionHeader {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-1);
   width: 100%;
-  padding: var(--space-md) 0;
+  padding: var(--space-3) 0;
   background: none;
   border: none;
   cursor: default;
   text-align: left;
+  transition: color var(--duration-fast);
 }
 
 .sectionHeader.collapsible {
@@ -88,49 +192,174 @@
 }
 
 .sectionHeader.collapsible:hover {
-  color: var(--color-accent-primary);
+  color: var(--accent-primary);
+}
+
+.sectionHeader.collapsible:hover .sectionTitle {
+  color: var(--accent-primary);
 }
 
 .sectionIcon {
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   flex-shrink: 0;
-  transition: transform var(--transition-fast);
+  transition: 
+    color var(--duration-fast),
+    transform var(--duration-normal);
 }
 
 .sectionHeader:hover .sectionIcon {
-  color: var(--color-accent-primary);
+  color: var(--accent-primary);
+}
+
+.sectionHeader.expanded .sectionIcon {
+  transform: rotate(90deg);
 }
 
 .sectionTitle {
   margin: 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color var(--duration-fast);
 }
 
 .sectionContent {
-  padding-bottom: var(--space-md);
+  padding-bottom: var(--space-3);
+  animation: contentExpand var(--duration-normal) var(--ease-out);
+  overflow: hidden;
 }
 
-/* Compact variant */
+.sectionContent.collapsed {
+  animation: contentCollapse var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* ============================================================================
+   Compact variant
+   ============================================================================ */
+
 .compact .header {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-2) var(--space-3);
 }
 
 .compact .body {
-  padding: var(--space-md);
+  padding: var(--space-3);
 }
 
 .compact .title {
   font-size: var(--font-size-sm);
 }
 
-/* Elevated variant */
-.elevated {
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
+.compact .footer {
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes panelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes panelCollapse {
+  from {
+    opacity: 1;
+    max-height: 1000px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+}
+
+@keyframes contentEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes contentExpand {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+@keyframes contentCollapse {
+  from {
+    opacity: 1;
+    max-height: 1000px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .body,
+  .body > *,
+  .section,
+  .sectionContent,
+  .headerIcon,
+  .title,
+  .collapseButton,
+  .sectionIcon,
+  .sectionTitle {
+    animation: none;
+    transition: none;
+  }
+
+  .collapseButton.collapsed {
+    transform: rotate(-90deg);
+  }
+
+  .sectionHeader.expanded .sectionIcon {
+    transform: rotate(90deg);
+  }
 }

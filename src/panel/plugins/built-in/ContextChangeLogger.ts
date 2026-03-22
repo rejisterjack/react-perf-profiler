@@ -4,16 +4,27 @@
  *
  * Tracks React Context value changes and logs which components are consuming them.
  * Helps identify context-related performance issues and unnecessary re-renders.
+ *
+ * @example
+ * ```typescript
+ * import { contextChangeLogger } from './built-in/ContextChangeLogger';
+ *
+ * // Register plugin
+ * pluginManager.register(contextChangeLogger);
+ *
+ * // Analyze results to see context-related issues
+ * const analysis = useProfilerStore(state => state.analysisResults);
+ * const contextMetrics = analysis?.contextMetrics;
+ * ```
  */
 
 import type {
   AnalysisPlugin,
-  CommitData,
-  FiberNode,
-  AnalysisResult,
   PluginAPI,
   PluginContext,
+  PluginMetric,
 } from '../types';
+import type { CommitData, AnalysisResult, FiberNode } from '@/shared/types';
 
 // =============================================================================
 // Types
@@ -204,6 +215,7 @@ export const contextChangeLogger: AnalysisPlugin = {
     name: 'Context Change Logger',
     version: '1.0.0',
     description: 'Tracks React Context value changes and their impact on rendering',
+    author: 'React Perf Profiler Team',
     enabledByDefault: false,
     settingsSchema: [
       {
@@ -340,9 +352,9 @@ export const contextChangeLogger: AnalysisPlugin = {
      * Generates context-related analysis results
      */
     onAnalyze(
-      commits: CommitData[],
+      _commits: CommitData[],
       api: PluginAPI,
-      context: PluginContext
+      _context: PluginContext
     ): Partial<AnalysisResult> {
       const state = api.getPluginData<ContextTrackingState>(DATA_KEY);
       if (!state || state.changes.length === 0) {
@@ -397,12 +409,70 @@ export const contextChangeLogger: AnalysisPlugin = {
     },
 
     /**
+     * Called when analysis completes
+     * Returns metrics to display
+     */
+    onAnalysisComplete(
+      _result: AnalysisResult,
+      api: PluginAPI,
+      _context: PluginContext
+    ): PluginMetric[] {
+      const state = api.getPluginData<ContextTrackingState>(DATA_KEY);
+      if (!state) return [];
+
+      return [
+        {
+          id: 'context-changes',
+          name: 'Context Changes',
+          value: state.metrics.totalContextChanges,
+          formattedValue: String(state.metrics.totalContextChanges),
+          description: 'Total context value changes detected',
+          category: 'Context',
+          priority: 1,
+        },
+        {
+          id: 'contexts-detected',
+          name: 'Contexts Detected',
+          value: state.metrics.contextsCausingRerenders,
+          formattedValue: String(state.metrics.contextsCausingRerenders),
+          description: 'Number of unique contexts causing re-renders',
+          category: 'Context',
+          priority: 2,
+        },
+        {
+          id: 'avg-affected-components',
+          name: 'Avg Affected Components',
+          value: Number(state.metrics.averageComponentsAffected.toFixed(1)),
+          formattedValue: state.metrics.averageComponentsAffected.toFixed(1),
+          description: 'Average components affected per context change',
+          category: 'Context',
+          priority: 3,
+        },
+        ...(state.metrics.mostProblematicContext
+          ? [
+              {
+                id: 'problematic-context',
+                name: 'Problematic Context',
+                value: state.metrics.mostProblematicContext,
+                formattedValue: state.metrics.mostProblematicContext,
+                description: 'Context causing the most re-renders',
+                category: 'Context',
+                trend: 'up' as const,
+                trendPositive: false,
+                priority: 4,
+              },
+            ]
+          : []),
+      ];
+    },
+
+    /**
      * Called when exporting data
      */
     onExport(
       data: Record<string, unknown>,
       api: PluginAPI,
-      context: PluginContext
+      _context: PluginContext
     ): Record<string, unknown> {
       const state = api.getPluginData<ContextTrackingState>(DATA_KEY);
       if (!state) {
@@ -430,7 +500,7 @@ export const contextChangeLogger: AnalysisPlugin = {
       api: PluginAPI,
       context: PluginContext
     ): void {
-      const contextData = data.contextTracking as
+      const contextData = data['contextTracking'] as
         | {
             version: string;
             changes: ContextChange[];
@@ -462,7 +532,7 @@ export const contextChangeLogger: AnalysisPlugin = {
     /**
      * Called when data is cleared
      */
-    onClearData(api: PluginAPI, context: PluginContext): void {
+    onClearData(api: PluginAPI, _context: PluginContext): void {
       const emptyState: ContextTrackingState = {
         changes: [],
         contextStats: {},
@@ -477,8 +547,37 @@ export const contextChangeLogger: AnalysisPlugin = {
       };
 
       api.setPluginData(DATA_KEY, emptyState);
-      context.log('info', 'Context tracking data cleared');
+      _context.log('info', 'Context tracking data cleared');
     },
+  },
+
+  /**
+   * Get metrics for display in the metrics panel
+   */
+  getMetrics(api: PluginAPI): PluginMetric[] {
+    const state = api.getPluginData<ContextTrackingState>(DATA_KEY);
+    if (!state) return [];
+
+    return [
+      {
+        id: 'context-change-count',
+        name: 'Context Changes',
+        value: state.metrics.totalContextChanges,
+        formattedValue: `${state.metrics.totalContextChanges} changes`,
+        description: 'Total context value changes detected',
+        category: 'Context',
+      },
+      {
+        id: 'context-affected-rate',
+        name: 'Avg Affected Components',
+        value: Number(state.metrics.averageComponentsAffected.toFixed(1)),
+        formattedValue: state.metrics.averageComponentsAffected.toFixed(1),
+        description: 'Average components affected per context change',
+        category: 'Context',
+        trend: state.metrics.averageComponentsAffected > 5 ? 'up' : 'neutral',
+        trendPositive: state.metrics.averageComponentsAffected <= 3,
+      },
+    ];
   },
 };
 

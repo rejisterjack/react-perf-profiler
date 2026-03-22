@@ -1,13 +1,15 @@
 /**
  * Import Dialog Component
  * Allows importing profiler data from JSON files with drag-and-drop support,
- * version detection and migration
+ * version detection, migration, and preview
  */
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import type { ImportValidationResult, ImportPreview } from '@/shared/types/export';
+import type { MigrationLogEntry } from '@/shared/types/export';
+import { isCompressedExport, decompressData } from '@/shared/export/compression';
 import { Icon } from '../Icon/Icon';
 import styles from './ImportDialog.module.css';
 
@@ -17,18 +19,33 @@ interface ImportDialogProps {
 }
 
 type DropZoneState = 'idle' | 'active' | 'error';
+type ImportState = 'idle' | 'reading' | 'validating' | 'migrating' | 'preview' | 'importing' | 'complete' | 'error';
+
+interface FileInfo {
+  name: string;
+  size: number;
+  compressed: boolean;
+}
 
 export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) => {
   const [dropZoneState, setDropZoneState] = useState<DropZoneState>('idle');
+  const [importState, setImportState] = useState<ImportState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [validation, setValidation] = useState<ImportValidationResult | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
+  const [, setMigrationLog] = useState<MigrationLogEntry[] | null>(null);
+  const [migrationProgress, setMigrationProgress] = useState(0);
   const [announceMessage, setAnnounceMessage] = useState<string>('');
+  const [isCompressed, setIsCompressed] = useState(false);
+  
   const dragCounterRef = useRef(0);
   const dragLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const migrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   const importDataWithMigration = useProfilerStore((state) => state.importDataWithMigration);
   const validateImportData = useProfilerStore((state) => state.validateImportData);
 
@@ -38,12 +55,22 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
     setPreview(null);
     setValidation(null);
     setFileContent(null);
+    setFileInfo(null);
+    setMigrationLog(null);
+    setMigrationProgress(0);
     setDropZoneState('idle');
+    setImportState('idle');
     setAnnounceMessage('');
+    setIsCompressed(false);
     dragCounterRef.current = 0;
+    
     if (dragLeaveTimeoutRef.current) {
       clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
+    }
+    if (migrationTimeoutRef.current) {
+      clearTimeout(migrationTimeoutRef.current);
+      migrationTimeoutRef.current = null;
     }
   }, []);
 
@@ -58,24 +85,105 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
       if (dragLeaveTimeoutRef.current) {
         clearTimeout(dragLeaveTimeoutRef.current);
       }
+      if (migrationTimeoutRef.current) {
+        clearTimeout(migrationTimeoutRef.current);
+      }
     };
   }, []);
 
-  const validateAndPreview = useCallback((content: string): boolean => {
-    const result = validateImportData(content);
-    setValidation(result);
+  // Format file size for display
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  }, []);
 
-    if (!result.isValid) {
-      setError(result.error || 'Invalid file format');
-      setPreview(null);
-      setAnnounceMessage(`Error: ${result.error || 'Invalid file format'}`);
+  // Validate and preview file content
+  const validateAndPreview = useCallback(async (content: string, info: FileInfo): Promise<boolean> => {
+    setImportState('validating');
+    setAnnounceMessage('Validating file...');
+
+    try {
+      // Check if compressed
+      let parsedContent: unknown;
+      let decompressedContent = content;
+      let wasCompressed = false;
+
+      try {
+        parsedContent = JSON.parse(content);
+        
+        if (isCompressedExport(parsedContent)) {
+          wasCompressed = true;
+          setIsCompressed(true);
+          setAnnounceMessage('Decompressing file...');
+          
+          const result = await decompressData(parsedContent);
+          if (!result.success) {
+            setError(result.error || 'Failed to decompress file');
+            setImportState('error');
+            setAnnounceMessage(`Error: ${result.error || 'Failed to decompress file'}`);
+            return false;
+          }
+          decompressedContent = result.data;
+          parsedContent = JSON.parse(result.data);
+        }
+      } catch {
+        setError('Invalid JSON file');
+        setImportState('error');
+        setAnnounceMessage('Error: Invalid JSON file');
+        return false;
+      }
+
+      // Validate the data
+      const result = validateImportData(decompressedContent);
+      setValidation(result);
+
+      if (!result.isValid) {
+        setError(result.error || 'Invalid file format');
+        setPreview(null);
+        setImportState('error');
+        setAnnounceMessage(`Error: ${result.error || 'Invalid file format'}`);
+        return false;
+      }
+
+      // Check if migration is needed
+      if (result.migrationAvailable) {
+        setImportState('migrating');
+        setAnnounceMessage('Migrating profile to current format...');
+        
+        // Simulate migration progress
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += 20;
+          setMigrationProgress(progress);
+          if (progress >= 100) {
+            clearInterval(progressInterval);
+          }
+        }, 100);
+
+        // Store content for import
+        setFileContent(decompressedContent);
+      } else {
+        setFileContent(decompressedContent);
+      }
+
+      setPreview(result.preview || null);
+      setWarning(result.warning || null);
+      setFileInfo({ ...info, compressed: wasCompressed });
+      setImportState('preview');
+      setAnnounceMessage(
+        `Preview loaded. ${result.preview?.commitCount || 0} commits ready to import.`
+      );
+      return true;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Validation failed';
+      setError(errorMsg);
+      setImportState('error');
+      setAnnounceMessage(`Error: ${errorMsg}`);
       return false;
     }
-
-    setPreview(result.preview || null);
-    setWarning(result.warning || null);
-    setError(null);
-    return true;
   }, [validateImportData]);
 
   const isValidJsonFile = useCallback((file: File): boolean => {
@@ -83,27 +191,32 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   }, []);
 
   const handleFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!isValidJsonFile(file)) {
         setError('Please select a JSON file');
         setDropZoneState('error');
+        setImportState('error');
         setAnnounceMessage('Error: Please select a JSON file only.');
         return;
       }
 
+      setImportState('reading');
       setAnnounceMessage(`File "${file.name}" selected. Loading preview...`);
 
+      const info: FileInfo = {
+        name: file.name,
+        size: file.size,
+        compressed: false,
+      };
+
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const content = e.target?.result as string;
-        if (validateAndPreview(content)) {
-          setFileContent(content);
-          const commitCount = JSON.parse(content)?.commits?.length || 0;
-          setAnnounceMessage(`Preview loaded. ${commitCount} commits ready to import.`);
-        }
+        await validateAndPreview(content, info);
       };
       reader.onerror = () => {
         setError('Failed to read file');
+        setImportState('error');
         setAnnounceMessage('Error: Failed to read file.');
       };
       reader.readAsText(file);
@@ -149,8 +262,6 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // Set drop effect to indicate this is a valid drop target
     e.dataTransfer.dropEffect = 'copy';
   }, []);
 
@@ -160,9 +271,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
 
     dragCounterRef.current -= 1;
 
-    // Only hide overlay when leaving the entire drop zone (not child elements)
     if (dragCounterRef.current === 0) {
-      // Add small delay to prevent flicker when moving between child elements
       dragLeaveTimeoutRef.current = setTimeout(() => {
         setDropZoneState('idle');
         dragCounterRef.current = 0;
@@ -171,15 +280,13 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Reset drag counter
       dragCounterRef.current = 0;
       setDropZoneState('idle');
 
-      // Clear any pending timeout
       if (dragLeaveTimeoutRef.current) {
         clearTimeout(dragLeaveTimeoutRef.current);
         dragLeaveTimeoutRef.current = null;
@@ -192,11 +299,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
         if (!isValidJsonFile(file)) {
           setError('Please drop a JSON file');
           setDropZoneState('error');
+          setImportState('error');
           setAnnounceMessage('Error: Only JSON files are supported.');
           return;
         }
 
-        handleFile(file);
+        await handleFile(file);
       }
     },
     [handleFile, isValidJsonFile]
@@ -207,10 +315,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   }, []);
 
   const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (files && files.length > 0 && files[0]) {
-        handleFile(files[0]);
+        await handleFile(files[0]);
       }
       // Reset input so the same file can be selected again
       e.target.value = '';
@@ -218,17 +326,28 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
     [handleFile]
   );
 
-  const handleImport = useCallback(() => {
+  const handleImport = useCallback(async () => {
     if (!fileContent) return;
+
+    setImportState('importing');
+    setAnnounceMessage('Importing profile data...');
 
     const result = importDataWithMigration(fileContent);
     
     if (result.success) {
-      setAnnounceMessage('Import successful.');
-      handleClose();
+      setImportState('complete');
+      setAnnounceMessage(result.migrated 
+        ? 'Import successful. Profile migrated to current format.' 
+        : 'Import successful.');
+      
+      // Delay close to show success state
+      migrationTimeoutRef.current = setTimeout(() => {
+        handleClose();
+      }, 1000);
     } else {
       const errorMessage = result.error || 'Import failed';
       setError(errorMessage);
+      setImportState('error');
       setAnnounceMessage(`Error: ${errorMessage}`);
     }
   }, [fileContent, importDataWithMigration, handleClose]);
@@ -268,7 +387,6 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   };
 
   const renderVersionBadge = (version: string) => {
-    // Determine badge color based on version status
     let badgeClass = styles['versionBadge'];
     if (validation?.isSupported) {
       badgeClass += ` ${styles['versionSupported']}`;
@@ -297,6 +415,103 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
         <span>{warning}</span>
       </div>
     );
+  };
+
+  const renderMigrationProgress = () => {
+    if (importState !== 'migrating') return null;
+
+    return (
+      <div className={styles['migrationProgress']}>
+        <div className={styles['migrationProgressHeader']}>
+          <Icon name="refresh" size={16} className={styles['migrationIcon']} />
+          <span>Migrating profile format...</span>
+        </div>
+        <div className={styles['progressBarContainer']}>
+          <div 
+            className={styles['progressBar']} 
+            style={{ width: `${migrationProgress}%` }}
+            role="progressbar"
+            aria-valuenow={migrationProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          />
+        </div>
+        <span className={styles['progressText']}>{migrationProgress}%</span>
+      </div>
+    );
+  };
+
+  const renderFileInfo = () => {
+    if (!fileInfo) return null;
+
+    return (
+      <div className={styles['fileInfo']}>
+        <Icon name="component" size={16} />
+        <span className={styles['fileName']}>{fileInfo.name}</span>
+        <span className={styles['fileSize']}>({formatFileSize(fileInfo.size)})</span>
+        {isCompressed && (
+          <span className={`${styles['featureBadge']} ${styles['compressedBadge']}`}>
+            Compressed
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderImportStats = () => {
+    if (!preview) return null;
+
+    const stats = [
+      { label: 'Commits', value: preview.commitCount },
+      { label: 'Components', value: preview.componentCount ?? 'Unknown' },
+      { label: 'Duration', value: preview.recordingDuration ? `${(preview.recordingDuration / 1000).toFixed(1)}s` : 'Unknown' },
+    ];
+
+    return (
+      <div className={styles['importStats']}>
+        {stats.map((stat) => (
+          <div key={stat.label} className={styles['statItem']}>
+            <span className={styles['statValue']}>{stat.value}</span>
+            <span className={styles['statLabel']}>{stat.label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderStateIndicator = () => {
+    switch (importState) {
+      case 'reading':
+        return (
+          <div className={styles['stateIndicator']}>
+            <Icon name="spinner" size={24} className={styles['spinningIcon']} />
+            <span>Reading file...</span>
+          </div>
+        );
+      case 'validating':
+        return (
+          <div className={styles['stateIndicator']}>
+            <Icon name="spinner" size={24} className={styles['spinningIcon']} />
+            <span>Validating...</span>
+          </div>
+        );
+      case 'importing':
+        return (
+          <div className={styles['stateIndicator']}>
+            <Icon name="spinner" size={24} className={styles['spinningIcon']} />
+            <span>Importing...</span>
+          </div>
+        );
+      case 'complete':
+        return (
+          <div className={`${styles['stateIndicator']} ${styles['stateSuccess']}`}>
+            <Icon name="check" size={24} />
+            <span>Import complete!</span>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   if (!isOpen) return null;
@@ -336,34 +551,37 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
         </div>
 
         <div className={styles['content']}>
-          <div
-            className={getDropZoneClassName()}
-            onClick={handleClick}
-            onDrop={handleDrop}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            role="button"
-            aria-label="Drop zone for JSON file. Click to browse or drag and drop a file."
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleClick();
-              }
-            }}
-          >
-            <div className={styles['dropZoneIconWrapper']}>
-              {getDropZoneIcon()}
+          {/* Drop Zone - only show in idle state */}
+          {importState === 'idle' && (
+            <div
+              className={getDropZoneClassName()}
+              onClick={handleClick}
+              onDrop={handleDrop}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              role="button"
+              aria-label="Drop zone for JSON file. Click to browse or drag and drop a file."
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleClick();
+                }
+              }}
+            >
+              <div className={styles['dropZoneIconWrapper']}>
+                {getDropZoneIcon()}
+              </div>
+              <div className={styles['dropZoneText']}>
+                {getDropZoneMessage()}
+              </div>
+              <div className={styles['dropZoneHint']}>
+                <Icon name="info" size={14} />
+                <span>Supports files exported from React Perf Profiler</span>
+              </div>
             </div>
-            <div className={styles['dropZoneText']}>
-              {getDropZoneMessage()}
-            </div>
-            <div className={styles['dropZoneHint']}>
-              <Icon name="info" size={14} />
-              <span>Supports files exported from React Perf Profiler</span>
-            </div>
-          </div>
+          )}
 
           <input
             ref={fileInputRef}
@@ -375,6 +593,14 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
             tabIndex={-1}
           />
 
+          {/* State indicators */}
+          {renderStateIndicator()}
+          {renderMigrationProgress()}
+
+          {/* File info */}
+          {renderFileInfo()}
+
+          {/* Error message */}
           {error && (
             <div 
               className={styles['error']} 
@@ -386,9 +612,14 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
             </div>
           )}
 
+          {/* Warning message */}
           {renderWarning()}
 
-          {preview && (
+          {/* Import Stats */}
+          {preview && renderImportStats()}
+
+          {/* Preview section */}
+          {preview && importState === 'preview' && (
             <div className={styles['preview']}>
               <div className={styles['previewTitle']}>File Preview</div>
               
@@ -403,6 +634,13 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
                 <span className={styles['previewLabel']}>Commits</span>
                 <span className={styles['previewValue']}>{preview.commitCount}</span>
               </div>
+
+              {preview.componentCount !== undefined && (
+                <div className={styles['previewItem']}>
+                  <span className={styles['previewLabel']}>Components</span>
+                  <span className={styles['previewValue']}>{preview.componentCount}</span>
+                </div>
+              )}
 
               <div className={styles['previewItem']}>
                 <span className={styles['previewLabel']}>Exported</span>
@@ -424,6 +662,24 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
                 <div className={styles['previewItem']}>
                   <span className={styles['previewLabel']}>React Version</span>
                   <span className={styles['previewValue']}>{preview.reactVersion}</span>
+                </div>
+              )}
+
+              {preview.recordingDuration !== undefined && (
+                <div className={styles['previewItem']}>
+                  <span className={styles['previewLabel']}>Recording Duration</span>
+                  <span className={styles['previewValue']}>
+                    {(preview.recordingDuration / 1000).toFixed(2)}s
+                  </span>
+                </div>
+              )}
+
+              {preview.sourceUrl && (
+                <div className={styles['previewItem']}>
+                  <span className={styles['previewLabel']}>Source</span>
+                  <span className={styles['previewValue']} title={preview.sourceUrl}>
+                    {new URL(preview.sourceUrl).hostname}
+                  </span>
                 </div>
               )}
 
@@ -452,16 +708,19 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
           <button 
             className={styles['cancelButton']} 
             onClick={handleClose}
+            disabled={importState === 'importing'}
           >
             Cancel
           </button>
           <button 
             className={styles['importButton']} 
             onClick={handleImport} 
-            disabled={!fileContent}
-            aria-disabled={!fileContent}
+            disabled={!fileContent || importState === 'importing' || importState === 'migrating'}
+            aria-disabled={!fileContent || importState === 'importing' || importState === 'migrating'}
           >
-            Import
+            {importState === 'importing' ? 'Importing...' : 
+             importState === 'migrating' ? 'Migrating...' : 
+             validation?.migrationAvailable ? 'Import & Migrate' : 'Import'}
           </button>
         </div>
       </div>

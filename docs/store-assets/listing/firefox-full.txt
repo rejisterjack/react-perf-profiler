@@ -1,0 +1,29 @@
+React Perf Profiler brings advanced performance analysis to Firefox DevTools.
+
+FEATURES:
+
+🔍 Wasted Render Detection
+Find components re-rendering without prop or state changes. Get actionable optimization suggestions.
+
+📈 Flamegraph Visualization
+Explore your component tree with an interactive flamegraph. Identify slow components at a glance.
+
+🧮 Memo Analysis
+Understand why your React.memo components still re-render. Detect unstable callbacks and objects.
+
+🌐 RSC Support
+Full support for React Server Components. Analyze payload sizes and cache effectiveness.
+
+⚙️ Developer Experience
+• Keyboard shortcuts for common actions
+• Export profiles for sharing
+• Customizable settings
+• Dark mode support
+
+PERFORMANCE BUDGETS
+Integrate with your CI/CD pipeline to prevent performance regressions. Set thresholds for render times, wasted renders, and more.
+
+OPEN SOURCE
+React Perf Profiler is open source software. Report issues and contribute on GitHub.
+
+Learn more: https://github.com/rejisterjack/react-perf-profiler

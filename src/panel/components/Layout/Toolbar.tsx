@@ -4,7 +4,7 @@
  */
 
 import type React from 'react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
 import { useKeyboardShortcuts, formatShortcut, isMac } from '@/panel/hooks/useKeyboardShortcuts';
@@ -17,6 +17,29 @@ import { ThemeToggle } from '../Theme/ThemeToggle';
 import { ViewModeToggle } from './ViewModeToggle';
 import { SettingsButton } from './SettingsButton';
 import styles from './Toolbar.module.css';
+
+// =============================================================================
+// Visual Feedback Toast Component
+// =============================================================================
+
+interface FeedbackToastProps {
+  message: string;
+  onClear: () => void;
+}
+
+const FeedbackToast: React.FC<FeedbackToastProps> = ({ message, onClear }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClear, 2000);
+    return () => clearTimeout(timer);
+  }, [message, onClear]);
+
+  return (
+    <div className={styles['feedbackToast']} role="status" aria-live="polite">
+      <Icon name="check" size={16} />
+      <span>{message}</span>
+    </div>
+  );
+};
 
 // =============================================================================
 // Component
@@ -36,8 +59,11 @@ export const Toolbar: React.FC = () => {
     exportData,
     viewMode,
     setViewMode,
-    selectedComponent,
+    selectedComponentName,
     toggleDetailPanel,
+    selectCommit,
+    runAnalysis,
+    toggleNodeExpanded,
   } = useProfilerStore();
 
   const { isConnected, sendMessage } = useConnectionStore();
@@ -76,6 +102,8 @@ export const Toolbar: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Note: Import is handled via the ImportDialog component
+
   // Keyboard shortcut actions
   const handleToggleRecording = useCallback(() => {
     if (isRecording) {
@@ -86,37 +114,61 @@ export const Toolbar: React.FC = () => {
   }, [isRecording]);
 
   const handlePreviousCommit = useCallback(() => {
-    // Navigate commits implementation
-    const currentIndex = commits.findIndex(c => c.id === useProfilerStore.getState().selectedCommitId);
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : commits.length - 1;
-    if (commits[newIndex]) {
-      useProfilerStore.getState().selectCommit(commits[newIndex].id);
+    const state = useProfilerStore.getState();
+    const currentIndex = state.commits.findIndex(c => c.id === state.selectedCommitId);
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : state.commits.length - 1;
+    if (state.commits[newIndex]) {
+      selectCommit(state.commits[newIndex].id);
     }
-  }, [commits]);
+  }, [selectCommit]);
 
   const handleNextCommit = useCallback(() => {
-    // Navigate commits implementation
-    const currentIndex = commits.findIndex(c => c.id === useProfilerStore.getState().selectedCommitId);
-    const newIndex = currentIndex < commits.length - 1 ? currentIndex + 1 : 0;
-    if (commits[newIndex]) {
-      useProfilerStore.getState().selectCommit(commits[newIndex].id);
+    const state = useProfilerStore.getState();
+    const currentIndex = state.commits.findIndex(c => c.id === state.selectedCommitId);
+    const newIndex = currentIndex < state.commits.length - 1 ? currentIndex + 1 : 0;
+    if (state.commits[newIndex]) {
+      selectCommit(state.commits[newIndex].id);
     }
-  }, [commits]);
+  }, [selectCommit]);
 
   const handleNavigateUp = useCallback(() => {
-    // Navigation is handled in TreeView component
-    // This is a no-op here as TreeView has its own focus
+    // Navigation is handled in TreeView component with its own focus
+    // Dispatch a custom event that TreeView can listen to
+    window.dispatchEvent(new CustomEvent('profiler:navigateUp'));
   }, []);
 
   const handleNavigateDown = useCallback(() => {
     // Navigation is handled in TreeView component
+    window.dispatchEvent(new CustomEvent('profiler:navigateDown'));
   }, []);
 
-  const handleOpenDetails = useCallback(() => {
-    if (selectedComponent && viewMode !== 'analysis') {
+  const handleSelectNode = useCallback(() => {
+    // If a component is selected, open analysis view
+    if (selectedComponentName && viewMode !== 'analysis') {
       setViewMode('analysis');
     }
-  }, [selectedComponent, viewMode, setViewMode]);
+  }, [selectedComponentName, viewMode, setViewMode]);
+
+  const handleToggleNodeExpansion = useCallback(() => {
+    // Toggle expansion of currently selected node
+    if (selectedComponentName) {
+      const state = useProfilerStore.getState();
+      const componentData = state.componentData.get(selectedComponentName);
+      if (componentData) {
+        // Find a node ID associated with this component
+        const state2 = useProfilerStore.getState();
+        const commits = state2.commits;
+        for (const commit of commits) {
+          for (const node of commit.nodes ?? []) {
+            if (node.displayName === selectedComponentName && node.id !== undefined) {
+              toggleNodeExpanded(String(node.id));
+              return;
+            }
+          }
+        }
+      }
+    }
+  }, [selectedComponentName, toggleNodeExpanded]);
 
   const handleClosePanel = useCallback(() => {
     toggleDetailPanel();
@@ -136,29 +188,45 @@ export const Toolbar: React.FC = () => {
     }
   }, [commits.length]);
 
+  const handleImportProfile = useCallback(() => {
+    setIsImportOpen(true);
+  }, []);
+
+  const handleRunAnalysis = useCallback(async () => {
+    if (commits.length > 0) {
+      await runAnalysis();
+    }
+  }, [commits.length, runAnalysis]);
+
+  const handleToggleHelp = useCallback(() => {
+    setIsHelpOpen(prev => !prev);
+  }, []);
+
   // Initialize keyboard shortcuts
-  const { shortcuts } = useKeyboardShortcuts({
+  const { shortcuts, feedback, clearFeedback } = useKeyboardShortcuts({
     toggleRecording: handleToggleRecording,
     previousCommit: handlePreviousCommit,
     nextCommit: handleNextCommit,
     navigateUp: handleNavigateUp,
     navigateDown: handleNavigateDown,
-    openDetails: handleOpenDetails,
+    selectNode: handleSelectNode,
+    toggleNodeExpansion: handleToggleNodeExpansion,
     closePanel: handleClosePanel,
     setViewMode,
     exportData: handleExportProfile,
-    importData: () => setIsImportOpen(true),
+    importData: handleImportProfile,
     clearData: handleClearData,
-    toggleHelp: () => setIsHelpOpen(prev => !prev),
+    runAnalysis: handleRunAnalysis,
+    toggleHelp: handleToggleHelp,
   });
 
   // =============================================================================
   // Render Helpers
   // =============================================================================
 
-  const recordShortcut = formatShortcut('space');
-  const clearShortcut = formatShortcut(isMac() ? 'cmd+delete' : 'ctrl+delete');
-  const exportShortcut = formatShortcut(isMac() ? 'cmd+s' : 'ctrl+s');
+  const recordShortcut = formatShortcut(isMac() ? 'cmd+shift+p' : 'ctrl+shift+p');
+  const clearShortcut = formatShortcut('C');
+  const exportShortcut = formatShortcut(isMac() ? 'cmd+e' : 'ctrl+e');
   const importShortcut = formatShortcut(isMac() ? 'cmd+o' : 'ctrl+o');
 
   const renderRecordingButton = () => {
@@ -311,6 +379,16 @@ export const Toolbar: React.FC = () => {
         onClose={() => setIsHelpOpen(false)}
         shortcuts={shortcuts}
       />
+      
+      {/* Visual Feedback Toast */}
+      {feedback && (
+        <FeedbackToast 
+          message={feedback.message} 
+          onClear={clearFeedback}
+        />
+      )}
     </header>
   );
 };
+
+export default Toolbar;

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { ThemeProvider } from './components/Theme/ThemeProvider';
 import './styles/global.css';
+import './styles/variables.css';
 
 // Connect to background script
 import { useConnectionStore } from './stores/connectionStore';

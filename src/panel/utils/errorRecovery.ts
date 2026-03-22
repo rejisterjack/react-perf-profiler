@@ -20,6 +20,23 @@ export interface ErrorReport {
   userAgent: string;
   /** Extension version */
   version: string;
+  /** Error ID for tracking */
+  errorId?: string;
+  /** Context where the error occurred */
+  context?: string;
+}
+
+export interface BridgeError {
+  /** Error type */
+  type: 'INIT_FAILED' | 'REACT_NOT_FOUND' | 'DEVTOOLS_NOT_FOUND' | 'TIMEOUT' | 'UNKNOWN';
+  /** Error message */
+  message: string;
+  /** Whether the error is recoverable */
+  recoverable: boolean;
+  /** Suggested action for the user */
+  suggestedAction?: string;
+  /** URL to help documentation */
+  helpUrl?: string;
 }
 
 // =============================================================================
@@ -124,17 +141,27 @@ export function hardReset(): void {
 }
 
 /**
+ * Reset the panel - clears data and reloads.
+ * Alias for hardReset for better API naming.
+ */
+export function resetPanel(): void {
+  hardReset();
+}
+
+/**
  * Sends error information to analytics.
  * This is a stub implementation - in production, replace with actual analytics.
  * 
  * @param error - The error that was caught
- * @param errorInfo - React error info containing component stack
- * @param context - Optional context about where the error occurred
+ * @param errorInfo - React error info containing component stack and context
  */
 export function reportError(
   error: Error,
-  errorInfo?: { componentStack?: string },
-  context?: string
+  errorInfo?: { 
+    componentStack?: string;
+    context?: string;
+    errorId?: string;
+  }
 ): void {
   try {
     const report: ErrorReport = {
@@ -144,12 +171,14 @@ export function reportError(
       timestamp: Date.now(),
       userAgent: navigator.userAgent,
       version: EXTENSION_VERSION,
+      errorId: errorInfo?.errorId,
+      context: errorInfo?.context,
     };
 
     // Log to console for debugging
     console.error('[React Perf Profiler] Error Report:', {
       ...report,
-      context,
+      errorName: error.name,
     });
 
     // TODO: Implement actual analytics reporting
@@ -158,7 +187,7 @@ export function reportError(
     // - Send to custom analytics endpoint
     // - Store locally for debugging
 
-    // Stub: Store last error in session storage for debugging
+    // Store last error in session storage for debugging
     try {
       sessionStorage.setItem(
         `${STORAGE_PREFIX}last-error`,
@@ -238,6 +267,71 @@ export function checkPanelHealth(): { healthy: boolean; issues: string[] } {
   };
 }
 
+/**
+ * Creates a bridge error object with helpful context.
+ * 
+ * @param type - The type of bridge error
+ * @param message - The error message
+ * @param context - Additional context
+ */
+export function createBridgeError(
+  type: BridgeError['type'],
+  message: string,
+  context?: { reactDetected?: boolean; devtoolsDetected?: boolean; retryCount?: number }
+): BridgeError {
+  const error: BridgeError = {
+    type,
+    message,
+    recoverable: type !== 'UNKNOWN',
+  };
+
+  // Add suggested actions based on error type
+  switch (type) {
+    case 'REACT_NOT_FOUND':
+      error.suggestedAction = 'Make sure this page is using a React development build';
+      error.helpUrl = 'https://react.dev/learn/thinking-in-react';
+      break;
+    case 'DEVTOOLS_NOT_FOUND':
+      error.suggestedAction = 'Install React DevTools extension to use React Perf Profiler';
+      error.helpUrl = 'https://react.dev/learn/react-developer-tools';
+      break;
+    case 'INIT_FAILED':
+      error.suggestedAction = context?.retryCount && context.retryCount < 3
+        ? 'Retrying connection...'
+        : 'Try reloading the page or restarting DevTools';
+      break;
+    case 'TIMEOUT':
+      error.suggestedAction = 'The connection timed out. Check if the page is still loading.';
+      break;
+  }
+
+  return error;
+}
+
+/**
+ * Format an error for display to the user.
+ * 
+ * @param error - The error to format
+ */
+export function formatErrorForDisplay(error: Error | BridgeError | string): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if ('type' in error && ['INIT_FAILED', 'REACT_NOT_FOUND', 'DEVTOOLS_NOT_FOUND', 'TIMEOUT', 'UNKNOWN'].includes(error.type)) {
+    // It's a BridgeError
+    const bridgeError = error as BridgeError;
+    let display = bridgeError.message;
+    if (bridgeError.suggestedAction) {
+      display += `\n\n${bridgeError.suggestedAction}`;
+    }
+    return display;
+  }
+
+  // Regular Error
+  return (error as Error).message;
+}
+
 // =============================================================================
 // Default Export
 // =============================================================================
@@ -247,8 +341,11 @@ export default {
   clearSettings,
   reloadPanel,
   hardReset,
+  resetPanel,
   reportError,
   getLastError,
   clearLastError,
   checkPanelHealth,
+  createBridgeError,
+  formatErrorForDisplay,
 };

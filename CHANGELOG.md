@@ -12,35 +12,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React Server Components (RSC) analysis support
 - Firefox DevTools extension support
 - Cross-browser compatibility layer for unified API across Chrome and Firefox
+- Plugin system for custom analysis extensions
+- Performance budget checking for CI/CD integration
+- Profile export/import with migration support
+- Keyboard shortcuts support
 
-## [1.0.0] - 2024-03-19
+### Changed
+
+- Improved analysis worker performance
+- Enhanced error recovery mechanisms
+
+## [1.0.0] - 2026-03-22
 
 ### Added
 
-#### Major Features
+#### Core Features
 
-- Initial release of React Perf Profiler
-- Chrome DevTools extension for profiling React performance
-- Wasted render detection and analysis
-- Memoization effectiveness scoring
-- Interactive flamegraph visualization
-- Component tree view with performance indicators
-- Real-time profiling with start/stop controls
-- Timeline view of React commits
-- Web Worker-based analysis for performance
-- Zustand state management
-- 305+ unit tests with Vitest
-- E2E tests with Playwright
-- TypeScript strict mode
-- CI/CD with GitHub Actions
+- **React Performance Profiling** - Chrome DevTools extension for profiling React component render behavior
+- **Wasted Render Detection** - Identifies unnecessary re-renders with specific recommendations
+- **Memoization Analysis** - Effectiveness scoring for React.memo, useMemo, and useCallback
+- **Interactive Flamegraph** - Visual representation of render hierarchy with zoom and pan
+- **Component Tree View** - Hierarchical view with wasted render indicators
+- **Timeline View** - Scrollable timeline of all React commits
+- **RSC Support** - React Server Components payload and boundary analysis
+- **Time-Travel Debugging** - Step through commits to understand state changes
 
-#### Technical Features
+#### Developer Experience
 
-- React DevTools hook integration
-- Fiber tree parsing
-- Memory-efficient commit storage
-- CSS Modules for styling
-- D3.js visualizations
-- Biome linting and formatting
+- **Real-time Profiling** - Start/stop controls with live data capture
+- **Export/Import Sessions** - Share profiles with team members
+- **Performance Scoring** - Overall performance score (0-100)
+- **Optimization Suggestions** - Specific recommendations per component
+- **Dark Mode Support** - Automatic theme detection
+- **Keyboard Shortcuts** - Efficient workflow without mouse
+
+#### Technical Implementation
+
+- **Web Worker Processing** - Heavy analysis offloaded from main thread
+- **Zustand State Management** - Lightweight and efficient state handling
+- **Virtualized Lists** - Smooth rendering for large component trees
+- **Memory Efficiency** - Circular buffer for commit history with configurable limits
+- **TypeScript** - Strict mode with comprehensive type coverage
+
+#### Testing & Quality
+
+- **305+ Unit Tests** - Comprehensive test coverage with Vitest
+- **E2E Tests** - Playwright tests for critical user flows
+- **Performance Benchmarks** - Automated performance regression testing
+- **Bundle Size Tracking** - Per-chunk budget enforcement
+
+#### Build & CI/CD
+
+- **Vite Build System** - Fast HMR and optimized production builds
+- **Chrome & Firefox Support** - Unified build for both browsers
+- **GitHub Actions** - Automated testing and performance checks
+- **Biome Linting** - Fast, modern linting and formatting
+
+#### Documentation
+
+- Comprehensive README with usage examples
+- Architecture documentation
+- API reference for stores and hooks
+- Troubleshooting guide
+- Performance budget CI guide
 
 [1.0.0]: https://github.com/rejisterjack/react-perf-profiler/releases/tag/v1.0.0

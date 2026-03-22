@@ -1,38 +1,235 @@
+/**
+ * ThemeToggle Component Styles
+ * Animated theme toggle with smooth transitions
+ */
+
 .themeToggle {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: 
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+  position: relative;
+  overflow: hidden;
 }
 
 .themeToggle:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-focus);
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.themeToggle:active {
+  transform: scale(0.97);
+}
+
+.themeToggle:focus-visible {
+  box-shadow: var(--shadow-focus);
+  outline: none;
+}
+
+/* Ripple effect */
+.themeToggle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, var(--accent-subtle) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  transition: transform var(--duration-normal), opacity var(--duration-normal);
+}
+
+.themeToggle:active::after {
+  transform: translate(-50%, -50%) scale(2);
+  opacity: 1;
+  transition: transform 0s, opacity 0s;
+}
+
+/* Icon container */
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  position: relative;
 }
 
 .themeIcon {
-  color: var(--color-text-secondary);
-  transition: color 0.2s;
+  color: var(--text-secondary);
+  transition: 
+    color var(--duration-fast),
+    transform var(--duration-normal) var(--ease-spring),
+    opacity var(--duration-normal);
+  position: absolute;
 }
 
 .themeToggle:hover .themeIcon {
-  color: var(--color-text-primary);
+  color: var(--accent-primary);
 }
 
+/* Icon states */
+.sunIcon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.moonIcon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.systemIcon {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+/* Light theme active */
+.themeToggle[data-theme="light"] .sunIcon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.themeToggle[data-theme="light"] .moonIcon,
+.themeToggle[data-theme="light"] .systemIcon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+/* Dark theme active */
+.themeToggle[data-theme="dark"] .sunIcon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.themeToggle[data-theme="dark"] .moonIcon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.themeToggle[data-theme="dark"] .systemIcon {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+/* System theme active */
+.themeToggle[data-theme="system"] .sunIcon,
+.themeToggle[data-theme="system"] .moonIcon {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.themeToggle[data-theme="system"] .systemIcon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Label */
 .themeLabel {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
   text-transform: capitalize;
   min-width: 50px;
   text-align: center;
+  transition: color var(--duration-fast);
 }
 
 .themeToggle:hover .themeLabel {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
+}
+
+/* Compact variant */
+.compact {
+  padding: var(--space-1);
+  gap: 0;
+}
+
+.compact .themeLabel {
+  display: none;
+}
+
+.compact .iconContainer {
+  width: 18px;
+  height: 18px;
+}
+
+/* Ghost variant */
+.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ghost:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-subtle);
+}
+
+/* Active state indicator */
+.themeToggle::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  transition: border-color var(--duration-fast);
+}
+
+.themeToggle:focus-visible::before {
+  border-color: var(--accent-primary);
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes iconSpinIn {
+  from {
+    opacity: 0;
+    transform: rotate(-180deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes iconSpinOut {
+  from {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(180deg) scale(0.5);
+  }
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .themeToggle,
+  .themeIcon,
+  .themeLabel,
+  .themeToggle::after {
+    animation: none;
+    transition: none;
+  }
+
+  .themeToggle:active {
+    transform: none;
+  }
 }

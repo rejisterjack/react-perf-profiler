@@ -1,0 +1,1 @@
+react, profiler, performance, devtools, chrome, firefox, extension, memoization, wasted renders, flamegraph, optimization, debugging, analysis, react server components, rsc, next.js, component tree

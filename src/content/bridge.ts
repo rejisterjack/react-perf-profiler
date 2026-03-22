@@ -15,43 +15,160 @@ let originalOnCommitFiberRoot:
 let isProfiling = false;
 let reactVersion: string | undefined;
 
+// Retry state
+let initRetryCount = 0;
+let initRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+let initCheckInterval: ReturnType<typeof setInterval> | null = null;
+const MAX_RETRY_ATTEMPTS = 5;
+const INITIAL_RETRY_DELAY = 500;
+
+// Bridge state
+let isInitialized = false;
+let lastError: { type: string; message: string; timestamp: number } | null = null;
+
 // Message source identifier
 const BRIDGE_SOURCE = 'react-perf-profiler-bridge';
+
+// =============================================================================
+// Initialization
+// =============================================================================
 
 /**
  * Initialize the bridge
  * Injects into React DevTools hook and sets up profiling
  */
 function initBridge(): void {
+  // Prevent double initialization
+  if (isInitialized) {
+    return;
+  }
+
   // Check for React DevTools hook
   const hook = getReactDevToolsHook();
 
   if (!hook) {
-    // Set up a listener to detect when React is loaded
-    const checkInterval = setInterval(() => {
-      const h = getReactDevToolsHook();
-      if (h) {
-        clearInterval(checkInterval);
-        setupHookInterception(h);
-      }
-    }, 500);
-
-    // Stop checking after 30 seconds
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      if (!hook) {
-        sendMessage({
-          type: 'ERROR',
-          error: 'React DevTools hook not found within timeout. Is React loaded?',
-        });
-      }
-    }, 30000);
-
+    handleInitFailure('DEVTOOLS_NOT_FOUND');
     return;
   }
 
-  setupHookInterception(hook);
+  try {
+    setupHookInterception(hook);
+    isInitialized = true;
+    initRetryCount = 0;
+    lastError = null;
+    
+    // Send initialization success message
+    sendMessage({
+      type: 'INIT',
+      data: {
+        reactVersion,
+        supportsFiber: hook.supportsFiber,
+        rendererCount: hook.renderers?.size ?? 0,
+        success: true,
+      },
+    });
+  } catch (error) {
+    handleInitFailure('INIT_FAILED', error instanceof Error ? error.message : String(error));
+  }
 }
+
+/**
+ * Handle initialization failure with retry logic
+ */
+function handleInitFailure(reason: 'DEVTOOLS_NOT_FOUND' | 'INIT_FAILED', details?: string): void {
+  const timestamp = Date.now();
+  
+  // Store error info
+  lastError = {
+    type: reason,
+    message: details || getErrorMessageForReason(reason),
+    timestamp,
+  };
+
+  // Send error to content script
+  sendMessage({
+    type: 'ERROR',
+    error: lastError.message,
+    errorType: reason,
+    recoverable: initRetryCount < MAX_RETRY_ATTEMPTS,
+    retryCount: initRetryCount,
+  });
+
+  // Try to detect React for better error messages
+  const reactDetected = detectReact();
+  const devtoolsDetected = !!getReactDevToolsHook();
+
+  // If React is detected but DevTools hook is not, it might be coming soon
+  if (reactDetected && !devtoolsDetected && initRetryCount < MAX_RETRY_ATTEMPTS) {
+    scheduleRetry();
+  } else if (!reactDetected) {
+    // No React detected - don't retry
+    sendMessage({
+      type: 'ERROR',
+      error: 'React not detected on this page. Make sure you are using a React development build.',
+      errorType: 'REACT_NOT_FOUND',
+      recoverable: false,
+    });
+  }
+}
+
+/**
+ * Get user-friendly error message for failure reason
+ */
+function getErrorMessageForReason(reason: 'DEVTOOLS_NOT_FOUND' | 'INIT_FAILED'): string {
+  switch (reason) {
+    case 'DEVTOOLS_NOT_FOUND':
+      return 'React DevTools hook not found. Is React loaded?';
+    case 'INIT_FAILED':
+      return 'Failed to initialize React Perf Profiler bridge';
+    default:
+      return 'Unknown initialization error';
+  }
+}
+
+/**
+ * Schedule a retry with exponential backoff
+ */
+function scheduleRetry(): void {
+  // Clear any existing retry timeout
+  if (initRetryTimeout) {
+    clearTimeout(initRetryTimeout);
+  }
+
+  initRetryCount++;
+
+  // Calculate delay with exponential backoff: min(30000, 2^retryCount * 1000)
+  const delay = Math.min(30000, 2 ** initRetryCount * INITIAL_RETRY_DELAY);
+
+  sendMessage({
+    type: 'RETRY_SCHEDULED',
+    retryCount: initRetryCount,
+    maxRetries: MAX_RETRY_ATTEMPTS,
+    nextRetryIn: delay,
+  });
+
+  initRetryTimeout = setTimeout(() => {
+    initBridge();
+  }, delay);
+}
+
+/**
+ * Cancel any pending retry
+ */
+function cancelRetry(): void {
+  if (initRetryTimeout) {
+    clearTimeout(initRetryTimeout);
+    initRetryTimeout = null;
+  }
+  if (initCheckInterval) {
+    clearInterval(initCheckInterval);
+    initCheckInterval = null;
+  }
+}
+
+// =============================================================================
+// Hook Management
+// =============================================================================
 
 /**
  * Get the React DevTools global hook
@@ -110,6 +227,8 @@ function setupHookInterception(hook: NonNullable<ReturnType<typeof getReactDevTo
       sendMessage({
         type: 'ERROR',
         error: error instanceof Error ? error.message : String(error),
+        errorType: 'PARSE_ERROR',
+        recoverable: true,
       });
     }
   };
@@ -124,6 +243,10 @@ function setupHookInterception(hook: NonNullable<ReturnType<typeof getReactDevTo
     },
   });
 }
+
+// =============================================================================
+// Message Handling
+// =============================================================================
 
 /**
  * Send a message to the content script
@@ -171,14 +294,37 @@ function handleBridgeMessage(event: MessageEvent): void {
         data: {
           isProfiling,
           reactVersion,
+          isInitialized,
+          lastError: lastError?.message,
         },
       });
+      break;
+
+    case 'DETECT_REACT':
+      // Manual detection request
+      sendMessage({
+        type: 'DETECT_RESULT',
+        reactDetected: detectReact(),
+        devtoolsDetected: !!getReactDevToolsHook(),
+        isInitialized,
+      });
+      break;
+
+    case 'FORCE_INIT':
+      // Force re-initialization
+      cancelRetry();
+      initRetryCount = 0;
+      initBridge();
       break;
 
     default:
     // Ignore unknown message types
   }
 }
+
+// =============================================================================
+// Profiling Control
+// =============================================================================
 
 /**
  * Start profiling
@@ -214,11 +360,15 @@ function stopProfiling(): void {
   });
 }
 
+// =============================================================================
+// React Detection
+// =============================================================================
+
 /**
  * Check if React is present on the page
  */
 function detectReact(): boolean {
-  // Check for React DevTools hook
+  // Check for React DevTools hook (preferred method)
   if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
     return true;
   }
@@ -245,6 +395,17 @@ function detectReact(): boolean {
       }
       return false;
     },
+    // Check for React-specific properties on elements
+    () => {
+      const allElements = document.querySelectorAll('*');
+      for (const el of allElements) {
+        const keys = Object.keys(el);
+        if (keys.some(k => k.startsWith('__react') || k.startsWith('_react'))) {
+          return true;
+        }
+      }
+      return false;
+    },
   ];
 
   for (const check of indicators) {
@@ -259,9 +420,51 @@ function detectReact(): boolean {
 }
 
 /**
+ * Get detailed React detection info
+ */
+function getReactDetectionInfo(): {
+  detected: boolean;
+  devtoolsHook: boolean;
+  reactGlobal: boolean;
+  reactRoot: boolean;
+  reactId: boolean;
+  rootContainer: boolean;
+} {
+  return {
+    detected: detectReact(),
+    devtoolsHook: !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
+    reactGlobal: !!window.React,
+    reactRoot: !!document.querySelector('[data-reactroot]'),
+    reactId: !!document.querySelector('[data-reactid]'),
+    rootContainer: (() => {
+      const rootElements = document.querySelectorAll(
+        '[id^="root"], [id^="app"], [id^="__next"], [id^="__nuxt"]'
+      );
+      for (const el of rootElements) {
+        const elWithReact = el as {
+          _reactRootContainer?: unknown;
+          __reactContainer$?: unknown;
+        };
+        if (elWithReact._reactRootContainer || elWithReact.__reactContainer$) {
+          return true;
+        }
+      }
+      return false;
+    })(),
+  };
+}
+
+// =============================================================================
+// Cleanup
+// =============================================================================
+
+/**
  * Clean up event listeners and restore original hooks
  */
 function cleanup(): void {
+  // Cancel any pending retries
+  cancelRetry();
+
   // Restore original hook
   const hook = getReactDevToolsHook();
   if (hook && originalOnCommitFiberRoot) {
@@ -273,26 +476,45 @@ function cleanup(): void {
 
   // Reset state
   isProfiling = false;
+  isInitialized = false;
   window.__REACT_PERF_PROFILER_ACTIVE__ = false;
 }
+
+// =============================================================================
+// Setup
+// =============================================================================
 
 // Set up message listener for commands from content script
 window.addEventListener('message', handleBridgeMessage);
 
 // Initialize the bridge
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initBridge);
-} else {
-  initBridge();
+function tryInit(): void {
+  try {
+    initBridge();
+  } catch (error) {
+    handleInitFailure(
+      'INIT_FAILED',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
 }
 
-// Detect if React is present
-if (!detectReact()) {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', tryInit);
+} else {
+  tryInit();
+}
+
+// Detect if React is present but not yet initialized
+if (!isInitialized) {
   // Set up a listener to detect React when it's loaded
   const observer = new MutationObserver(() => {
-    if (detectReact()) {
-      observer.disconnect();
-      initBridge();
+    if (!isInitialized && detectReact()) {
+      // React might have just loaded, try to initialize
+      if (getReactDevToolsHook()) {
+        observer.disconnect();
+        tryInit();
+      }
     }
   });
 
@@ -310,6 +532,8 @@ window.addEventListener('beforeunload', cleanup);
 
 // Expose cleanup for testing
 window.__REACT_PERF_PROFILER_CLEANUP__ = cleanup;
+window.__REACT_PERF_PROFILER_DETECT_REACT__ = detectReact;
+window.__REACT_PERF_PROFILER_GET_INFO__ = getReactDetectionInfo;
 
 // Export for module usage (if needed)
 export {
@@ -318,6 +542,9 @@ export {
   stopProfiling,
   cleanup,
   detectReact,
+  getReactDetectionInfo,
   sendMessage,
   handleBridgeMessage,
+  scheduleRetry,
+  cancelRetry,
 };

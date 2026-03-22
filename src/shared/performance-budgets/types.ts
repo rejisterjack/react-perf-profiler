@@ -7,13 +7,60 @@
  * standards automatically during the development workflow.
  */
 
-import type { CommitData, WastedRenderReport, MemoReport } from '@/shared/types';
+import type { CommitData } from '@/shared/types';
 import type { RSCMetrics } from '@/shared/types/rsc';
 
 /**
  * Severity level for budget violations
  */
 export type BudgetSeverity = 'error' | 'warning' | 'info';
+
+/**
+ * Bundle size budget for a specific browser/target
+ */
+export interface BundleBudget {
+  /** Maximum total bundle size in bytes */
+  total: number;
+  /** Per-chunk budgets */
+  chunks: {
+    /** Panel chunk budget */
+    panel: number;
+    /** Background script budget */
+    background: number;
+    /** Content script budget */
+    content: number;
+    /** Devtools page budget */
+    devtools: number;
+    /** Popup budget */
+    popup: number;
+    /** Vendor/shared chunk budget */
+    vendor: number;
+  };
+}
+
+/**
+ * Bundle budgets for different browser targets
+ */
+export interface BundleBudgets {
+  /** Chrome extension bundle budgets */
+  chrome: BundleBudget;
+  /** Firefox extension bundle budgets */
+  firefox: BundleBudget;
+}
+
+/**
+ * Test coverage thresholds
+ */
+export interface CoverageThresholds {
+  /** Lines coverage percentage threshold */
+  lines: number;
+  /** Functions coverage percentage threshold */
+  functions: number;
+  /** Branches coverage percentage threshold */
+  branches: number;
+  /** Statements coverage percentage threshold */
+  statements: number;
+}
 
 /**
  * Individual performance budget threshold configuration
@@ -55,6 +102,10 @@ export interface BudgetConfig {
   minPerformanceScore: number;
   /** Maximum slow render percentage (0-1) */
   maxSlowRenderPercentage: number;
+  /** Bundle size budgets for Chrome and Firefox */
+  bundleBudgets?: BundleBudgets;
+  /** Test coverage thresholds */
+  coverageThresholds?: CoverageThresholds;
   /** Individual budget items for specific metrics */
   budgets: PerformanceBudget[];
   /** Global severity override (optional) */
@@ -63,6 +114,53 @@ export interface BudgetConfig {
   failOnWarning: boolean;
   /** Output format for CI */
   outputFormat: 'json' | 'human';
+}
+
+/**
+ * Bundle size check result
+ */
+export interface BundleCheckResult {
+  /** Whether bundle sizes are within budget */
+  passed: boolean;
+  /** Target browser/platform */
+  target: 'chrome' | 'firefox';
+  /** Total bundle size in bytes */
+  totalSize: number;
+  /** Total budget in bytes */
+  totalBudget: number;
+  /** Individual chunk results */
+  chunks: Array<{
+    /** Chunk name */
+    name: string;
+    /** Chunk size in bytes */
+    size: number;
+    /** Budget in bytes */
+    budget: number;
+    /** Whether chunk is within budget */
+    passed: boolean;
+    /** Percentage over budget (if exceeded) */
+    percentageOver?: number;
+  }>;
+  /** Violations detected */
+  violations: BudgetViolation[];
+}
+
+/**
+ * Coverage check result
+ */
+export interface CoverageCheckResult {
+  /** Whether coverage meets thresholds */
+  passed: boolean;
+  /** Lines coverage percentage */
+  lines: number;
+  /** Functions coverage percentage */
+  functions: number;
+  /** Branches coverage percentage */
+  branches: number;
+  /** Statements coverage percentage */
+  statements: number;
+  /** Violations detected */
+  violations: BudgetViolation[];
 }
 
 /**
@@ -121,6 +219,10 @@ export interface BudgetCheckResult {
   metadata: ProfileMetadata;
   /** Timestamp when check was performed */
   timestamp: number;
+  /** Bundle check results (if performed) */
+  bundleResults?: BundleCheckResult[];
+  /** Coverage check result (if performed) */
+  coverageResult?: CoverageCheckResult;
 }
 
 /**
@@ -201,7 +303,53 @@ export interface BudgetCheckOptions {
   quiet?: boolean;
   /** Verbose mode */
   verbose?: boolean;
+  /** Check bundle sizes */
+  checkBundles?: boolean;
+  /** Bundle directory path */
+  bundlePath?: string;
+  /** Check test coverage */
+  checkCoverage?: boolean;
+  /** Coverage report path */
+  coveragePath?: string;
 }
+
+/**
+ * Default bundle budgets
+ */
+export const DEFAULT_BUNDLE_BUDGETS: BundleBudgets = {
+  chrome: {
+    total: 1000000, // 1MB
+    chunks: {
+      panel: 512000, // 500KB
+      background: 102400, // 100KB
+      content: 153600, // 150KB
+      devtools: 51200, // 50KB
+      popup: 102400, // 100KB
+      vendor: 307200, // 300KB
+    },
+  },
+  firefox: {
+    total: 1000000, // 1MB
+    chunks: {
+      panel: 512000, // 500KB
+      background: 102400, // 100KB
+      content: 153600, // 150KB
+      devtools: 51200, // 50KB
+      popup: 102400, // 100KB
+      vendor: 307200, // 300KB
+    },
+  },
+};
+
+/**
+ * Default coverage thresholds
+ */
+export const DEFAULT_COVERAGE_THRESHOLDS: CoverageThresholds = {
+  lines: 70,
+  functions: 70,
+  branches: 60,
+  statements: 70,
+};
 
 /**
  * Default budget configuration
@@ -214,6 +362,8 @@ export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
   maxRSCPayloadSize: 100_000, // 100KB
   minPerformanceScore: 70,
   maxSlowRenderPercentage: 0.1,
+  bundleBudgets: DEFAULT_BUNDLE_BUDGETS,
+  coverageThresholds: DEFAULT_COVERAGE_THRESHOLDS,
   budgets: [],
   failOnWarning: false,
   outputFormat: 'human',
@@ -287,20 +437,47 @@ export function isBudgetSeverity(value: unknown): value is BudgetSeverity {
 }
 
 /**
+ * Type guard for BundleBudget
+ */
+export function isBundleBudget(value: unknown): value is BundleBudget {
+  if (typeof value !== 'object' || value === null) return false;
+  const budget = value as Record<string, unknown>;
+  return (
+    typeof budget['total'] === 'number' &&
+    typeof budget['chunks'] === 'object' &&
+    budget['chunks'] !== null
+  );
+}
+
+/**
+ * Type guard for CoverageThresholds
+ */
+export function isCoverageThresholds(value: unknown): value is CoverageThresholds {
+  if (typeof value !== 'object' || value === null) return false;
+  const thresholds = value as Record<string, unknown>;
+  return (
+    typeof thresholds['lines'] === 'number' &&
+    typeof thresholds['functions'] === 'number' &&
+    typeof thresholds['branches'] === 'number' &&
+    typeof thresholds['statements'] === 'number'
+  );
+}
+
+/**
  * Type guard for BudgetConfig
  */
 export function isBudgetConfig(value: unknown): value is BudgetConfig {
   if (typeof value !== 'object' || value === null) return false;
   const config = value as Record<string, unknown>;
   return (
-    typeof config.version === 'number' &&
-    typeof config.wastedRenderThreshold === 'number' &&
-    typeof config.memoHitRateThreshold === 'number' &&
-    typeof config.maxRenderTimeMs === 'number' &&
-    typeof config.maxRSCPayloadSize === 'number' &&
-    typeof config.minPerformanceScore === 'number' &&
-    typeof config.maxSlowRenderPercentage === 'number' &&
-    Array.isArray(config.budgets)
+    typeof config['version'] === 'number' &&
+    typeof config['wastedRenderThreshold'] === 'number' &&
+    typeof config['memoHitRateThreshold'] === 'number' &&
+    typeof config['maxRenderTimeMs'] === 'number' &&
+    typeof config['maxRSCPayloadSize'] === 'number' &&
+    typeof config['minPerformanceScore'] === 'number' &&
+    typeof config['maxSlowRenderPercentage'] === 'number' &&
+    Array.isArray(config['budgets'])
   );
 }
 
@@ -311,9 +488,9 @@ export function isProfileData(value: unknown): value is ProfileData {
   if (typeof value !== 'object' || value === null) return false;
   const profile = value as Record<string, unknown>;
   return (
-    typeof profile.version === 'number' &&
-    typeof profile.recordingDuration === 'number' &&
-    Array.isArray(profile.commits)
+    typeof profile['version'] === 'number' &&
+    typeof profile['recordingDuration'] === 'number' &&
+    Array.isArray(profile['commits'])
   );
 }
 
@@ -324,6 +501,8 @@ export function loadBudgetConfig(config: Partial<BudgetConfig>): BudgetConfig {
   return {
     ...DEFAULT_BUDGET_CONFIG,
     ...config,
+    bundleBudgets: config.bundleBudgets || DEFAULT_BUNDLE_BUDGETS,
+    coverageThresholds: config.coverageThresholds || DEFAULT_COVERAGE_THRESHOLDS,
     budgets: config.budgets?.length
       ? config.budgets.map((b, i) => ({
           ...DEFAULT_BUDGETS[i],

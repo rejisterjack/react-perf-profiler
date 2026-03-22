@@ -1,87 +1,297 @@
 /**
  * Badge Component Styles
- * Status badge for labels and counts
+ * Animated badges with smooth state transitions
  */
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  border-radius: var(--radius-full);
   white-space: nowrap;
-  border-radius: var(--border-radius-md);
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
+  transition: 
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+  animation: badgeEnter var(--duration-fast) var(--ease-spring);
 }
 
-/* ============================================================================
-   Sizes
-   ============================================================================ */
+.badge:hover {
+  transform: scale(1.05);
+}
 
+.badge:active {
+  transform: scale(0.98);
+}
+
+/* Sizes */
 .sm {
-  height: 18px;
-  padding: 0 var(--spacing-2);
+  padding: 2px 6px;
   font-size: 10px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
 }
 
 .md {
-  height: 24px;
-  padding: 0 var(--spacing-3);
+  padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
 }
 
 .lg {
-  height: 32px;
-  padding: 0 var(--spacing-4);
+  padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-sm);
 }
 
-/* ============================================================================
-   Variants
-   ============================================================================ */
-
+/* Variants */
 .default {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
+}
+
+.default:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .primary {
-  background: var(--primary);
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .secondary {
-  background: var(--secondary);
-  color: white;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.secondary:hover {
+  background: var(--bg-active);
+  border-color: var(--border-default);
 }
 
 .success {
-  background: rgba(var(--success-rgb), 0.15);
+  background: var(--success-bg);
   color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.success:hover {
+  background: rgba(35, 134, 54, 0.25);
 }
 
 .warning {
-  background: rgba(var(--warning-rgb), 0.15);
+  background: var(--warning-bg);
   color: var(--warning);
+  border: 1px solid var(--warning-border);
 }
 
-.error {
-  background: rgba(var(--danger-rgb), 0.15);
-  color: var(--danger);
+.warning:hover {
+  background: rgba(210, 153, 34, 0.25);
 }
 
-.critical {
-  background: rgba(var(--danger-rgb), 0.2);
+.danger {
+  background: var(--danger-bg);
   color: var(--danger);
-  font-weight: var(--font-weight-bold);
-  border: 1px solid var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+.danger:hover {
+  background: rgba(248, 81, 73, 0.25);
 }
 
 .info {
-  background: rgba(var(--info-rgb), 0.15);
+  background: var(--info-bg);
   color: var(--info);
+  border: 1px solid var(--info-border);
+}
+
+.info:hover {
+  background: rgba(88, 166, 255, 0.25);
+}
+
+/* Severity variants */
+.critical {
+  background: var(--severity-critical-bg);
+  color: var(--severity-critical);
+  border: 1px solid var(--severity-critical);
+  animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+.high {
+  background: var(--severity-high-bg);
+  color: var(--severity-high);
+  border: 1px solid var(--severity-high);
+}
+
+.medium {
+  background: var(--severity-medium-bg);
+  color: var(--severity-medium);
+  border: 1px solid var(--severity-medium);
+}
+
+.low {
+  background: var(--severity-low-bg);
+  color: var(--severity-low);
+  border: 1px solid var(--severity-low);
+}
+
+/* Dot indicator */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+.dot.success {
+  background: var(--success);
+}
+
+.dot.warning {
+  background: var(--warning);
+}
+
+.dot.danger {
+  background: var(--danger);
+}
+
+/* Count animation */
+.count {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  transition: all var(--duration-fast);
+}
+
+.count.changed {
+  animation: countUpdate var(--duration-normal) var(--ease-spring);
+}
+
+/* Outline variant */
+.outline {
+  background: transparent;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.outline.default {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+.outline.primary {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Ghost variant */
+.ghost {
+  background: transparent;
+  border: none;
+}
+
+.ghost:hover {
+  background: var(--bg-hover);
+}
+
+/* Removable badge */
+.removable {
+  padding-right: var(--space-1);
+}
+
+.removeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  margin-left: var(--space-1);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  color: currentColor;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: 
+    opacity var(--duration-fast),
+    background-color var(--duration-fast),
+    transform var(--duration-fast);
+}
+
+.removeButton:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
+}
+
+.removeButton:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes badgeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes countUpdate {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+    color: var(--accent-primary);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .badge,
+  .count,
+  .removeButton,
+  .dot {
+    animation: none;
+    transition: none;
+  }
+
+  .badge:hover,
+  .badge:active {
+    transform: none;
+  }
 }

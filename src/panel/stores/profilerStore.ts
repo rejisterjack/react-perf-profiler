@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import type { StoreApi } from 'zustand';
 import type {
   CommitData,
   AnalysisResult,
@@ -19,7 +20,8 @@ import type {
 } from '@/shared/types/rsc';
 import type { ExportedProfileV1, ImportValidationResult } from '@/shared/types/export';
 import { createExportProfile, validateImportData, isExportedProfileV1 } from '@/shared/types/export';
-import { autoMigrateProfile, MigrationError } from '@/shared/export/migrations';
+import { autoMigrateProfileWithLogging, MigrationError, CorruptedProfileError } from '@/shared/export/migrations';
+import type { MigrationLogEntry } from '@/shared/types/export';
 import { rscWorker } from '@/panel/workers/workerClient';
 
 /**
@@ -196,7 +198,7 @@ interface ProfilerActions {
   /** Validate import data and return validation result */
   validateImportData: (json: string) => ImportValidationResult;
   /** Import data with migration if needed */
-  importDataWithMigration: (json: string) => { success: boolean; error?: string; migrated?: boolean };
+  importDataWithMigration: (json: string) => { success: boolean; error?: string; migrated?: boolean; migrationLog?: MigrationLogEntry[] };
   /** Update profiler configuration */
   updateConfig: (config: Partial<ProfilerConfig>) => void;
   /** Select a specific commit */
@@ -288,8 +290,8 @@ const MAX_SIDEBAR_WIDTH = 600;
 
 // Store implementation
 const storeImplementation = (
-  set: any, // eslint-disable-line @typescript-eslint/no-explicit-any
-  get: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  set: StoreApi<ProfilerStore>['setState'],
+  get: StoreApi<ProfilerStore>['getState']
 ): ProfilerStore => ({
   // State
   isRecording: false,
@@ -452,18 +454,29 @@ const storeImplementation = (
 
       let profile: ExportedProfileV1;
       let migrated = false;
+      let migrationLog: MigrationLogEntry[] | undefined;
 
       // Check if migration is needed
       if (validation.migrationAvailable && validation.migrationTarget) {
         try {
-          profile = autoMigrateProfile(data);
-          migrated = true;
+          const result = autoMigrateProfileWithLogging(data);
+          profile = result.profile;
+          migrated = result.migrated;
+          migrationLog = result.log;
         } catch (migrateError) {
+          let errorMessage = 'Failed to migrate profile to current format';
+          
+          if (migrateError instanceof MigrationError) {
+            errorMessage = `Migration failed: ${migrateError.message}`;
+            migrationLog = migrateError.log;
+          } else if (migrateError instanceof CorruptedProfileError) {
+            errorMessage = `Corrupted profile: ${migrateError.message}`;
+          }
+          
           return { 
             success: false, 
-            error: migrateError instanceof MigrationError 
-              ? `Migration failed: ${migrateError.message}` 
-              : 'Failed to migrate profile to current format' 
+            error: errorMessage,
+            migrationLog
           };
         }
       } else if (isExportedProfileV1(data)) {
@@ -471,12 +484,24 @@ const storeImplementation = (
       } else {
         // Try auto-migration for unknown formats
         try {
-          profile = autoMigrateProfile(data);
-          migrated = true;
-        } catch {
+          const result = autoMigrateProfileWithLogging(data);
+          profile = result.profile;
+          migrated = result.migrated;
+          migrationLog = result.log;
+        } catch (migrateError) {
+          let errorMessage = 'Unsupported profile format';
+          
+          if (migrateError instanceof MigrationError) {
+            errorMessage = `Migration failed: ${migrateError.message}`;
+            migrationLog = migrateError.log;
+          } else if (migrateError instanceof CorruptedProfileError) {
+            errorMessage = `Corrupted profile: ${migrateError.message}`;
+          }
+          
           return { 
             success: false, 
-            error: 'Unsupported profile format' 
+            error: errorMessage,
+            migrationLog
           };
         }
       }
@@ -497,7 +522,7 @@ const storeImplementation = (
         analysisError: null,
       });
 
-      return { success: true, migrated };
+      return { success: true, migrated, migrationLog };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Invalid JSON data';
       set({ analysisError: errorMessage });

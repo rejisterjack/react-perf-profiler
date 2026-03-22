@@ -28,8 +28,12 @@ function firefoxExtensionPlugin(): Plugin {
       const outDir = options.dir || 'dist-firefox';
       try {
         mkdirSync(resolve(outDir, 'icons'), { recursive: true });
-      } catch {
-        // Directory may already exist
+      } catch (error) {
+        // Directory may already exist or there was a permission issue
+        // This is non-fatal as the build will fail later if icons are truly missing
+        if (error instanceof Error && !error.message.includes('EEXIST')) {
+          console.warn('[firefox-extension-plugin] Warning: Could not create icons directory:', error.message);
+        }
       }
     },
   };

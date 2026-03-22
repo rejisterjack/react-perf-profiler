@@ -5,6 +5,7 @@
 
 import type { CommitData, FiberData } from '../../content/types';
 import { shallowEqual, type FiberNode } from './shallowEqual';
+import { FRAME_BUDGET } from '@/shared/constants';
 
 /** Reasons why a wasted render might have occurred */
 export type WastedRenderReason =
@@ -356,7 +357,7 @@ export function generateWastedRenderRecommendations(session: RenderSession): str
         session.wastedRenderDurations.length
       : 0;
 
-  if (avgWastedDuration > 16) {
+  if (avgWastedDuration > FRAME_BUDGET.MS) {
     recommendations.push(
       `Wasted renders are expensive (${avgWastedDuration.toFixed(1)}ms avg). Prioritize fixing this component.`
     );

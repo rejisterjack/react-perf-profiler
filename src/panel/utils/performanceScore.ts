@@ -12,6 +12,8 @@ import {
   RENDER_DURATION_SCORE,
   COMPONENT_COMPLEXITY_SCORE,
   PERFORMANCE_SCORE_PENALTIES,
+  PERFORMANCE_SCORE_WEIGHTS,
+  PERFORMANCE_SCORE_THRESHOLDS,
 } from '@/shared/constants';
 
 /** Performance metrics with overall score and category breakdowns */
@@ -63,12 +65,12 @@ export interface PerformanceScoreConfig {
   maxComponentsThreshold?: number;
 }
 
-// Default weights (must sum to 1)
+// Default weights (must sum to 1) - using named constants from shared/constants
 const DEFAULT_WEIGHTS = {
-  wastedRenderWeight: 0.35,
-  memoizationWeight: 0.25,
-  renderTimeWeight: 0.25,
-  componentCountWeight: 0.15,
+  wastedRenderWeight: PERFORMANCE_SCORE_WEIGHTS.WASTED_RENDER,
+  memoizationWeight: PERFORMANCE_SCORE_WEIGHTS.MEMOIZATION,
+  renderTimeWeight: PERFORMANCE_SCORE_WEIGHTS.RENDER_TIME,
+  componentCountWeight: PERFORMANCE_SCORE_WEIGHTS.COMPONENT_COUNT,
 };
 
 /**
@@ -217,14 +219,24 @@ export function scoreMemoization(reports: MemoEffectivenessReport[]): number {
     }
 
     // Deduct for low hit rate
-    if (report.currentHitRate < 0.5) {
+    if (report.currentHitRate < PERFORMANCE_SCORE_THRESHOLDS.LOW_HIT_RATE) {
       totalScore -= PERFORMANCE_SCORE_PENALTIES.memoization.LOW_HIT_RATE * (1 - report.currentHitRate);
     }
   }
 
   // Normalize based on number of problematic components
-  const adjustment = Math.min(1, componentWeight / 5);
-  return Math.max(0, Math.round(totalScore * (0.7 + 0.3 * (1 - adjustment))));
+  const adjustment = Math.min(
+    1,
+    componentWeight / PERFORMANCE_SCORE_THRESHOLDS.MAX_PROBLEMATIC_COMPONENTS
+  );
+  return Math.max(
+    0,
+    Math.round(
+      totalScore *
+        (PERFORMANCE_SCORE_THRESHOLDS.BASE_MULTIPLIER +
+          PERFORMANCE_SCORE_THRESHOLDS.ADJUSTMENT_RANGE * (1 - adjustment))
+    )
+  );
 }
 
 /**
@@ -348,7 +360,9 @@ function extractMemoIssues(reports: MemoEffectivenessReport[]): PerformanceIssue
   for (const report of reports) {
     if (report.issues.length === 0 && report.isEffective) continue;
 
-    const criticalIssues = report.issues.filter((i) => i.impact > 0.7);
+    const criticalIssues = report.issues.filter(
+      (i) => i.impact > PERFORMANCE_SCORE_THRESHOLDS.CRITICAL_IMPACT
+    );
     const severity =
       criticalIssues.length > 0 ? 'critical' : report.issues.length > 2 ? 'warning' : 'info';
 

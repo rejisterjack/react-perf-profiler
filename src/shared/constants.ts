@@ -528,6 +528,43 @@ export const WASTED_RENDER_ANALYSIS_SCORE = {
 } as const;
 
 /**
+ * Default weights for performance score calculation
+ * Must sum to 1.0 (100%)
+ * 
+ * These weights determine how much each category contributes to the overall score:
+ * - Wasted renders: 35% (highest priority - direct performance impact)
+ * - Memoization: 25% (important for preventing unnecessary work)
+ * - Render time: 25% (actual user-perceived performance)
+ * - Component count: 15% (complexity factor)
+ */
+export const PERFORMANCE_SCORE_WEIGHTS = {
+  /** Weight for wasted render category (35%) */
+  WASTED_RENDER: 0.35,
+  /** Weight for memoization effectiveness category (25%) */
+  MEMOIZATION: 0.25,
+  /** Weight for render time category (25%) */
+  RENDER_TIME: 0.25,
+  /** Weight for component count category (15%) */
+  COMPONENT_COUNT: 0.15,
+} as const;
+
+/**
+ * Thresholds for performance score calculations
+ */
+export const PERFORMANCE_SCORE_THRESHOLDS = {
+  /** Hit rate threshold below which memoization is considered ineffective (50%) */
+  LOW_HIT_RATE: 0.5,
+  /** Impact threshold above which issues are considered critical (70%) */
+  CRITICAL_IMPACT: 0.7,
+  /** Number of problematic components before max adjustment (5) */
+  MAX_PROBLEMATIC_COMPONENTS: 5,
+  /** Base score multiplier for normalization (70%) */
+  BASE_MULTIPLIER: 0.7,
+  /** Adjustment range for normalization (30%) */
+  ADJUSTMENT_RANGE: 0.3,
+} as const;
+
+/**
  * Performance score penalty weights for different issue types
  * 
  * Used in performanceScore.ts to calculate deductions from the base score
@@ -566,6 +603,19 @@ export const WASTED_RENDER_THRESHOLDS = {
   HIGH_IMPACT: 50,
   /** Maximum number of top opportunities to display */
   TOP_OPPORTUNITIES_LIMIT: 5,
+} as const;
+
+/**
+ * Frame budget constants for 60fps performance target
+ * 
+ * At 60fps, each frame has 16.67ms to render.
+ * We use 16ms as a practical threshold for identifying performance issues.
+ */
+export const FRAME_BUDGET = {
+  /** Target frame duration for 60fps in milliseconds (1000ms / 60 frames) */
+  MS: 16,
+  /** Frame duration threshold for identifying slow renders */
+  SLOW_RENDER_THRESHOLD_MS: 16,
 } as const;
 
 /**

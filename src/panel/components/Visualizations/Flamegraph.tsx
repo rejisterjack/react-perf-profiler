@@ -237,7 +237,19 @@ export const Flamegraph: React.FC = () => {
         className={styles["svg"]}
         width={dimensions.width + MARGIN.left + MARGIN.right}
         height={dimensions.height + MARGIN.top + MARGIN.bottom}
-      />
+        role="img"
+        aria-label={
+          commit
+            ? `Flamegraph: component render hierarchy for commit ${commit.id}. Each bar represents a component; wider bars indicate longer render times.`
+            : 'Flamegraph: no commit selected'
+        }
+      >
+        <title>
+          {commit
+            ? `Flamegraph — commit render hierarchy (${(commit.duration ?? 0).toFixed(1)}ms total)`
+            : 'Flamegraph — no data'}
+        </title>
+      </svg>
       <Tooltip tooltip={tooltip} />
     </div>
   );

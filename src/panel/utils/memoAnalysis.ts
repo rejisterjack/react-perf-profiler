@@ -3,6 +3,11 @@
  * Detects prop stability issues and evaluates memoization strategies
  */
 
+import {
+  MEMO_EFFECTIVENESS_DEFAULT_THRESHOLD,
+  MEMO_MIN_RENDERS_DEFAULT,
+  MEMO_STABILITY_THRESHOLD_DEFAULT,
+} from '@/shared/constants';
 import type { CommitData } from '../../content/types';
 
 /** Snapshot of a prop value at a specific time */
@@ -239,7 +244,11 @@ export function analyzeMemoEffectiveness(
   componentMetrics: ComponentMetrics[],
   config: MemoAnalysisConfig = {}
 ): MemoEffectivenessReport[] {
-  const { minRenders = 3, effectivenessThreshold = 0.7, stabilityThreshold = 0.2 } = config;
+  const {
+    minRenders = MEMO_MIN_RENDERS_DEFAULT,
+    effectivenessThreshold = MEMO_EFFECTIVENESS_DEFAULT_THRESHOLD,
+    stabilityThreshold = MEMO_STABILITY_THRESHOLD_DEFAULT,
+  } = config;
 
   if (!commits || commits.length === 0 || componentMetrics.length === 0) {
     return [];

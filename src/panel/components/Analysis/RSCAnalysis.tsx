@@ -15,6 +15,7 @@ import type {
   ComponentType,
   RSCRecommendationPriority,
 } from '@/shared/types/rsc';
+import { checkRSCSupport } from '@/panel/utils/rscVersionDetect';
 import { Badge } from '../Common/Badge/Badge';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './RSCAnalysis.module.css';
@@ -28,6 +29,8 @@ export interface RSCAnalysisProps {
   analysis: RSCAnalysisResult | null;
   /** Loading state */
   loading: boolean;
+  /** React version detected from the profiled page, used for graceful degradation */
+  reactVersion?: string;
 }
 
 /**
@@ -35,7 +38,7 @@ export interface RSCAnalysisProps {
  * Displays comprehensive RSC analysis results including metrics, boundaries,
  * streaming timeline, issues, and recommendations.
  */
-export const RSCAnalysis: React.FC<RSCAnalysisProps> = ({ analysis, loading }) => {
+export const RSCAnalysis: React.FC<RSCAnalysisProps> = ({ analysis, loading, reactVersion }) => {
   if (loading) {
     return (
       <div className={styles['loading']}>
@@ -46,11 +49,21 @@ export const RSCAnalysis: React.FC<RSCAnalysisProps> = ({ analysis, loading }) =
   }
 
   if (!analysis) {
+    const support = checkRSCSupport(reactVersion);
     return (
       <div className={styles['empty']}>
         <Icon name="info" size={32} />
-        <p>No RSC analysis data available.</p>
-        <small>Record a profile to analyze React Server Components.</small>
+        {support.supported ? (
+          <>
+            <p>No RSC analysis data available.</p>
+            <small>Record a profile with RSC activity to see analysis.</small>
+          </>
+        ) : (
+          <>
+            <p>React Server Components not available.</p>
+            <small>{support.reason}</small>
+          </>
+        )}
       </div>
     );
   }

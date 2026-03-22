@@ -396,7 +396,11 @@ export const Heatmap: React.FC = () => {
           className={styles["svg"]}
           width={dimensions.width}
           height={dimensions.height}
-        />
+          role="img"
+          aria-label="Heatmap: component render frequency and duration grid. Darker cells indicate higher render counts or longer durations."
+        >
+          <title>Component render heatmap</title>
+        </svg>
       </div>
 
       <Tooltip tooltip={tooltip} colorMode={colorMode} />

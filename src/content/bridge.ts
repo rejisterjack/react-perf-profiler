@@ -15,6 +15,48 @@ let originalOnCommitFiberRoot:
 let isProfiling = false;
 let reactVersion: string | undefined;
 
+// Rate limiting for commit messages — prevents flooding on animation-heavy pages
+/** Max one commit message per window; excess commits are coalesced into the next flush */
+const COMMIT_THROTTLE_MS = 50;
+let lastCommitTime = 0;
+let pendingCommitData: ReturnType<typeof parseFiberRoot> | null = null;
+let commitThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Send a commit, throttling to at most one per COMMIT_THROTTLE_MS.
+ * If a commit arrives during the cooldown the most recent one is buffered
+ * and flushed when the timer fires — so no commit is silently dropped.
+ */
+function sendThrottledCommit(commitData: ReturnType<typeof parseFiberRoot>): void {
+  const now = Date.now();
+  const elapsed = now - lastCommitTime;
+
+  if (elapsed >= COMMIT_THROTTLE_MS) {
+    // Outside throttle window — send immediately
+    lastCommitTime = now;
+    pendingCommitData = null;
+    if (commitThrottleTimer !== null) {
+      clearTimeout(commitThrottleTimer);
+      commitThrottleTimer = null;
+    }
+    sendMessage({ type: 'COMMIT', data: commitData });
+  } else {
+    // Within throttle window — buffer and schedule a flush
+    pendingCommitData = commitData;
+    if (commitThrottleTimer === null) {
+      commitThrottleTimer = setTimeout(() => {
+        commitThrottleTimer = null;
+        if (pendingCommitData !== null) {
+          lastCommitTime = Date.now();
+          const toSend = pendingCommitData;
+          pendingCommitData = null;
+          sendMessage({ type: 'COMMIT', data: toSend });
+        }
+      }, COMMIT_THROTTLE_MS - elapsed);
+    }
+  }
+}
+
 // Retry state
 let initRetryCount = 0;
 let initRetryTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -225,11 +267,8 @@ function setupHookInterception(hook: NonNullable<ReturnType<typeof getReactDevTo
       const commitData = parseFiberRoot(current, priorityLevel);
       commitData.reactVersion = reactVersion;
 
-      // Send to content script
-      sendMessage({
-        type: 'COMMIT',
-        data: commitData,
-      });
+      // Send to content script (throttled to prevent flooding)
+      sendThrottledCommit(commitData);
     } catch (error) {
       sendMessage({
         type: 'ERROR',

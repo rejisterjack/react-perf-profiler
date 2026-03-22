@@ -7,6 +7,7 @@ import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
+import { getErrorDisplay } from '@/panel/utils/errorMessages';
 import { Icon, type IconName } from '../Common/Icon/Icon';
 import { Button } from '../Common/Button/Button';
 import styles from './WelcomeScreen.module.css';
@@ -88,14 +89,19 @@ export const WelcomeScreen: React.FC = () => {
             });
           }
           break;
-        case 'BRIDGE_ERROR':
+        case 'BRIDGE_ERROR': {
+          const errDisplay = getErrorDisplay(
+            message.payload?.errorType,
+            message.payload?.message
+          );
           setDetectionState({
             isChecking: false,
             state: 'devtools-not-found',
-            message: message.payload?.message || 'React DevTools not detected',
-            canRetry: message.payload?.recoverable !== false,
+            message: `${errDisplay.title} — ${errDisplay.detail}`,
+            canRetry: errDisplay.recoverable,
           });
           break;
+        }
       }
     });
 
@@ -112,21 +118,15 @@ export const WelcomeScreen: React.FC = () => {
 
     // Check for explicit errors first
     if (payload.error) {
-      if (payload.error.type === 'REACT_NOT_FOUND' || !payload.reactDetected) {
-        setDetectionState({
-          isChecking: false,
-          state: 'react-not-found',
-          message: payload.error.message || 'React not detected on this page',
-          canRetry: payload.error.recoverable !== false,
-        });
-      } else if (payload.error.type === 'DEVTOOLS_NOT_FOUND' || !payload.devtoolsDetected) {
-        setDetectionState({
-          isChecking: false,
-          state: 'devtools-not-found',
-          message: payload.error.message || 'React DevTools extension not found',
-          canRetry: payload.error.recoverable !== false,
-        });
-      }
+      const errDisplay = getErrorDisplay(payload.error.type, payload.error.message);
+      const isReactMissing =
+        payload.error.type === 'REACT_NOT_FOUND' || !payload.reactDetected;
+      setDetectionState({
+        isChecking: false,
+        state: isReactMissing ? 'react-not-found' : 'devtools-not-found',
+        message: `${errDisplay.title} — ${errDisplay.detail}`,
+        canRetry: errDisplay.recoverable,
+      });
       return;
     }
 

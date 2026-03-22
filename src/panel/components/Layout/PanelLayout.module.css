@@ -5,9 +5,25 @@
 
 .panelLayout {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
   background: var(--bg-primary);
+  position: relative;
+}
+
+/* Full-width row housing the time travel scrubber */
+.timeTravelRow {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* Inner row that holds sidebar + main + detail side by side */
+.panelRow {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   position: relative;
 }
 

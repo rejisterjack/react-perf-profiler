@@ -5,10 +5,20 @@
 
 import React from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import { WelcomeScreen } from './WelcomeScreen';
 import { Icon, type IconName } from '../Common/Icon/Icon';
-
+import { WelcomeScreen } from './WelcomeScreen';
 import styles from './MainContent.module.css';
+
+// Lazy-load heavy D3 visualization panels and the compare view.
+// Each is only parsed/executed when the user first switches to that tab,
+// keeping the initial panel load fast.
+const Flamegraph = React.lazy(() =>
+  import('../Visualizations/Flamegraph').then((m) => ({ default: m.Flamegraph }))
+);
+const Timeline = React.lazy(() =>
+  import('../Visualizations/Timeline').then((m) => ({ default: m.Timeline }))
+);
+const ProfileCompare = React.lazy(() => import('../Analysis/ProfileCompare'));
 
 // =============================================================================
 // Props Interface
@@ -52,9 +62,22 @@ export const MainContent: React.FC<MainContentProps> = ({ className }) => {
       {/* View Content */}
       <div className={styles["viewContainer"]}>
         {viewMode === 'tree' && <ComponentTreeViewPlaceholder />}
-        {viewMode === 'flamegraph' && <FlamegraphPlaceholder />}
-        {viewMode === 'timeline' && <TimelinePlaceholder />}
+        {viewMode === 'flamegraph' && (
+          <React.Suspense fallback={<div className={styles["loadingFallback"]}>Loading flamegraph…</div>}>
+            <Flamegraph />
+          </React.Suspense>
+        )}
+        {viewMode === 'timeline' && (
+          <React.Suspense fallback={<div className={styles["loadingFallback"]}>Loading timeline…</div>}>
+            <Timeline />
+          </React.Suspense>
+        )}
         {viewMode === 'analysis' && <AnalysisViewPlaceholder />}
+        {viewMode === 'compare' && (
+          <React.Suspense fallback={<div className={styles["loadingFallback"]}>Loading comparison…</div>}>
+            <ProfileCompare />
+          </React.Suspense>
+        )}
       </div>
     </main>
   );
@@ -93,95 +116,6 @@ const ComponentTreeViewPlaceholder: React.FC = () => {
           {commits.length > 10 && (
             <div className={styles["moreCommits"]}>... and {commits.length - 10} more commits</div>
           )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const FlamegraphPlaceholder: React.FC = () => {
-  const { componentData } = useProfilerStore();
-
-  // Get top components by render time
-  const topComponents = React.useMemo(() => {
-    return Array.from(componentData.values())
-      .sort((a, b) => (b.totalDuration || 0) - (a.totalDuration || 0))
-      .slice(0, 10);
-  }, [componentData]);
-
-  return (
-    <div className={styles["placeholderContainer"]}>
-      <div className={styles["placeholderHeader"]}>
-        <Icon name="flame" size={24} />
-        <h3>Flamegraph View</h3>
-        <p>Visual representation of component render times</p>
-      </div>
-
-      <div className={styles["placeholderContent"]}>
-        {topComponents.length > 0 ? (
-          <div className={styles["flameList"]}>
-            {topComponents.map((component) => (
-              <div
-                key={component.name}
-                className={styles["flameItem"]}
-                style={{
-                  width: `${Math.min(100, (component.totalDuration / (topComponents[0]?.totalDuration || 1)) * 100)}%`,
-                }}
-              >
-                <span className={styles["flameName"]}>{component.name}</span>
-                <span className={styles["flameTime"]}>
-                  {(component.totalDuration || 0).toFixed(2)}ms
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className={styles["noData"]}>No component data available</p>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const TimelinePlaceholder: React.FC = () => {
-  const { commits } = useProfilerStore();
-
-  const maxDuration = React.useMemo(() => {
-    if (commits.length === 0) return 1;
-    return Math.max(...commits.map((c) => c.duration || 0), 1);
-  }, [commits]);
-
-  return (
-    <div className={styles["placeholderContainer"]}>
-      <div className={styles["placeholderHeader"]}>
-        <Icon name="timeline" size={24} />
-        <h3>Timeline View</h3>
-        <p>Chronological view of commits over time</p>
-      </div>
-
-      <div className={styles["placeholderContent"]}>
-        <div className={styles["timelineChart"]}>
-          {commits.slice(0, 50).map((commit, index) => (
-            <div
-              key={commit.id}
-              className={styles["timelineBar"]}
-              style={{
-                height: `${((commit.duration || 0) / maxDuration) * 100}%`,
-                background:
-                  (commit.duration || 0) > maxDuration * 0.8
-                    ? 'var(--severity-critical)'
-                    : (commit.duration || 0) > maxDuration * 0.5
-                      ? 'var(--severity-warning)'
-                      : 'var(--primary)',
-              }}
-              title={`Commit ${index + 1}: ${(commit.duration || 0).toFixed(2)}ms`}
-            />
-          ))}
-        </div>
-        <div className={styles["timelineAxis"]}>
-          <span>Start</span>
-          <span>Middle</span>
-          <span>End</span>
         </div>
       </div>
     </div>
@@ -317,31 +251,23 @@ const AnalysisViewPlaceholder: React.FC = () => {
 
 function getViewIcon(viewMode: string): IconName {
   switch (viewMode) {
-    case 'tree':
-      return 'tree';
-    case 'flamegraph':
-      return 'flame';
-    case 'timeline':
-      return 'timeline';
-    case 'analysis':
-      return 'analysis';
-    default:
-      return 'tree';
+    case 'tree': return 'tree';
+    case 'flamegraph': return 'flame';
+    case 'timeline': return 'timeline';
+    case 'analysis': return 'analysis';
+    case 'compare': return 'diff';
+    default: return 'tree';
   }
 }
 
 function getViewTitle(viewMode: string): string {
   switch (viewMode) {
-    case 'tree':
-      return 'Component Tree';
-    case 'flamegraph':
-      return 'Flamegraph';
-    case 'timeline':
-      return 'Timeline';
-    case 'analysis':
-      return 'Performance Analysis';
-    default:
-      return 'View';
+    case 'tree': return 'Component Tree';
+    case 'flamegraph': return 'Flamegraph';
+    case 'timeline': return 'Timeline';
+    case 'analysis': return 'Performance Analysis';
+    case 'compare': return 'Profile Comparison';
+    default: return 'View';
   }
 }
 

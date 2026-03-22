@@ -51,6 +51,15 @@
   padding: var(--spacing-3);
 }
 
+.loadingFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted, #666);
+  font-size: 13px;
+}
+
 /* ============================================================================
    Placeholder Container
    ============================================================================ */

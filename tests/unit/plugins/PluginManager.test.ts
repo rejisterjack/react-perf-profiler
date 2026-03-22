@@ -415,3 +415,117 @@ describe('PluginError', () => {
     expect(error.name).toBe('PluginError');
   });
 });
+
+// =============================================================================
+// Edge-case tests: plugin ID and semver regex validation
+// =============================================================================
+
+describe('validatePlugin — ID edge cases', () => {
+  const base = { name: 'Test', version: '1.0.0' };
+
+  // --- IDs that MUST be accepted -----------------------------------------------
+
+  it('accepts a simple dot-separated reverse-domain ID', () => {
+    expect(() => validatePlugin({ metadata: { id: 'com.example.plugin', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts an ID with hyphens', () => {
+    expect(() => validatePlugin({ metadata: { id: 'my-company.my-plugin', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts an ID with underscores', () => {
+    expect(() => validatePlugin({ metadata: { id: 'com.example.my_plugin', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts a single-word ID (no dots)', () => {
+    expect(() => validatePlugin({ metadata: { id: 'myplugin', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts an ID with digits', () => {
+    expect(() => validatePlugin({ metadata: { id: 'plugin123', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts an ID that is exactly one character', () => {
+    expect(() => validatePlugin({ metadata: { id: 'x', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts a very long ID (255 chars)', () => {
+    const longId = 'a'.repeat(255);
+    expect(() => validatePlugin({ metadata: { id: longId, ...base } } as any)).not.toThrow();
+  });
+
+  // --- IDs that MUST be rejected -----------------------------------------------
+
+  it('rejects an empty string ID', () => {
+    expect(() => validatePlugin({ metadata: { id: '', ...base } } as any)).toThrow();
+  });
+
+  it('rejects a numeric ID (not a string)', () => {
+    expect(() => validatePlugin({ metadata: { id: 123, ...base } } as any)).toThrow();
+  });
+
+  it('rejects null as ID', () => {
+    expect(() => validatePlugin({ metadata: { id: null, ...base } } as any)).toThrow();
+  });
+
+  it('rejects undefined as ID (same as missing)', () => {
+    expect(() => validatePlugin({ metadata: { id: undefined, ...base } } as any)).toThrow();
+  });
+});
+
+describe('validatePlugin — semver version edge cases', () => {
+  const base = { id: 'test.plugin', name: 'Test' };
+
+  // --- Versions that MUST be accepted ------------------------------------------
+
+  it('accepts "1.0.0"', () => {
+    expect(() => validatePlugin({ metadata: { version: '1.0.0', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts "0.0.1"', () => {
+    expect(() => validatePlugin({ metadata: { version: '0.0.1', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts a large version like "100.200.300"', () => {
+    expect(() => validatePlugin({ metadata: { version: '100.200.300', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts a version with pre-release suffix "1.0.0-alpha.1"', () => {
+    // The regex is /^\d+\.\d+\.\d+/ — anchored at start only, so suffix is allowed
+    expect(() => validatePlugin({ metadata: { version: '1.0.0-alpha.1', ...base } } as any)).not.toThrow();
+  });
+
+  it('accepts a version with build metadata "1.0.0+build.100"', () => {
+    expect(() => validatePlugin({ metadata: { version: '1.0.0+build.100', ...base } } as any)).not.toThrow();
+  });
+
+  // --- Versions that MUST be rejected ------------------------------------------
+
+  it('rejects "1" (only major)', () => {
+    expect(() => validatePlugin({ metadata: { version: '1', ...base } } as any)).toThrow('semver format');
+  });
+
+  it('rejects "1.0" (only major.minor)', () => {
+    expect(() => validatePlugin({ metadata: { version: '1.0', ...base } } as any)).toThrow('semver format');
+  });
+
+  it('rejects "v1.0.0" (leading v)', () => {
+    expect(() => validatePlugin({ metadata: { version: 'v1.0.0', ...base } } as any)).toThrow('semver format');
+  });
+
+  it('rejects empty string version', () => {
+    expect(() => validatePlugin({ metadata: { version: '', ...base } } as any)).toThrow();
+  });
+
+  it('rejects version with letters only "abc"', () => {
+    expect(() => validatePlugin({ metadata: { version: 'abc', ...base } } as any)).toThrow('semver format');
+  });
+
+  it('rejects version "1.0.a" (non-numeric patch)', () => {
+    expect(() => validatePlugin({ metadata: { version: '1.0.a', ...base } } as any)).toThrow('semver format');
+  });
+
+  it('rejects null version', () => {
+    expect(() => validatePlugin({ metadata: { version: null, ...base } } as any)).toThrow();
+  });
+});

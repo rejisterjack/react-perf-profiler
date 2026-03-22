@@ -1,9 +1,10 @@
 import type React from 'react';
-import { useEffect, useState, useCallback } from 'react';
-import { PanelLayout } from './components/Layout/PanelLayout';
-import { Toolbar } from './components/Layout/Toolbar';
+import { useCallback, useEffect, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeScreen } from './components/Layout/WelcomeScreen';
+import { PanelLayout } from './components/Layout/PanelLayout';
+import { Toolbar } from './components/Layout/Toolbar';
+import { useSessionPersistence } from './hooks/useSessionPersistence';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
 import styles from './App.module.css';
@@ -88,6 +89,29 @@ const ConnectionError: React.FC<{
 };
 
 /**
+ * Banner shown when a previous session can be restored from IndexedDB
+ */
+const SessionRestoreBanner: React.FC<{
+  commitCount: number;
+  savedAt: number;
+  onRestore: () => void;
+  onDiscard: () => void;
+}> = ({ commitCount, savedAt, onRestore, onDiscard }) => (
+  <div className={styles['restoreBanner']} role="alert">
+    <span>
+      Previous session ({commitCount} commits, saved{' '}
+      {new Date(savedAt).toLocaleTimeString()}) available.
+    </span>
+    <button onClick={onRestore} className={styles['restoreButton']}>
+      Restore
+    </button>
+    <button onClick={onDiscard} className={styles['discardButton']}>
+      Discard
+    </button>
+  </div>
+);
+
+/**
  * Main App component
  */
 export const App: React.FC = () => {
@@ -95,6 +119,8 @@ export const App: React.FC = () => {
   const { isRecording, commits } = useProfilerStore();
   const [isRetrying, setIsRetrying] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const { hasPersistedSession, persistedSession, restoreSession, discardSession } =
+    useSessionPersistence();
 
   // Set up message handlers
   useEffect(() => {
@@ -174,6 +200,14 @@ export const App: React.FC = () => {
         <ErrorBoundary context="toolbar" compact>
           <Toolbar />
         </ErrorBoundary>
+        {hasPersistedSession && persistedSession && (
+          <SessionRestoreBanner
+            commitCount={persistedSession.commitCount}
+            savedAt={persistedSession.savedAt}
+            onRestore={restoreSession}
+            onDiscard={discardSession}
+          />
+        )}
         <ErrorBoundary context="panel layout">
           <PanelLayout />
         </ErrorBoundary>

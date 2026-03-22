@@ -6,6 +6,7 @@
  * Handles NDJSON streaming format, RSC reference markers, and boundary detection.
  */
 
+import { RSC_LARGE_PROPS_THRESHOLD_BYTES } from '@/shared/constants';
 import type { FiberData } from '@/shared/types';
 import type {
   RSCBoundary,
@@ -19,11 +20,6 @@ import type {
   RSCStreamMetrics,
 } from '@/shared/types/rsc';
 import { RSCReferenceMarker as Marker } from '@/shared/types/rsc';
-
-/**
- * Large props threshold in bytes (50KB)
- */
-const LARGE_PROPS_THRESHOLD = 50 * 1024;
 
 /**
  * Generate a unique ID
@@ -915,7 +911,7 @@ export function analyzeBoundaryCrossings(payload: RSCPayload): {
         boundaryId: boundary.id,
         componentName: boundary.componentName,
         propsSize: boundary.propsSize,
-        warning: boundary.propsSize > LARGE_PROPS_THRESHOLD,
+        warning: boundary.propsSize > RSC_LARGE_PROPS_THRESHOLD_BYTES,
       });
     }
   }

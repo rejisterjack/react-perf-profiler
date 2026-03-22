@@ -4,12 +4,14 @@
  */
 
 import type React from 'react';
-import { useRef, useCallback, useState, useEffect } from 'react';
-import { Sidebar } from './Sidebar';
-import { MainContent } from './MainContent';
-import { DetailPanel } from './DetailPanel';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { BudgetAlertBanner } from './BudgetAlertBanner';
+import { DetailPanel } from './DetailPanel';
+import { MainContent } from './MainContent';
+import { Sidebar } from './Sidebar';
+import { TimeTravelControls } from './TimeTravelControls';
 import styles from './PanelLayout.module.css';
 
 type ResizeTarget = 'sidebar' | 'detail';
@@ -141,83 +143,97 @@ export const PanelLayout: React.FC = () => {
 
   return (
     <div ref={containerRef} className={styles["panelLayout"]} data-resizing={isResizing}>
-      {/* Left sidebar - Component tree */}
-      <ErrorBoundary context="component tree view">
-        <Sidebar ref={sidebarRef} width={sidebarWidth} onResize={handleSidebarResize} />
+      {/* Budget violation alerts — spans full width, shown only when violations exist */}
+      <ErrorBoundary context="budget alerts" compact>
+        <BudgetAlertBanner />
       </ErrorBoundary>
 
-      {/* Resizer handle for sidebar */}
-      <div
-        className={`${styles["resizer"]} ${activeResizer === 'sidebar' ? styles["active"] : ''}`}
-        onMouseDown={(e) => startResize(e, 'sidebar')}
-        onTouchStart={(e) => {
-          const touch = e.touches[0]!;
-          startResize(
-            {
-              clientX: touch.clientX,
-              preventDefault: () => e.preventDefault(),
-            } as React.MouseEvent,
-            'sidebar'
-          );
-        }}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize sidebar"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          // Keyboard accessibility for resizing
-          const step = e.shiftKey ? 20 : 5;
-          if (e.key === 'ArrowRight') {
-            handleSidebarResize(sidebarWidth + step);
-          } else if (e.key === 'ArrowLeft') {
-            handleSidebarResize(sidebarWidth - step);
-          }
-        }}
-      />
+      {/* Time travel scrubber — spans full width above the 3-panel area */}
+      <div className={styles["timeTravelRow"]}>
+        <ErrorBoundary context="time travel controls" compact>
+          <TimeTravelControls />
+        </ErrorBoundary>
+      </div>
 
-      {/* Main content area */}
-      <ErrorBoundary context="main content view">
-        <MainContent className={styles["mainContent"]} />
-      </ErrorBoundary>
+      {/* Three-panel row: sidebar | main | detail */}
+      <div className={styles["panelRow"]}>
+        {/* Left sidebar - Component tree */}
+        <ErrorBoundary context="component tree view">
+          <Sidebar ref={sidebarRef} width={sidebarWidth} onResize={handleSidebarResize} />
+        </ErrorBoundary>
 
-      {/* Right detail panel */}
-      {detailPanelOpen && (
-        <>
-          {/* Resizer handle for detail panel */}
-          <div
-            className={`${styles["resizer"]} ${activeResizer === 'detail' ? styles["active"] : ''}`}
-            onMouseDown={(e) => startResize(e, 'detail')}
-            onTouchStart={(e) => {
-              const touch = e.touches[0]!;
-              startResize(
-                {
-                  clientX: touch.clientX,
-                  preventDefault: () => e.preventDefault(),
-                } as React.MouseEvent,
-                'detail'
-              );
-            }}
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize detail panel"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              const step = e.shiftKey ? 20 : 5;
-              if (e.key === 'ArrowLeft') {
-                handleDetailPanelResize((detailPanelWidth || 320) + step);
-              } else if (e.key === 'ArrowRight') {
-                handleDetailPanelResize((detailPanelWidth || 320) - step);
-              }
-            }}
-          />
-          <ErrorBoundary context="detail panel">
-            <DetailPanel ref={detailPanelRef} />
-          </ErrorBoundary>
-        </>
-      )}
+        {/* Resizer handle for sidebar */}
+        <div
+          className={`${styles["resizer"]} ${activeResizer === 'sidebar' ? styles["active"] : ''}`}
+          onMouseDown={(e) => startResize(e, 'sidebar')}
+          onTouchStart={(e) => {
+            const touch = e.touches[0]!;
+            startResize(
+              {
+                clientX: touch.clientX,
+                preventDefault: () => e.preventDefault(),
+              } as React.MouseEvent,
+              'sidebar'
+            );
+          }}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize sidebar"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            const step = e.shiftKey ? 20 : 5;
+            if (e.key === 'ArrowRight') {
+              handleSidebarResize(sidebarWidth + step);
+            } else if (e.key === 'ArrowLeft') {
+              handleSidebarResize(sidebarWidth - step);
+            }
+          }}
+        />
 
-      {/* Resize overlay to prevent iframe/content issues during resize */}
-      {isResizing && <div className={styles["resizeOverlay"]} aria-hidden="true" />}
+        {/* Main content area */}
+        <ErrorBoundary context="main content view">
+          <MainContent className={styles["mainContent"]} />
+        </ErrorBoundary>
+
+        {/* Right detail panel */}
+        {detailPanelOpen && (
+          <>
+            {/* Resizer handle for detail panel */}
+            <div
+              className={`${styles["resizer"]} ${activeResizer === 'detail' ? styles["active"] : ''}`}
+              onMouseDown={(e) => startResize(e, 'detail')}
+              onTouchStart={(e) => {
+                const touch = e.touches[0]!;
+                startResize(
+                  {
+                    clientX: touch.clientX,
+                    preventDefault: () => e.preventDefault(),
+                  } as React.MouseEvent,
+                  'detail'
+                );
+              }}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize detail panel"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                const step = e.shiftKey ? 20 : 5;
+                if (e.key === 'ArrowLeft') {
+                  handleDetailPanelResize((detailPanelWidth || 320) + step);
+                } else if (e.key === 'ArrowRight') {
+                  handleDetailPanelResize((detailPanelWidth || 320) - step);
+                }
+              }}
+            />
+            <ErrorBoundary context="detail panel">
+              <DetailPanel ref={detailPanelRef} />
+            </ErrorBoundary>
+          </>
+        )}
+
+        {/* Resize overlay to prevent iframe/content issues during resize */}
+        {isResizing && <div className={styles["resizeOverlay"]} aria-hidden="true" />}
+      </div>
     </div>
   );
 };

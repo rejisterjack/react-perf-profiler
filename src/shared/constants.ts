@@ -767,6 +767,37 @@ export const DEFAULT_DETAIL_PANEL_WIDTH = 400;
 export const SHORTCUT_FEEDBACK_TIMEOUT_MS = 2000;
 
 // ============================================================================
+// Memoization Analysis Constants
+// ============================================================================
+
+/**
+ * Default threshold for considering memo effective (0-1)
+ * A hit rate above this value means memo is working well
+ */
+export const MEMO_EFFECTIVENESS_DEFAULT_THRESHOLD = 0.7;
+
+/**
+ * Minimum render count before analyzing a component for memo effectiveness
+ */
+export const MEMO_MIN_RENDERS_DEFAULT = 3;
+
+/**
+ * Stability threshold below which a prop is considered stable (0-1)
+ * Change frequency below this means prop rarely changes
+ */
+export const MEMO_STABILITY_THRESHOLD_DEFAULT = 0.2;
+
+// ============================================================================
+// RSC Parser Constants
+// ============================================================================
+
+/**
+ * Prop size threshold in bytes above which crossing a server/client boundary
+ * is flagged as potentially problematic (50KB)
+ */
+export const RSC_LARGE_PROPS_THRESHOLD_BYTES = 50 * 1024;
+
+// ============================================================================
 // RSC Worker Threshold Constants
 // ============================================================================
 

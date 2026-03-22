@@ -12,7 +12,7 @@ import styles from './ViewModeToggle.module.css';
 // Types
 // =============================================================================
 
-type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis';
+type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis' | 'compare';
 
 interface ViewModeOption {
   mode: ViewMode;
@@ -30,6 +30,7 @@ const VIEW_MODES: ViewModeOption[] = [
   { mode: 'flamegraph', label: 'Flame', icon: 'flame', shortcut: '2' },
   { mode: 'timeline', label: 'Timeline', icon: 'timeline', shortcut: '3' },
   { mode: 'analysis', label: 'Analysis', icon: 'analysis', shortcut: '4' },
+  { mode: 'compare', label: 'Compare', icon: 'diff', shortcut: '5' },
 ];
 
 // =============================================================================

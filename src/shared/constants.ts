@@ -528,6 +528,35 @@ export const WASTED_RENDER_ANALYSIS_SCORE = {
 } as const;
 
 /**
+ * Performance score penalty weights for different issue types
+ * 
+ * Used in performanceScore.ts to calculate deductions from the base score
+ * based on severity and issue categories
+ */
+export const PERFORMANCE_SCORE_PENALTIES = {
+  /** Wasted render severity penalties - multiplied by wasted render rate */
+  wastedRender: {
+    /** Critical severity: highest penalty for severe wasted render issues */
+    CRITICAL: 15,
+    /** Warning severity: moderate penalty for noticeable wasted render issues */
+    WARNING: 8,
+    /** Info severity: minimal penalty for minor wasted render issues */
+    INFO: 3,
+    /** Minimum penalty for info severity (ensures score < 100 even for minor issues) */
+    INFO_MIN: 1,
+  },
+  /** Memoization effectiveness penalties - multiplied by component weight */
+  memoization: {
+    /** Penalty for components that should have memo but don't */
+    MISSING_MEMO: 10,
+    /** Penalty for components with memo that isn't effective */
+    INEFFECTIVE_MEMO: 15,
+    /** Penalty multiplier for low hit rate (multiplied by (1 - hitRate)) */
+    LOW_HIT_RATE: 10,
+  },
+} as const;
+
+/**
  * Thresholds for wasted render opportunities and impact classification
  */
 export const WASTED_RENDER_THRESHOLDS = {

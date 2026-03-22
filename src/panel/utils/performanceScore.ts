@@ -11,6 +11,7 @@ import {
   MIN_PERFORMANCE_SCORE,
   RENDER_DURATION_SCORE,
   COMPONENT_COMPLEXITY_SCORE,
+  PERFORMANCE_SCORE_PENALTIES,
 } from '@/shared/constants';
 
 /** Performance metrics with overall score and category breakdowns */
@@ -169,14 +170,17 @@ export function scoreWastedRenders(reports: WastedRenderReport[]): number {
     // Deduct based on severity
     switch (report.severity) {
       case 'critical':
-        totalScore -= 15 * report.wastedRenderRate;
+        totalScore -= PERFORMANCE_SCORE_PENALTIES.wastedRender.CRITICAL * report.wastedRenderRate;
         break;
       case 'warning':
-        totalScore -= 8 * report.wastedRenderRate;
+        totalScore -= PERFORMANCE_SCORE_PENALTIES.wastedRender.WARNING * report.wastedRenderRate;
         break;
       case 'info':
         // Deduct minimal points for info severity (at least 1 point to ensure score < 100)
-        totalScore -= Math.max(1, 3 * report.wastedRenderRate);
+        totalScore -= Math.max(
+          PERFORMANCE_SCORE_PENALTIES.wastedRender.INFO_MIN,
+          PERFORMANCE_SCORE_PENALTIES.wastedRender.INFO * report.wastedRenderRate
+        );
         break;
     }
   }
@@ -206,15 +210,15 @@ export function scoreMemoization(reports: MemoEffectivenessReport[]): number {
 
     if (!report.hasMemo && report.issues.length > 0) {
       // Missing memo where needed
-      totalScore -= 10 * weight;
+      totalScore -= PERFORMANCE_SCORE_PENALTIES.memoization.MISSING_MEMO * weight;
     } else if (report.hasMemo && !report.isEffective) {
       // Ineffective memo usage
-      totalScore -= 15 * weight;
+      totalScore -= PERFORMANCE_SCORE_PENALTIES.memoization.INEFFECTIVE_MEMO * weight;
     }
 
     // Deduct for low hit rate
     if (report.currentHitRate < 0.5) {
-      totalScore -= 10 * (1 - report.currentHitRate);
+      totalScore -= PERFORMANCE_SCORE_PENALTIES.memoization.LOW_HIT_RATE * (1 - report.currentHitRate);
     }
   }
 

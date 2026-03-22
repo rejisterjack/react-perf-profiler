@@ -6,6 +6,7 @@
 
 import type { CommitData, AnalysisResult } from '../types';
 import type { RSCPayload, RSCAnalysisResult } from './rsc';
+import { version as PACKAGE_VERSION } from '../../../package.json';
 
 /**
  * Current export format version
@@ -565,7 +566,7 @@ export function createExportProfile(
   return {
     version: '1.0',
     metadata: {
-      profilerVersion: '1.0.0', // TODO: Get from package.json
+      profilerVersion: PACKAGE_VERSION,
       reactVersion: options.reactVersion ?? 'unknown',
       exportedAt: now,
       format: 'react-perf-profiler-v1',

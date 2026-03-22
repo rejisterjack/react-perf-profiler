@@ -14,6 +14,10 @@ import {
   PERFORMANCE_SCORE_PENALTIES,
   PERFORMANCE_SCORE_WEIGHTS,
   PERFORMANCE_SCORE_THRESHOLDS,
+  SEVERITY_ORDER,
+  ISSUE_COUNT_THRESHOLDS,
+  RENDER_TIME_THRESHOLDS,
+  COMPONENT_COUNT_MULTIPLIER,
 } from '@/shared/constants';
 
 /** Performance metrics with overall score and category breakdowns */
@@ -139,8 +143,7 @@ export function calculatePerformanceScore(
   issues.push(...extractComponentCountIssues(commits, config.maxComponentsThreshold));
 
   // Sort issues by severity (descending: critical > warning > info)
-  const severityOrder = { critical: 3, warning: 2, info: 1 };
-  issues.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);
+  issues.sort((a, b) => SEVERITY_ORDER[b.severity] - SEVERITY_ORDER[a.severity]);
 
   return {
     overallScore: Math.max(0, Math.min(100, overallScore)),
@@ -207,7 +210,7 @@ export function scoreMemoization(reports: MemoEffectivenessReport[]): number {
 
   for (const report of reports) {
     // Weight by number of issues
-    const weight = Math.min(1, report.issues.length / 3);
+    const weight = Math.min(1, report.issues.length / ISSUE_COUNT_THRESHOLDS.WEIGHT_DIVISOR);
     componentWeight += weight;
 
     if (!report.hasMemo && report.issues.length > 0) {
@@ -364,7 +367,11 @@ function extractMemoIssues(reports: MemoEffectivenessReport[]): PerformanceIssue
       (i) => i.impact > PERFORMANCE_SCORE_THRESHOLDS.CRITICAL_IMPACT
     );
     const severity =
-      criticalIssues.length > 0 ? 'critical' : report.issues.length > 2 ? 'warning' : 'info';
+      criticalIssues.length > 0
+        ? 'critical'
+        : report.issues.length >= ISSUE_COUNT_THRESHOLDS.WARNING_MIN_ISSUES
+          ? 'warning'
+          : 'info';
 
     issues.push({
       type: 'ineffective-memo',
@@ -410,7 +417,11 @@ function extractRenderTimeIssues(
   // Convert to issues
   slowComponents.forEach((data, name) => {
     const severity =
-      data.maxDuration > 100 ? 'critical' : data.maxDuration > 50 ? 'warning' : 'info';
+      data.maxDuration > RENDER_TIME_THRESHOLDS.CRITICAL_MS
+        ? 'critical'
+        : data.maxDuration > RENDER_TIME_THRESHOLDS.WARNING_MS
+          ? 'warning'
+          : 'info';
 
     issues.push({
       type: 'slow-render',
@@ -443,7 +454,8 @@ function extractComponentCountIssues(
   if (maxCount > threshold) {
     issues.push({
       type: 'too-many-components',
-      severity: maxCount > threshold * 2 ? 'critical' : 'warning',
+      severity:
+        maxCount > threshold * COMPONENT_COUNT_MULTIPLIER.CRITICAL ? 'critical' : 'warning',
       message: `High component count detected (${maxCount} components in one commit)`,
       suggestion: 'Consider virtualizing lists or code-splitting large component trees',
     });

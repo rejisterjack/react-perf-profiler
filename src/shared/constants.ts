@@ -565,6 +565,44 @@ export const PERFORMANCE_SCORE_THRESHOLDS = {
 } as const;
 
 /**
+ * Severity order for sorting issues
+ * Higher number = higher severity
+ */
+export const SEVERITY_ORDER = {
+  critical: 3,
+  warning: 2,
+  info: 1,
+} as const;
+
+/**
+ * Issue counting thresholds for performance scoring
+ */
+export const ISSUE_COUNT_THRESHOLDS = {
+  /** Divisor for calculating component weight from issue count */
+  WEIGHT_DIVISOR: 3,
+  /** Threshold for warning severity based on issue count */
+  WARNING_MIN_ISSUES: 3,
+} as const;
+
+/**
+ * Render time thresholds for issue classification (in ms)
+ */
+export const RENDER_TIME_THRESHOLDS = {
+  /** Critical threshold for slow renders (>100ms) */
+  CRITICAL_MS: 100,
+  /** Warning threshold for slow renders (>50ms) */
+  WARNING_MS: 50,
+} as const;
+
+/**
+ * Component count multiplier for severity calculation
+ */
+export const COMPONENT_COUNT_MULTIPLIER = {
+  /** Multiplier for critical severity threshold */
+  CRITICAL: 2,
+} as const;
+
+/**
  * Performance score penalty weights for different issue types
  * 
  * Used in performanceScore.ts to calculate deductions from the base score

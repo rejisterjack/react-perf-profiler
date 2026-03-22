@@ -20,7 +20,11 @@ import {
   MIN_PERFORMANCE_SCORE,
   RSC_ISSUE_PENALTIES,
   RSC_PAYLOAD_SCORE,
+  RSC_CACHE_HIT_THRESHOLDS,
+  RSC_BOUNDARY_THRESHOLDS,
+  RSC_SERIALIZATION_THRESHOLDS,
 } from '@/shared/constants';
+import { workerLogger } from '@/shared/logger';
 
 // Import RSC parser functions - these run in the worker context
 import {
@@ -263,7 +267,10 @@ function handleAnalyzeAll(
       parsedPayloads.push(payload);
     } catch (error) {
       // Continue with other payloads if one fails
-      console.warn('Failed to parse RSC payload:', error);
+      workerLogger.warn('Failed to parse RSC payload', {
+        source: 'rscAnalysis.worker',
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -447,7 +454,7 @@ function detectIssues(
       id: generateId(),
       type: 'cache-miss',
       description: `Cache hit ratio (${(metrics.cacheHitRatio * 100).toFixed(1)}%) is below threshold (${(config.minCacheHitRatio * 100).toFixed(0)}%)`,
-      severity: metrics.cacheHitRatio < 0.5 ? 'critical' : 'high',
+      severity: metrics.cacheHitRatio < RSC_CACHE_HIT_THRESHOLDS.CRITICAL ? 'critical' : 'high',
       metricValue: metrics.cacheHitRatio,
       threshold: config.minCacheHitRatio,
       suggestion: 'Consider adding caching to boundaries or optimizing cache keys.',
@@ -491,7 +498,7 @@ function detectIssues(
   // Check for unnecessary client boundaries
   const clientBoundaryCount = boundaries.filter((b) => b.type === 'client').length;
   const serverBoundaryCount = boundaries.filter((b) => b.type === 'server').length;
-  if (clientBoundaryCount > serverBoundaryCount && clientBoundaryCount > 5) {
+  if (clientBoundaryCount > serverBoundaryCount && clientBoundaryCount > RSC_BOUNDARY_THRESHOLDS.MAX_CLIENT_BOUNDARIES) {
     issues.push({
       id: generateId(),
       type: 'unnecessary-boundary',
@@ -503,15 +510,14 @@ function detectIssues(
   }
 
   // Check serialization cost
-  if (metrics.serializationCost > 10) {
-    // 10ms threshold
+  if (metrics.serializationCost > RSC_SERIALIZATION_THRESHOLDS.WARNING_MS) {
     issues.push({
       id: generateId(),
       type: 'serialization-cost',
       description: `High serialization cost detected (${metrics.serializationCost.toFixed(2)}ms)`,
-      severity: metrics.serializationCost > 50 ? 'high' : 'medium',
+      severity: metrics.serializationCost > RSC_SERIALIZATION_THRESHOLDS.HIGH_MS ? 'high' : 'medium',
       metricValue: metrics.serializationCost,
-      threshold: 10,
+      threshold: RSC_SERIALIZATION_THRESHOLDS.WARNING_MS,
       suggestion: 'Optimize data structures to reduce serialization overhead.',
     });
   }

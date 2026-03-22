@@ -26,6 +26,12 @@ export default defineConfig({
         '**/*.config.*',
         '**/index.ts',
       ],
+      thresholds: {
+        lines: 75,
+        functions: 75,
+        branches: 70,
+        statements: 75,
+      },
     },
     deps: {
       inline: [/vitest\/dist/],

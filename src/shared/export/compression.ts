@@ -4,6 +4,8 @@
  * @module shared/export/compression
  */
 
+import { logger } from '@/shared/logger';
+
 /**
  * Compression result
  */
@@ -107,7 +109,10 @@ export async function compressData(
       algorithm,
     };
   } catch (error) {
-    console.warn('Compression failed, returning uncompressed:', error);
+    logger.warn('Compression failed, returning uncompressed', {
+      source: 'compression',
+      error: error instanceof Error ? error.message : String(error),
+    });
     // Fallback: return as-is with compression disabled
     return {
       data,

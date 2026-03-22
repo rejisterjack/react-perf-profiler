@@ -84,7 +84,6 @@ class Logger {
    * Check if a log level should be output
    */
   private shouldLog(level: LogLevel): boolean {
-    void level; // Parameter used via LOG_LEVEL_PRIORITY lookup
     return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.minLevel];
   }
 
@@ -184,22 +183,20 @@ class Logger {
   }
 
   /**
-   * Create a child logger with additional context
+   * Create a child logger with additional context merged into every log entry
    */
   child(additionalContext: LogContext): Logger {
-    const childLogger = new Logger({
+    return new Logger({
       minLevel: this.minLevel,
       prefix: this.prefix,
       timestamps: this.timestamps,
+      onLog: (entry) => {
+        this.onLog?.({
+          ...entry,
+          context: { ...additionalContext, ...entry.context },
+        });
+      },
     });
-
-    // Override the output method to include additional context
-    const originalOutput = this.output.bind(this);
-    childLogger['output'] = (level: LogLevel, message: string, context?: LogContext) => {
-      originalOutput(level, message, { ...additionalContext, ...context });
-    };
-
-    return childLogger;
   }
 }
 

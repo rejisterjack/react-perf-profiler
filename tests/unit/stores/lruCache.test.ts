@@ -274,3 +274,121 @@ function createComponentData(name: string, renderCount: number = 1): ComponentDa
     severity: 'none',
   };
 }
+
+// =============================================================================
+// Edge Cases
+// =============================================================================
+
+describe('ComponentDataLRUCache edge cases', () => {
+  beforeEach(() => {
+    useProfilerStore.getState().clearData();
+  });
+
+  it('maxSize = 1 evicts the only existing entry when a second is added', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.setMaxSize(1);
+
+    componentData.set('First', createComponentData('First'));
+    expect(componentData.size).toBe(1);
+
+    componentData.set('Second', createComponentData('Second'));
+    expect(componentData.size).toBe(1);
+    expect(componentData.has('First')).toBe(false);
+    expect(componentData.has('Second')).toBe(true);
+  });
+
+  it('setMaxSize to a smaller value immediately evicts oldest entries', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.setMaxSize(5);
+
+    for (let i = 1; i <= 5; i++) {
+      componentData.set(`Comp${i}`, createComponentData(`Comp${i}`));
+    }
+    expect(componentData.size).toBe(5);
+
+    // Shrink — should immediately evict Comp1 and Comp2 (oldest)
+    componentData.setMaxSize(3);
+    expect(componentData.size).toBe(3);
+    expect(componentData.has('Comp1')).toBe(false);
+    expect(componentData.has('Comp2')).toBe(false);
+    expect(componentData.has('Comp5')).toBe(true);
+  });
+
+  it('updating an existing key via set() moves it to most-recently-used position', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.setMaxSize(3);
+
+    componentData.set('A', createComponentData('A'));
+    componentData.set('B', createComponentData('B'));
+    componentData.set('C', createComponentData('C'));
+
+    // Re-set A → it should become MRU
+    componentData.set('A', createComponentData('A', 99));
+
+    // Adding D should evict B (now the oldest), not A
+    componentData.set('D', createComponentData('D'));
+    expect(componentData.has('B')).toBe(false);
+    expect(componentData.has('A')).toBe(true);
+    expect(componentData.get('A')?.renderCount).toBe(99);
+  });
+
+  it('getEvictionCandidates returns oldest keys in insertion order', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.setMaxSize(10);
+
+    componentData.set('Alpha', createComponentData('Alpha'));
+    componentData.set('Beta', createComponentData('Beta'));
+    componentData.set('Gamma', createComponentData('Gamma'));
+
+    // Alpha is oldest, then Beta
+    const candidates = componentData.getEvictionCandidates(2);
+    expect(candidates[0]).toBe('Alpha');
+    expect(candidates[1]).toBe('Beta');
+  });
+
+  it('getEvictionCandidates(0) returns empty array', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.set('X', createComponentData('X'));
+    expect(componentData.getEvictionCandidates(0)).toHaveLength(0);
+  });
+
+  it('getEvictionCandidates clamps to available entries', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.set('Only', createComponentData('Only'));
+    // Request more than available
+    const candidates = componentData.getEvictionCandidates(100);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toBe('Only');
+  });
+
+  it('delete removes from access order so it never appears as eviction candidate', () => {
+    const { componentData } = useProfilerStore.getState();
+    componentData.setMaxSize(5);
+
+    componentData.set('Keep', createComponentData('Keep'));
+    componentData.set('Remove', createComponentData('Remove'));
+
+    componentData.delete('Remove');
+    expect(componentData.has('Remove')).toBe(false);
+
+    const candidates = componentData.getEvictionCandidates(5);
+    expect(candidates).not.toContain('Remove');
+  });
+
+  it('size tracks correctly after a sequence of set/delete/clear operations', () => {
+    const { componentData } = useProfilerStore.getState();
+
+    componentData.set('A', createComponentData('A'));
+    componentData.set('B', createComponentData('B'));
+    expect(componentData.size).toBe(2);
+
+    componentData.delete('A');
+    expect(componentData.size).toBe(1);
+
+    componentData.set('C', createComponentData('C'));
+    expect(componentData.size).toBe(2);
+
+    componentData.clear();
+    expect(componentData.size).toBe(0);
+  });
+});

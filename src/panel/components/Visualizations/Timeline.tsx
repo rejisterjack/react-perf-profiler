@@ -8,6 +8,7 @@ import type React from 'react';
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { panelLogger } from '@/shared/logger';
 import { timelineWorker } from '@/panel/workers/workerClient';
 import type { TimelineData, TimelineEvent, TimelineProgress } from '@/panel/workers/timeline.worker';
 import styles from './Timeline.module.css';
@@ -99,7 +100,10 @@ export const Timeline: React.FC = () => {
       })
       .catch((error) => {
         if (!abortController.signal.aborted) {
-          console.error('Timeline generation failed:', error);
+          panelLogger.error('Timeline generation failed', {
+            source: 'Timeline',
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       })
       .finally(() => {

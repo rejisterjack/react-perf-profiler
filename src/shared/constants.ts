@@ -625,3 +625,56 @@ export const GITHUB_REPO_URL =
 export const GENERIC_ISSUE_REPORT_URL =
   import.meta.env?.['VITE_ISSUE_REPORT_URL'] ||
   'https://react-perf-profiler.github.io/support';
+
+// ============================================================================
+// UI Layout Constants
+// ============================================================================
+
+/**
+ * Default width of the sidebar panel in pixels
+ */
+export const DEFAULT_SIDEBAR_WIDTH = 280;
+
+/**
+ * Default width of the detail panel in pixels
+ */
+export const DEFAULT_DETAIL_PANEL_WIDTH = 400;
+
+// ============================================================================
+// Keyboard Shortcut Constants
+// ============================================================================
+
+/**
+ * Duration (ms) to show shortcut feedback indicator before hiding it
+ */
+export const SHORTCUT_FEEDBACK_TIMEOUT_MS = 2000;
+
+// ============================================================================
+// RSC Worker Threshold Constants
+// ============================================================================
+
+/**
+ * RSC cache hit ratio thresholds for issue severity classification
+ */
+export const RSC_CACHE_HIT_THRESHOLDS = {
+  /** Cache hit ratio below this is classified as 'critical' severity */
+  CRITICAL: 0.5,
+} as const;
+
+/**
+ * RSC client boundary count thresholds
+ */
+export const RSC_BOUNDARY_THRESHOLDS = {
+  /** Maximum client boundaries before flagging as a concern */
+  MAX_CLIENT_BOUNDARIES: 5,
+} as const;
+
+/**
+ * RSC serialization cost thresholds in milliseconds
+ */
+export const RSC_SERIALIZATION_THRESHOLDS = {
+  /** Cost above this triggers a warning-level issue (ms) */
+  WARNING_MS: 10,
+  /** Cost above this triggers a high-severity issue (ms) */
+  HIGH_MS: 50,
+} as const;

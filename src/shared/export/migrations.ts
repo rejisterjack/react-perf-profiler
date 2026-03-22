@@ -401,8 +401,8 @@ function executeMigrationPath(
   profile: unknown,
   path: string[],
   log: MigrationLogEntry[]
-): ExportedProfileV1 {
-  let currentProfile = profile as ExportedProfileV1;
+): ExportedProfile {
+  let currentProfile = profile as ExportedProfile;
 
   for (let i = 0; i < path.length - 1; i++) {
     const from = path[i];
@@ -538,7 +538,7 @@ export function migrateProfile(
   profile: unknown,
   fromVersion: string | number | undefined,
   toVersion: string = '1.0'
-): ExportedProfileV1 {
+): ExportedProfile {
   const result = migrateProfileWithLogging(profile, fromVersion, toVersion);
   return result.profile;
 }
@@ -601,7 +601,7 @@ export function autoMigrateProfileWithLogging(profile: unknown): MigrationResult
 /**
  * Auto-migrate profile to current version (legacy API for backward compatibility)
  */
-export function autoMigrateProfile(profile: unknown): ExportedProfileV1 {
+export function autoMigrateProfile(profile: unknown): ExportedProfile {
   const result = autoMigrateProfileWithLogging(profile);
   return result.profile;
 }
@@ -609,7 +609,7 @@ export function autoMigrateProfile(profile: unknown): ExportedProfileV1 {
 /**
  * Validate that migrated profile is complete
  */
-export function validateMigratedProfile(profile: ExportedProfileV1 | null | undefined): boolean {
+export function validateMigratedProfile(profile: ExportedProfile | null | undefined): boolean {
   if (!profile) return false;
   
   return (
@@ -663,4 +663,4 @@ registerMigration('legacy-1', '1.0', migrateLegacyToV1);
 registerMigration('1.0', '1.1', migrateV1ToV1_1 as MigrationFunction);
 
 // Register v2.0 migration
-registerMigration('1.0', '2.0', migrateV1ToV2 as unknown as MigrationFunction);
+registerMigration('1.0', '2.0', migrateV1ToV2 as MigrationFunction);

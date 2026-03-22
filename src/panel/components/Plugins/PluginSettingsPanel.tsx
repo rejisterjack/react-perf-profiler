@@ -8,6 +8,7 @@
 
 import type React from 'react';
 import { useState, useCallback } from 'react';
+import { panelLogger } from '@/shared/logger';
 import { Panel } from '../Common/Panel/Panel';
 import { Button } from '../Common/Button/Button';
 import { Checkbox } from '../Common/Checkbox/Checkbox';
@@ -294,8 +295,11 @@ export const PluginSettingsPanel: React.FC<PluginSettingsPanelProps> = ({
         onPluginToggle?.(pluginId, isEnabled);
         setRefreshKey((k) => k + 1);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to toggle plugin:', error);
+        panelLogger.error('Failed to toggle plugin', {
+          source: 'PluginSettingsPanel',
+          pluginId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     },
     [pluginManager, onPluginToggle]
@@ -307,8 +311,12 @@ export const PluginSettingsPanel: React.FC<PluginSettingsPanelProps> = ({
         pluginManager.updatePluginSettings(pluginId, { [key]: value });
         setRefreshKey((k) => k + 1);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to update setting:', error);
+        panelLogger.error('Failed to update setting', {
+          source: 'PluginSettingsPanel',
+          pluginId,
+          key,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     },
     [pluginManager]

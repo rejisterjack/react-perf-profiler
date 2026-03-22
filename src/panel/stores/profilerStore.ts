@@ -18,12 +18,14 @@ import type {
   RSCMetrics,
   RSCAnalysisConfig,
 } from '@/shared/types/rsc';
-import type { ExportedProfileV1, ImportValidationResult } from '@/shared/types/export';
+import type { ExportedProfileV1, ExportedProfileV2, ImportValidationResult } from '@/shared/types/export';
 import { createExportProfile, validateImportData, isExportedProfileV1 } from '@/shared/types/export';
 import {
   MAX_PERFORMANCE_SCORE,
   MIN_PERFORMANCE_SCORE,
   RENDER_TIME_SCORE,
+  DEFAULT_SIDEBAR_WIDTH,
+  DEFAULT_DETAIL_PANEL_WIDTH,
 } from '@/shared/constants';
 import { autoMigrateProfileWithLogging, MigrationError, CorruptedProfileError } from '@/shared/export/migrations';
 import type { MigrationLogEntry } from '@/shared/types/export';
@@ -488,9 +490,9 @@ const storeImplementation = (
   performanceScore: null,
   componentData: new ComponentDataLRUCache(defaultConfig.maxComponentDataEntries),
   isDetailPanelOpen: true,
-  sidebarWidth: 280,
+  sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
   detailPanelOpen: true,
-  detailPanelWidth: 400,
+  detailPanelWidth: DEFAULT_DETAIL_PANEL_WIDTH,
   componentTypeFilter: 'all',
   severityFilter: ['critical', 'warning', 'info'],
   rscPayloads: [],
@@ -626,7 +628,7 @@ const storeImplementation = (
         };
       }
 
-      let profile: ExportedProfileV1;
+      let profile: ExportedProfileV1 | ExportedProfileV2;
       let migrated = false;
       let migrationLog: MigrationLogEntry[] | undefined;
 
@@ -634,7 +636,8 @@ const storeImplementation = (
       if (validation.migrationAvailable && validation.migrationTarget) {
         try {
           const result = autoMigrateProfileWithLogging(data);
-          profile = result.profile;
+          // Migration always produces V1 or V2 — legacy is upgraded before this point
+          profile = result.profile as ExportedProfileV1 | ExportedProfileV2;
           migrated = result.migrated;
           migrationLog = result.log;
         } catch (migrateError) {
@@ -659,7 +662,8 @@ const storeImplementation = (
         // Try auto-migration for unknown formats
         try {
           const result = autoMigrateProfileWithLogging(data);
-          profile = result.profile;
+          // Migration always produces V1 or V2 — legacy is upgraded before this point
+          profile = result.profile as ExportedProfileV1 | ExportedProfileV2;
           migrated = result.migrated;
           migrationLog = result.log;
         } catch (migrateError) {

@@ -4,6 +4,8 @@
  */
 
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { panelLogger } from '@/shared/logger';
+import { SHORTCUT_FEEDBACK_TIMEOUT_MS } from '@/shared/constants';
 
 // =============================================================================
 // Types
@@ -149,24 +151,26 @@ export const validateShortcuts = (shortcuts: ShortcutConfig[]): ShortcutConflict
 };
 
 /**
- * Show conflict warning in console
+ * Show conflict warning via structured logger
  */
 export const showConflictWarnings = (shortcuts: ShortcutConfig[]): void => {
   const conflicts = validateShortcuts(shortcuts);
-  
+
   if (conflicts.length === 0) return;
-  
-  console.warn('[React Perf Profiler] Keyboard shortcut conflicts detected:');
-  
+
+  panelLogger.warn('Keyboard shortcut conflicts detected', { source: 'useKeyboardShortcuts' });
+
   for (const conflict of conflicts) {
-    const emoji = conflict.severity === 'error' ? '❌' : '⚠️';
-    console.warn(`  ${emoji} ${conflict.message}`);
-    if (conflict.alternative) {
-      console.warn(`     Suggested alternative: ${conflict.alternative}`);
-    }
+    panelLogger.warn(conflict.message, {
+      source: 'useKeyboardShortcuts',
+      severity: conflict.severity,
+      ...(conflict.alternative ? { alternative: conflict.alternative } : {}),
+    });
   }
-  
-  console.warn('  Consider using different shortcuts to avoid browser conflicts.');
+
+  panelLogger.warn('Consider using different shortcuts to avoid browser conflicts.', {
+    source: 'useKeyboardShortcuts',
+  });
 };
 
 /**
@@ -500,7 +504,7 @@ export const useKeyboardShortcuts = (
     // Auto-clear after 2 seconds
     feedbackTimeoutRef.current = setTimeout(() => {
       setFeedback(null);
-    }, 2000);
+    }, SHORTCUT_FEEDBACK_TIMEOUT_MS);
   }, []);
 
   // Clear feedback manually

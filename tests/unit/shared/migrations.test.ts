@@ -370,11 +370,183 @@ describe('export migrations', () => {
   describe('MigrationError', () => {
     it('should create error with correct properties', () => {
       const error = new MigrationError('Test error', '1.0', '2.0');
-      
+
       expect(error.message).toBe('Test error');
       expect(error.name).toBe('MigrationError');
       expect(error.fromVersion).toBe('1.0');
       expect(error.toVersion).toBe('2.0');
+    });
+  });
+
+  // ===========================================================================
+  // v1.0 → v2.0 migration — deep output validation
+  // ===========================================================================
+
+  describe('v1.0 → v2.0 migration output', () => {
+    /** Reusable v1 profile with a two-node parent-child tree */
+    const makeV1Profile = (overrides?: Partial<ExportedProfileV1['data']>): ExportedProfileV1 => ({
+      version: '1.0',
+      metadata: {
+        profilerVersion: '1.0.0',
+        reactVersion: '18.2.0',
+        exportedAt: new Date().toISOString(),
+        format: 'react-perf-profiler-v1',
+      },
+      data: {
+        commits: [
+          {
+            id: 'c1',
+            timestamp: 1000,
+            duration: 10,
+            priorityLevel: 'Normal',
+            nodes: [
+              {
+                id: 1,
+                displayName: 'App',
+                actualDuration: 6,
+                baseDuration: 8,
+                props: {},
+                hasContextChanged: false,
+                parentId: null,
+                children: [2],
+                isMemoized: false,
+              },
+              {
+                id: 2,
+                displayName: 'Header',
+                actualDuration: 2,
+                baseDuration: 3,
+                props: {},
+                hasContextChanged: false,
+                parentId: 1,
+                children: [],
+                isMemoized: true,
+              },
+            ],
+          },
+          {
+            id: 'c2',
+            timestamp: 2000,
+            duration: 8,
+            priorityLevel: 'Normal',
+            nodes: [
+              {
+                id: 1,
+                displayName: 'App',
+                actualDuration: 4,
+                baseDuration: 8,
+                props: {},
+                hasContextChanged: false,
+                parentId: null,
+                children: [],
+                isMemoized: false,
+              },
+            ],
+          },
+        ],
+        ...overrides,
+      },
+      recordingDuration: 2000,
+    });
+
+    it('produces componentGraph with correct node names', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const nodes = result.data.componentGraph?.nodes ?? [];
+      const names = nodes.map((n) => n.name);
+      expect(names).toContain('App');
+      expect(names).toContain('Header');
+    });
+
+    it('deduplicates componentGraph nodes across commits', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const nodes = result.data.componentGraph?.nodes ?? [];
+      // App appears in both commits — should only appear once
+      const appCount = nodes.filter((n) => n.name === 'App').length;
+      expect(appCount).toBe(1);
+    });
+
+    it('produces componentGraph edges representing parent-child relationships', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const edges = result.data.componentGraph?.edges ?? [];
+      const parentChildEdge = edges.find(
+        (e) => e.source === 'App' && e.target === 'Header'
+      );
+      expect(parentChildEdge).toBeDefined();
+      expect(parentChildEdge?.type).toBe('parent-child');
+    });
+
+    it('deduplicates edges (same parent-child seen in multiple commits)', () => {
+      // Both commits have App → Header relationship
+      const profile = makeV1Profile();
+      profile.data.commits[1]!.nodes = [
+        { id: 1, displayName: 'App', actualDuration: 4, baseDuration: 8, props: {}, hasContextChanged: false, parentId: null, children: [2], isMemoized: false },
+        { id: 2, displayName: 'Header', actualDuration: 1, baseDuration: 3, props: {}, hasContextChanged: false, parentId: 1, children: [], isMemoized: true },
+      ];
+      const result = migrateProfile(profile, '1.0', '2.0');
+      const edges = result.data.componentGraph?.edges ?? [];
+      const appToHeaderEdges = edges.filter(
+        (e) => e.source === 'App' && e.target === 'Header'
+      );
+      expect(appToHeaderEdges).toHaveLength(1);
+    });
+
+    it('performanceTimeline entries are sorted by timestamp', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const timeline = result.data.performanceTimeline ?? [];
+      expect(timeline.length).toBeGreaterThan(0);
+      for (let i = 1; i < timeline.length; i++) {
+        expect(timeline[i]!.timestamp).toBeGreaterThanOrEqual(timeline[i - 1]!.timestamp);
+      }
+    });
+
+    it('performanceTimeline includes commitDuration metric for each commit', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const timeline = result.data.performanceTimeline ?? [];
+      const durationEntries = timeline.filter((e) => e.metric === 'commitDuration');
+      // One per commit
+      expect(durationEntries).toHaveLength(2);
+    });
+
+    it('performanceTimeline includes renderCount metric', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const timeline = result.data.performanceTimeline ?? [];
+      const renderCountEntries = timeline.filter((e) => e.metric === 'renderCount');
+      expect(renderCountEntries.length).toBeGreaterThan(0);
+    });
+
+    it('performanceTimeline includes totalActualDuration metric', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      const timeline = result.data.performanceTimeline ?? [];
+      const durationEntries = timeline.filter((e) => e.metric === 'totalActualDuration');
+      expect(durationEntries.length).toBeGreaterThan(0);
+    });
+
+    it('preserves original commits in migrated v2 profile', () => {
+      const v1 = makeV1Profile();
+      const result = migrateProfile(v1, '1.0', '2.0');
+      expect(result.data.commits).toEqual(v1.data.commits);
+    });
+
+    it('updates version and format fields', () => {
+      const result = migrateProfile(makeV1Profile(), '1.0', '2.0');
+      expect(result.version).toBe('2.0');
+      expect(result.metadata.format).toBe('react-perf-profiler-v2');
+    });
+
+    it('handles commits with empty nodes array (no graph entries from that commit)', () => {
+      const v1 = makeV1Profile({ commits: [
+        { id: 'empty', timestamp: 500, duration: 5, priorityLevel: 'Normal', nodes: [] },
+      ]});
+      const result = migrateProfile(v1, '1.0', '2.0');
+      expect(result.data.componentGraph?.nodes).toHaveLength(0);
+      expect(result.data.componentGraph?.edges).toHaveLength(0);
+      // Timeline should still have commitDuration entry
+      const timeline = result.data.performanceTimeline ?? [];
+      expect(timeline.some((e) => e.metric === 'commitDuration')).toBe(true);
+    });
+
+    it('throws CorruptedProfileError for structurally invalid input', () => {
+      expect(() => migrateProfile({} as ExportedProfileV1, '1.0', '2.0')).toThrow();
     });
   });
 });

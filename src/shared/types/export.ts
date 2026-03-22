@@ -253,7 +253,7 @@ export type MigrationFunction = (
   profile: ExportedProfile,
   fromVersion: string,
   toVersion: string
-) => ExportedProfileV1;
+) => ExportedProfile;
 
 /**
  * Migration log entry
@@ -278,7 +278,7 @@ export interface MigrationLogEntry {
  */
 export interface MigrationResult {
   /** Migrated profile */
-  profile: ExportedProfileV1;
+  profile: ExportedProfile;
   /** Whether migration was performed */
   migrated: boolean;
   /** Migration log */
@@ -302,7 +302,7 @@ export interface ExportSchema {
   /** Field types for validation */
   fieldTypes: Record<string, string>;
   /** Migration from previous version (if applicable) */
-  migrateFrom?: (profile: unknown) => ExportedProfileV1;
+  migrateFrom?: (profile: unknown) => ExportedProfile;
 }
 
 /**

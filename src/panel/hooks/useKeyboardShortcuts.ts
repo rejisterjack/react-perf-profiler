@@ -174,7 +174,13 @@ export const showConflictWarnings = (shortcuts: ShortcutConfig[]): void => {
  * Check if the current platform is macOS
  */
 export const isMac = (): boolean => {
-  return navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  // Check for macOS using modern userAgentData or deprecated navigator.platform
+  const uaPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } })
+    .userAgentData?.platform;
+  if (uaPlatform) {
+    return uaPlatform === 'macOS';
+  }
+  return /Mac/i.test(navigator.platform);
 };
 
 /**

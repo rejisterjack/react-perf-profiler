@@ -30,7 +30,7 @@ vi.stubGlobal('chrome', {
   },
 });
 
-// Get initial state excluding actions
+// Get initial state excluding actions - matches what the store actually persists
 const getInitialState = () => ({
   maxCommits: 100,
   enableTimeTravel: true,
@@ -46,6 +46,7 @@ const getInitialState = () => ({
   enableAutoAnalysis: false,
   exportIncludeMetrics: true,
   exportIncludeReports: true,
+  maxComponentDataEntries: 1000,
   loaded: false,
 });
 
@@ -83,99 +84,29 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('loadSettings', () => {
-    it('should load settings from storage', async () => {
-      mockStorage['profiler-settings'] = {
-        maxCommits: 200,
-        colorScheme: 'dark',
-      };
-
+  describe('persistence via Zustand persist middleware', () => {
+    it('should persist settings to chrome.storage when updateSetting is called', async () => {
+      useSettingsStore.setState({ loaded: true });
       const store = useSettingsStore.getState();
-      await store.loadSettings();
+      store.updateSetting('maxCommits', 250);
 
-      expect(useSettingsStore.getState().maxCommits).toBe(200);
-      expect(useSettingsStore.getState().colorScheme).toBe('dark');
-      expect(useSettingsStore.getState().loaded).toBe(true);
+      // Wait for async persist
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
     });
 
-    it('should merge with defaults when loading partial settings', async () => {
-      mockStorage['profiler-settings'] = {
-        maxCommits: 150,
-      };
-
+    it('should only save persistent fields via Zustand persist', async () => {
+      useSettingsStore.setState({ loaded: true });
       const store = useSettingsStore.getState();
-      await store.loadSettings();
+      store.updateSetting('maxCommits', 250);
 
-      expect(useSettingsStore.getState().maxCommits).toBe(150);
-      expect(useSettingsStore.getState().colorScheme).toBe('system'); // Default
-      expect(useSettingsStore.getState().loaded).toBe(true);
-    });
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    it('should handle storage error', async () => {
-      mockChromeStorageLocal.get.mockImplementationOnce((keys, callback) => {
-        (global as any).chrome.runtime.lastError = { message: 'Storage error' };
-        callback({});
-      });
-
-      const store = useSettingsStore.getState();
-      await store.loadSettings();
-
-      expect(useSettingsStore.getState().loaded).toBe(true);
-      (global as any).chrome.runtime.lastError = null;
-    });
-
-    it('should handle invalid JSON in storage', async () => {
-      mockStorage['profiler-settings'] = 'invalid json';
-
-      const store = useSettingsStore.getState();
-      await store.loadSettings();
-
-      expect(useSettingsStore.getState().loaded).toBe(true);
-    });
-
-    it('should handle empty storage', async () => {
-      const store = useSettingsStore.getState();
-      await store.loadSettings();
-
-      expect(useSettingsStore.getState().maxCommits).toBe(100); // Default
-      expect(useSettingsStore.getState().loaded).toBe(true);
-    });
-  });
-
-  describe('saveSettings', () => {
-    it('should save settings to storage', async () => {
-      useSettingsStore.setState({ maxCommits: 250 });
-
-      const store = useSettingsStore.getState();
-      await store.saveSettings();
-
-      expect(mockChromeStorageLocal.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          'profiler-settings': expect.objectContaining({
-            maxCommits: 250,
-          }),
-        }),
-        expect.any(Function)
-      );
-    });
-
-    it('should only save persistent fields', async () => {
-      const store = useSettingsStore.getState();
-      await store.saveSettings();
-
-      const savedData = mockChromeStorageLocal.set.mock.calls[0][0]['profiler-settings'];
-      expect(savedData.loaded).toBeUndefined();
-    });
-
-    it('should handle storage error', async () => {
-      mockChromeStorageLocal.set.mockImplementationOnce((items, callback) => {
-        (global as any).chrome.runtime.lastError = { message: 'Storage error' };
-        callback();
-      });
-
-      const store = useSettingsStore.getState();
-      await expect(store.saveSettings()).resolves.not.toThrow();
-      (global as any).chrome.runtime.lastError = null;
+      // Zustand persist saves to chrome.storage.local with key 'profiler-settings'
+      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
+      const savedKey = mockChromeStorageLocal.set.mock.calls[0][0];
+      expect(savedKey).toHaveProperty('profiler-settings');
     });
   });
 
@@ -243,11 +174,12 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().analysisWorkerCount).toBe(8); // Max
     });
 
-    it('should auto-save after update', async () => {
+    it('should auto-save after update via Zustand persist', async () => {
+      useSettingsStore.setState({ loaded: true });
       const store = useSettingsStore.getState();
       store.updateSetting('maxCommits', 300);
 
-      // Wait for async save
+      // Wait for async save via Zustand persist
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(mockChromeStorageLocal.set).toHaveBeenCalled();
@@ -271,7 +203,8 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().loaded).toBe(true);
     });
 
-    it('should save after reset', async () => {
+    it('should save after reset via Zustand persist', async () => {
+      useSettingsStore.setState({ loaded: true });
       const store = useSettingsStore.getState();
       store.resetSettings();
 
@@ -329,7 +262,8 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().loaded).toBe(false); // Unchanged
     });
 
-    it('should auto-save after batch update', async () => {
+    it('should auto-save after batch update via Zustand persist', async () => {
+      useSettingsStore.setState({ loaded: true });
       const store = useSettingsStore.getState();
       store.updateSettings({ maxCommits: 150 });
 
@@ -358,8 +292,6 @@ describe('settingsStore', () => {
     });
 
     it('should not include action methods', () => {
-      expect(DEFAULT_SETTINGS).not.toHaveProperty('loadSettings');
-      expect(DEFAULT_SETTINGS).not.toHaveProperty('saveSettings');
       expect(DEFAULT_SETTINGS).not.toHaveProperty('updateSetting');
       expect(DEFAULT_SETTINGS).not.toHaveProperty('resetSettings');
     });

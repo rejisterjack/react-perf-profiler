@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ErrorBoundary } from '@/panel/components/ErrorBoundary/ErrorBoundary';
 import * as errorRecovery from '@/panel/utils/errorRecovery';
@@ -10,12 +10,6 @@ vi.mock('@/panel/utils/errorRecovery', () => ({
   reportError: vi.fn(),
   clearLastError: vi.fn(),
 }));
-
-// Mock window.confirm
-Object.defineProperty(window, 'confirm', {
-  writable: true,
-  value: vi.fn(),
-});
 
 // Mock window.open
 Object.defineProperty(window, 'open', {
@@ -143,37 +137,60 @@ describe('ErrorBoundary', () => {
     expect(errorRecovery.reloadPanel).toHaveBeenCalled();
   });
 
-  it('should call resetPanel when reset is confirmed', () => {
-    (window.confirm as jest.Mock).mockReturnValue(true);
-    
+  it('should show reset confirmation modal when reset button is clicked', () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
     
-    const resetButton = screen.getByRole('button', { name: /reset/i });
+    const resetButton = screen.getByRole('button', { name: /^reset$/i });
     fireEvent.click(resetButton);
     
-    expect(window.confirm).toHaveBeenCalled();
+    // Modal should appear
+    expect(screen.getByRole('dialog', { name: /confirm reset/i })).toBeInTheDocument();
+    expect(screen.getByText(/this will clear all profiler data/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset panel/i })).toBeInTheDocument();
+  });
+
+  it('should call resetPanel when reset is confirmed in modal', () => {
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+    
+    // Click reset to open modal
+    const resetButton = screen.getByRole('button', { name: /^reset$/i });
+    fireEvent.click(resetButton);
+    
+    // Click confirm in modal
+    const confirmButton = screen.getByRole('button', { name: /reset panel/i });
+    fireEvent.click(confirmButton);
+    
     expect(errorRecovery.clearLastError).toHaveBeenCalled();
     expect(errorRecovery.resetPanel).toHaveBeenCalled();
   });
 
-  it('should not call resetPanel when reset is cancelled', () => {
-    (window.confirm as jest.Mock).mockReturnValue(false);
-    
+  it('should not call resetPanel when reset is cancelled in modal', () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
     
-    const resetButton = screen.getByRole('button', { name: /reset/i });
+    // Click reset to open modal
+    const resetButton = screen.getByRole('button', { name: /^reset$/i });
     fireEvent.click(resetButton);
     
-    expect(window.confirm).toHaveBeenCalled();
+    // Click cancel in modal
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    fireEvent.click(cancelButton);
+    
     expect(errorRecovery.resetPanel).not.toHaveBeenCalled();
+    // Modal should close
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('should retry rendering when try again button is clicked', () => {

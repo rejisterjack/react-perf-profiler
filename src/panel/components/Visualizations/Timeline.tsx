@@ -4,13 +4,17 @@
  * Supports zoom/pan, filtering, and detailed tooltips
  */
 
-import type React from 'react';
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import { panelLogger } from '@/shared/logger';
+import type {
+  TimelineData,
+  TimelineEvent,
+  TimelineProgress,
+} from '@/panel/workers/timeline.worker';
 import { timelineWorker } from '@/panel/workers/workerClient';
-import type { TimelineData, TimelineEvent, TimelineProgress } from '@/panel/workers/timeline.worker';
+import { panelLogger } from '@/shared/logger';
 import styles from './Timeline.module.css';
 
 interface TooltipState {
@@ -115,6 +119,7 @@ export const Timeline: React.FC = () => {
 
     return () => {
       abortController.abort();
+      timelineWorker.cancel();
     };
   }, [commits, filterWasted]);
 
@@ -185,20 +190,20 @@ export const Timeline: React.FC = () => {
     // Add axes groups
     const xAxisGroup = g
       .append('g')
-      .attr('class', styles["axis"]!)
+      .attr('class', styles['axis']!)
       .attr('transform', `translate(0,${innerHeight})`)
       .call(xAxis);
 
     // Add axis labels
     g.append('text')
-      .attr('class', styles["axisLabel"]!)
+      .attr('class', styles['axisLabel']!)
       .attr('x', innerWidth / 2)
       .attr('y', innerHeight + 40)
       .attr('text-anchor', 'middle')
       .text('Time (seconds)');
 
     g.append('text')
-      .attr('class', styles["axisLabel"]!)
+      .attr('class', styles['axisLabel']!)
       .attr('transform', 'rotate(-90)')
       .attr('x', -innerHeight / 2)
       .attr('y', -50)
@@ -208,7 +213,7 @@ export const Timeline: React.FC = () => {
     // Add grid lines
     const gridX = g
       .append('g')
-      .attr('class', styles["grid"]!)
+      .attr('class', styles['grid']!)
       .attr('transform', `translate(0,${innerHeight})`)
       .call(
         d3
@@ -234,7 +239,7 @@ export const Timeline: React.FC = () => {
       .selectAll('circle')
       .data(filteredEvents)
       .join('circle')
-      .attr('class', styles["dot"]!)
+      .attr('class', styles['dot']!)
       .attr('cx', (d) => xScale(d.timestamp))
       .attr('cy', (d) => yScale(d.duration))
       .attr('r', (d) => (d.type === 'wasted-render' ? 5 : 4))
@@ -291,8 +296,8 @@ export const Timeline: React.FC = () => {
 
   if (commits.length === 0) {
     return (
-      <div className={styles["empty"]}>
-        <div className={styles["emptyIcon"]}>📈</div>
+      <div className={styles['empty']}>
+        <div className={styles['emptyIcon']}>📈</div>
         <p>Record some commits to see timeline</p>
       </div>
     );
@@ -300,18 +305,15 @@ export const Timeline: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className={styles["loading"]}>
-        <div className={styles["spinner"]} />
+      <div className={styles['loading']}>
+        <div className={styles['spinner']} />
         <p>Generating timeline...</p>
         {progress && (
-          <div className={styles["progressInfo"]}>
-            <div className={styles["progressBar"]}>
-              <div
-                className={styles["progressFill"]}
-                style={{ width: `${progress.percent}%` }}
-              />
+          <div className={styles['progressInfo']}>
+            <div className={styles['progressBar']}>
+              <div className={styles['progressFill']} style={{ width: `${progress.percent}%` }} />
             </div>
-            <span className={styles["progressText"]}>
+            <span className={styles['progressText']}>
               {progress.stage} ({progress.processedCommits}/{progress.totalCommits})
             </span>
           </div>
@@ -329,11 +331,11 @@ export const Timeline: React.FC = () => {
     : null;
 
   return (
-    <div ref={containerRef} className={styles["timelineContainer"]}>
-      <div className={styles["header"]}>
-        <h3 className={styles["title"]}>Timeline</h3>
-        <div className={styles["controls"]}>
-          <label className={styles["filterLabel"]}>
+    <div ref={containerRef} className={styles['timelineContainer']}>
+      <div className={styles['header']}>
+        <h3 className={styles['title']}>Timeline</h3>
+        <div className={styles['controls']}>
+          <label className={styles['filterLabel']}>
             <input
               type="checkbox"
               checked={filterWasted}
@@ -341,48 +343,52 @@ export const Timeline: React.FC = () => {
             />
             <span>Wasted renders only</span>
           </label>
-          <button type="button" className={styles["resetButton"]} onClick={resetZoom}>
+          <button type="button" className={styles['resetButton']} onClick={resetZoom}>
             Reset Zoom
           </button>
         </div>
       </div>
 
       {stats && (
-        <div className={styles["stats"]}>
-          <div className={styles["statItem"]}>
-            <span className={styles["statValue"]}>{stats.totalRenders}</span>
-            <span className={styles["statLabel"]}>Renders</span>
+        <div className={styles['stats']}>
+          <div className={styles['statItem']}>
+            <span className={styles['statValue']}>{stats.totalRenders}</span>
+            <span className={styles['statLabel']}>Renders</span>
           </div>
-          <div className={styles["statItem"]}>
-            <span className={styles["statValue"]} style={{ color: 'var(--danger)' }}>
+          <div className={styles['statItem']}>
+            <span className={styles['statValue']} style={{ color: 'var(--danger)' }}>
               {stats.wastedRenders}
             </span>
-            <span className={styles["statLabel"]}>Wasted</span>
+            <span className={styles['statLabel']}>Wasted</span>
           </div>
-          <div className={styles["statItem"]}>
-            <span className={styles["statValue"]}>{(stats.timeRange / 1000).toFixed(1)}s</span>
-            <span className={styles["statLabel"]}>Duration</span>
+          <div className={styles['statItem']}>
+            <span className={styles['statValue']}>{(stats.timeRange / 1000).toFixed(1)}s</span>
+            <span className={styles['statLabel']}>Duration</span>
           </div>
         </div>
       )}
 
-      <div className={styles["legend"]}>
-        <div className={styles["legendItem"]}>
-          <span className={styles["legendDot"]} style={{ background: '#0e639c' }} />
+      <div className={styles['legend']}>
+        <div className={styles['legendItem']}>
+          <span className={styles['legendDot']} style={{ background: '#0e639c' }} />
           <span>Normal Render</span>
         </div>
-        <div className={styles["legendItem"]}>
-          <span className={styles["legendDot"]} style={{ background: '#f14c4c' }} />
+        <div className={styles['legendItem']}>
+          <span className={styles['legendDot']} style={{ background: '#f14c4c' }} />
           <span>Wasted Render</span>
         </div>
       </div>
 
       <svg
         ref={svgRef}
-        className={styles["svg"]}
+        className={styles['svg']}
         width={dimensions.width}
         height={dimensions.height}
-      />
+        role="img"
+        aria-label="Timeline: render events over time. X-axis shows time in seconds, Y-axis shows render duration in milliseconds."
+      >
+        <title>Timeline — render events over time</title>
+      </svg>
 
       <Tooltip tooltip={tooltip} />
     </div>
@@ -399,29 +405,29 @@ const Tooltip: React.FC<{ tooltip: TooltipState }> = ({ tooltip }) => {
 
   return (
     <div
-      className={styles["tooltip"]}
+      className={styles['tooltip']}
       style={{
         left: tooltip.x,
         top: tooltip.y,
       }}
     >
-      <div className={styles["tooltipHeader"]}>{data.componentName}</div>
-      <div className={styles["tooltipContent"]}>
-        <div className={styles["tooltipRow"]}>
-          <span className={styles["tooltipLabel"]}>Duration:</span>
-          <span className={styles["tooltipValue"]}>{data.duration.toFixed(2)}ms</span>
+      <div className={styles['tooltipHeader']}>{data.componentName}</div>
+      <div className={styles['tooltipContent']}>
+        <div className={styles['tooltipRow']}>
+          <span className={styles['tooltipLabel']}>Duration:</span>
+          <span className={styles['tooltipValue']}>{data.duration.toFixed(2)}ms</span>
         </div>
-        <div className={styles["tooltipRow"]}>
-          <span className={styles["tooltipLabel"]}>Type:</span>
+        <div className={styles['tooltipRow']}>
+          <span className={styles['tooltipLabel']}>Type:</span>
           <span
-            className={styles["badge"]}
+            className={styles['badge']}
             data-type={data.type === 'wasted-render' ? 'wasted' : 'render'}
           >
             {data.type === 'wasted-render' ? 'Wasted' : 'Render'}
           </span>
         </div>
         {data.details.isWasted && (
-          <div className={styles["tooltipHint"]}>
+          <div className={styles['tooltipHint']}>
             Props/state unchanged but component re-rendered
           </div>
         )}

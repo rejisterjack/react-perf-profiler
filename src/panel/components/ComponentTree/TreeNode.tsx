@@ -114,13 +114,13 @@ function getNodeIcon(node: TreeNodeType): React.FC<{ size?: number }> {
 function getSeverityClass(severity: TreeNodeType['severity']): string {
   switch (severity) {
     case 'critical':
-      return styles["critical"] ?? '';
+      return styles['critical'] ?? '';
     case 'warning':
-      return styles["warning"] ?? '';
+      return styles['warning'] ?? '';
     case 'info':
-      return styles["info"] ?? '';
+      return styles['info'] ?? '';
     default:
-      return styles["none"] ?? '';
+      return styles['none'] ?? '';
   }
 }
 
@@ -177,10 +177,15 @@ export const TreeNode: React.FC<TreeNodeProps> = memo(
 
     return (
       <div
-        className={`${styles["node"]} ${isSelected ? styles["selected"] : ''} ${severityClass}`}
+        className={`${styles['node']} ${isSelected ? styles['selected'] : ''} ${severityClass}`}
         style={{ paddingLeft: `${node.depth * 16}px` }}
         onClick={onSelect}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect();
+          }
+        }}
         role="treeitem"
         aria-selected={isSelected}
         aria-expanded={hasChildren ? isExpanded : undefined}
@@ -191,7 +196,7 @@ export const TreeNode: React.FC<TreeNodeProps> = memo(
       >
         {/* Expand/collapse toggle button */}
         <button
-          className={`${styles["toggle"]} ${!hasChildren ? styles["hidden"] : ''}`}
+          className={`${styles['toggle']} ${!hasChildren ? styles['hidden'] : ''}`}
           onClick={handleToggleClick}
           onKeyDown={handleToggleKeyDown}
           disabled={!hasChildren}
@@ -204,41 +209,42 @@ export const TreeNode: React.FC<TreeNodeProps> = memo(
         </button>
 
         {/* Component type icon */}
-        <span className={`${styles["icon"]} ${node.isMemoized ? styles["memoized"] : ''}`}>
+        <span className={`${styles['icon']} ${node.isMemoized ? styles['memoized'] : ''}`}>
           <Icon size={14} />
         </span>
 
         {/* Component name */}
-        <span className={styles["name"]} title={node.name}>
+        <span className={styles['name']} title={node.name}>
           {node.name}
         </span>
 
         {/* Metrics badges */}
-        <div className={styles["badges"]}>
+        <div className={styles['badges']}>
           {/* Wasted renders badge - only show if > 0 */}
           {node.wastedRenders > 0 && (
             <span
-              className={`${styles["badge"]} ${styles["badgeError"]}`}
-              title={`${node.wastedRenders} wasted render${node.wastedRenders !== 1 ? 's' : ''}`}
+              className={`${styles['badge']} ${styles['badgeError']}`}
+              role="img"
+              aria-label={`${node.wastedRenders} wasted render${node.wastedRenders !== 1 ? 's' : ''}`}
             >
               {node.wastedRenders}
             </span>
           )}
-
           {/* Memoization badge */}
           {node.isMemoized && (
             <span
-              className={`${styles["badge"]} ${styles["badgeSuccess"]}`}
-              title="Memoized (React.memo)"
+              className={`${styles['badge']} ${styles['badgeSuccess']}`}
+              role="img"
+              aria-label="Memoized (React.memo)"
             >
               M
             </span>
           )}
-
           {/* Render count badge */}
           <span
-            className={`${styles["badge"]} ${styles["badgeInfo"]}`}
-            title={`${node.renderCount} render${node.renderCount !== 1 ? 's' : ''}`}
+            className={`${styles['badge']} ${styles['badgeInfo']}`}
+            role="img"
+            aria-label={`${node.renderCount} render${node.renderCount !== 1 ? 's' : ''}`}
           >
             {node.renderCount}
           </span>

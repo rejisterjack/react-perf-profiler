@@ -4,19 +4,19 @@
  */
 
 import type React from 'react';
-import { useState, useCallback, useEffect } from 'react';
-import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { useCallback, useEffect, useState } from 'react';
+import { formatShortcut, isMac, useKeyboardShortcuts } from '@/panel/hooks/useKeyboardShortcuts';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
-import { useKeyboardShortcuts, formatShortcut, isMac } from '@/panel/hooks/useKeyboardShortcuts';
+import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Button } from '../Common/Button/Button';
 import { Icon } from '../Common/Icon/Icon';
 import { ImportDialog } from '../Common/ImportDialog/ImportDialog';
 import { KeyboardShortcutsHelp } from '../Common/KeyboardShortcutsHelp/KeyboardShortcutsHelp';
 import { Tooltip } from '../Common/Tooltip/Tooltip';
 import { ThemeToggle } from '../Theme/ThemeToggle';
-import { ViewModeToggle } from './ViewModeToggle';
 import { SettingsButton } from './SettingsButton';
 import styles from './Toolbar.module.css';
+import { ViewModeToggle } from './ViewModeToggle';
 
 // =============================================================================
 // Visual Feedback Toast Component
@@ -115,7 +115,7 @@ export const Toolbar: React.FC = () => {
 
   const handlePreviousCommit = useCallback(() => {
     const state = useProfilerStore.getState();
-    const currentIndex = state.commits.findIndex(c => c.id === state.selectedCommitId);
+    const currentIndex = state.commits.findIndex((c) => c.id === state.selectedCommitId);
     const newIndex = currentIndex > 0 ? currentIndex - 1 : state.commits.length - 1;
     if (state.commits[newIndex]) {
       selectCommit(state.commits[newIndex].id);
@@ -124,7 +124,7 @@ export const Toolbar: React.FC = () => {
 
   const handleNextCommit = useCallback(() => {
     const state = useProfilerStore.getState();
-    const currentIndex = state.commits.findIndex(c => c.id === state.selectedCommitId);
+    const currentIndex = state.commits.findIndex((c) => c.id === state.selectedCommitId);
     const newIndex = currentIndex < state.commits.length - 1 ? currentIndex + 1 : 0;
     if (state.commits[newIndex]) {
       selectCommit(state.commits[newIndex].id);
@@ -199,7 +199,7 @@ export const Toolbar: React.FC = () => {
   }, [commits.length, runAnalysis]);
 
   const handleToggleHelp = useCallback(() => {
-    setIsHelpOpen(prev => !prev);
+    setIsHelpOpen((prev) => !prev);
   }, []);
 
   // Initialize keyboard shortcuts
@@ -224,10 +224,10 @@ export const Toolbar: React.FC = () => {
   // Render Helpers
   // =============================================================================
 
-  const recordShortcut = formatShortcut(isMac() ? 'cmd+shift+p' : 'ctrl+shift+p');
+  const recordShortcut = formatShortcut(isMac() ? 'cmd+shift+r' : 'ctrl+shift+r');
   const clearShortcut = formatShortcut('C');
   const exportShortcut = formatShortcut(isMac() ? 'cmd+e' : 'ctrl+e');
-  const importShortcut = formatShortcut(isMac() ? 'cmd+o' : 'ctrl+o');
+  const importShortcut = formatShortcut(isMac() ? 'cmd+shift+i' : 'ctrl+shift+i');
 
   const renderRecordingButton = () => {
     if (isRecording) {
@@ -238,7 +238,8 @@ export const Toolbar: React.FC = () => {
             size="sm"
             onClick={handleStopRecording}
             disabled={!isConnected}
-            icon="stop" iconPosition="left"
+            icon="stop"
+            iconPosition="left"
             aria-label={`Stop recording. Keyboard shortcut: ${recordShortcut}`}
           >
             Stop
@@ -254,7 +255,8 @@ export const Toolbar: React.FC = () => {
           size="sm"
           onClick={handleStartRecording}
           disabled={!isConnected}
-          icon="record" iconPosition="left"
+          icon="record"
+          iconPosition="left"
           aria-label={`Start recording. Keyboard shortcut: ${recordShortcut}`}
         >
           Record
@@ -296,7 +298,8 @@ export const Toolbar: React.FC = () => {
               size="sm"
               onClick={handleClear}
               disabled={commits.length === 0}
-              icon="trash" iconPosition="left"
+              icon="trash"
+              iconPosition="left"
               aria-label={`Clear all data. Keyboard shortcut: ${clearShortcut}`}
             >
               Clear
@@ -309,7 +312,8 @@ export const Toolbar: React.FC = () => {
               size="sm"
               onClick={handleExport}
               disabled={commits.length === 0}
-              icon="download" iconPosition="left"
+              icon="download"
+              iconPosition="left"
               aria-label={`Export profile. Keyboard shortcut: ${exportShortcut}`}
             >
               Export
@@ -321,7 +325,8 @@ export const Toolbar: React.FC = () => {
               variant="secondary"
               size="sm"
               onClick={() => setIsImportOpen(true)}
-              icon="upload" iconPosition="left"
+              icon="upload"
+              iconPosition="left"
               aria-label={`Import profile. Keyboard shortcut: ${importShortcut}`}
             >
               Import
@@ -379,14 +384,9 @@ export const Toolbar: React.FC = () => {
         onClose={() => setIsHelpOpen(false)}
         shortcuts={shortcuts}
       />
-      
+
       {/* Visual Feedback Toast */}
-      {feedback && (
-        <FeedbackToast 
-          message={feedback.message} 
-          onClear={clearFeedback}
-        />
-      )}
+      {feedback && <FeedbackToast message={feedback.message} onClear={clearFeedback} />}
     </header>
   );
 };

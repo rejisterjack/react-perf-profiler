@@ -4,13 +4,17 @@
  * Color-coded by render duration and memoization status
  */
 
-import type React from 'react';
-import { useRef, useEffect, useState, useCallback } from 'react';
 import * as d3 from 'd3';
-import { useProfilerStore, selectSelectedCommit } from '@/panel/stores/profilerStore';
-import { useProfilerStore as useStore } from '@/panel/stores/profilerStore';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  selectSelectedCommit,
+  useProfilerStore,
+  useProfilerStore as useStore,
+} from '@/panel/stores/profilerStore';
+import type { FlamegraphData, FlamegraphNode } from '@/panel/workers/flamegraphGenerator';
 import { generateFlamegraphData } from '@/panel/workers/flamegraphGenerator';
-import type { FlamegraphNode, FlamegraphData } from '@/panel/workers/flamegraphGenerator';
+import { panelLogger } from '@/shared/logger';
 import styles from './Flamegraph.module.css';
 
 interface TooltipState {
@@ -58,18 +62,29 @@ export const Flamegraph: React.FC = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
+  const [error, setError] = useState<string | null>(null);
+
   // Generate flamegraph data via worker
   useEffect(() => {
     if (!commit) {
       setFlamegraphData(null);
+      setError(null);
       return;
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       const data = generateFlamegraphData(commit);
       setFlamegraphData(data);
-    } catch (_error) {
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to generate flamegraph';
+      setError(errorMsg);
+      panelLogger.error('Flamegraph generation failed', {
+        source: 'Flamegraph',
+        error: errorMsg,
+        commitId: commit.id,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +121,9 @@ export const Flamegraph: React.FC = () => {
     }
   }, []);
 
+  // Track nodes for keyboard navigation
+  const nodeRefs = useRef<d3.HierarchyRectangularNode<FlamegraphNode>[]>([]);
+
   // Render D3 flamegraph
   useEffect(() => {
     if (!svgRef.current || !flamegraphData) return;
@@ -128,6 +146,7 @@ export const Flamegraph: React.FC = () => {
     const partition = d3.partition<FlamegraphNode>().size([height, width]).padding(1);
 
     const root = partition(hierarchyRoot);
+    nodeRefs.current = root.descendants();
 
     // Create color scale based on duration
     const maxDuration = d3.max(root.descendants(), (d) => d.data.selfDuration) || 16;
@@ -140,10 +159,10 @@ export const Flamegraph: React.FC = () => {
       .join('g')
       .attr('transform', (d) => `translate(${d.y0},${d.x0})`);
 
-    // Add rectangles
+    // Add rectangles with keyboard accessibility
     cell
       .append('rect')
-      .attr('class', styles["flameRect"]!)
+      .attr('class', styles['flameRect']!)
       .attr('width', (d) => Math.max(0, d.y1 - d.y0 - 1))
       .attr('height', (d) => Math.max(0, d.x1 - d.x0 - 1))
       .attr('fill', (d) => getNodeColor(d.data, colorScale))
@@ -151,6 +170,15 @@ export const Flamegraph: React.FC = () => {
       .attr('stroke', (d) => (selectedNode?.name === d.data.name ? '#fff' : 'none'))
       .attr('stroke-width', (d) => (selectedNode?.name === d.data.name ? 2 : 0))
       .style('cursor', (d) => (d.children ? 'pointer' : 'default'))
+      // Keyboard accessibility
+      .attr('tabindex', 0)
+      .attr('role', 'button')
+      .attr(
+        'aria-label',
+        (d) =>
+          `${d.data.name}, ${d.data.selfDuration.toFixed(2)}ms self, ${d.data.cumulativeDuration.toFixed(2)}ms total${d.data.originalData.tag === 14 || d.data.originalData.tag === 15 ? ', memoized' : ''}`
+      )
+      // Mouse events
       .on('click', (event, d) => {
         event.stopPropagation();
         handleNodeClick(d);
@@ -164,12 +192,19 @@ export const Flamegraph: React.FC = () => {
           d3.select(this).attr('stroke', 'none').attr('stroke-width', 0);
         }
         hideTooltip();
+      })
+      // Keyboard events
+      .on('keydown', (event, d) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleNodeClick(d);
+        }
       });
 
     // Add labels
     cell
       .append('text')
-      .attr('class', styles["flameLabel"]!)
+      .attr('class', styles['flameLabel']!)
       .attr('x', 4)
       .attr('y', 13)
       .text((d) => d.data.name)
@@ -179,7 +214,7 @@ export const Flamegraph: React.FC = () => {
     // Add duration labels for larger cells
     cell
       .append('text')
-      .attr('class', styles["flameDuration"]!)
+      .attr('class', styles['flameDuration']!)
       .attr('x', 4)
       .attr('y', 24)
       .text((d) => (d.data.selfDuration >= 0.1 ? `${d.data.selfDuration.toFixed(1)}ms` : ''))
@@ -189,52 +224,62 @@ export const Flamegraph: React.FC = () => {
 
   if (!commit) {
     return (
-      <div className={styles["empty"]}>
-        <div className={styles["emptyIcon"]}>📊</div>
+      <div className={styles['empty']}>
+        <div className={styles['emptyIcon']}>📊</div>
         <p>Select a commit to view flamegraph</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles['error']}>
+        <div className={styles['errorIcon']}>⚠️</div>
+        <p>Failed to render flamegraph. Try selecting a different commit.</p>
+        <p className={styles['errorMessage']}>{error}</p>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className={styles["loading"]}>
-        <div className={styles["spinner"]} />
+      <div className={styles['loading']}>
+        <div className={styles['spinner']} />
         <p>Generating flamegraph...</p>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className={styles["flamegraphContainer"]}>
-      <div className={styles["header"]}>
-        <h3 className={styles["title"]}>Flamegraph</h3>
-        <div className={styles["legend"]}>
-          <div className={styles["legendItem"]}>
-            <span className={styles["legendColor"]} style={{ background: '#4ade80' }} />
+    <div ref={containerRef} className={styles['flamegraphContainer']}>
+      <div className={styles['header']}>
+        <h3 className={styles['title']}>Flamegraph</h3>
+        <div className={styles['legend']}>
+          <div className={styles['legendItem']}>
+            <span className={styles['legendColor']} style={{ background: '#4ade80' }} />
             <span>Fast (&lt;1ms)</span>
           </div>
-          <div className={styles["legendItem"]}>
-            <span className={styles["legendColor"]} style={{ background: '#60a5fa' }} />
+          <div className={styles['legendItem']}>
+            <span className={styles['legendColor']} style={{ background: '#60a5fa' }} />
             <span>Normal (1-5ms)</span>
           </div>
-          <div className={styles["legendItem"]}>
-            <span className={styles["legendColor"]} style={{ background: '#fbbf24' }} />
+          <div className={styles['legendItem']}>
+            <span className={styles['legendColor']} style={{ background: '#fbbf24' }} />
             <span>Slow (5-16ms)</span>
           </div>
-          <div className={styles["legendItem"]}>
-            <span className={styles["legendColor"]} style={{ background: '#f87171' }} />
+          <div className={styles['legendItem']}>
+            <span className={styles['legendColor']} style={{ background: '#f87171' }} />
             <span>Critical (&gt;16ms)</span>
           </div>
-          <div className={styles["legendItem"]}>
-            <span className={styles["legendColor"]} style={{ background: '#4ec9b0' }} />
+          <div className={styles['legendItem']}>
+            <span className={styles['legendColor']} style={{ background: '#4ec9b0' }} />
             <span>Memoized</span>
           </div>
         </div>
       </div>
       <svg
         ref={svgRef}
-        className={styles["svg"]}
+        className={styles['svg']}
         width={dimensions.width + MARGIN.left + MARGIN.right}
         height={dimensions.height + MARGIN.top + MARGIN.bottom}
         role="img"
@@ -265,25 +310,25 @@ const Tooltip: React.FC<{ tooltip: TooltipState }> = ({ tooltip }) => {
 
   return (
     <div
-      className={styles["tooltip"]}
+      className={styles['tooltip']}
       style={{
         left: tooltip.x,
         top: tooltip.y,
       }}
     >
-      <div className={styles["tooltipHeader"]}>{data.name}</div>
-      <div className={styles["tooltipContent"]}>
-        <div className={styles["tooltipRow"]}>
-          <span className={styles["tooltipLabel"]}>Self Duration:</span>
-          <span className={styles["tooltipValue"]}>{data.selfDuration.toFixed(2)}ms</span>
+      <div className={styles['tooltipHeader']}>{data.name}</div>
+      <div className={styles['tooltipContent']}>
+        <div className={styles['tooltipRow']}>
+          <span className={styles['tooltipLabel']}>Self Duration:</span>
+          <span className={styles['tooltipValue']}>{data.selfDuration.toFixed(2)}ms</span>
         </div>
-        <div className={styles["tooltipRow"]}>
-          <span className={styles["tooltipLabel"]}>Cumulative:</span>
-          <span className={styles["tooltipValue"]}>{data.cumulativeDuration.toFixed(2)}ms</span>
+        <div className={styles['tooltipRow']}>
+          <span className={styles['tooltipLabel']}>Cumulative:</span>
+          <span className={styles['tooltipValue']}>{data.cumulativeDuration.toFixed(2)}ms</span>
         </div>
         {data.originalData.tag === 14 || data.originalData.tag === 15 ? (
-          <div className={styles["tooltipRow"]}>
-            <span className={styles["badgeMemoized"]}>Memoized</span>
+          <div className={styles['tooltipRow']}>
+            <span className={styles['badgeMemoized']}>Memoized</span>
           </div>
         ) : null}
       </div>

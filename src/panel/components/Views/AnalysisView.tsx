@@ -11,13 +11,8 @@ import { Icon } from '../Common/Icon/Icon';
 import styles from './Views.module.css';
 
 export const AnalysisView: React.FC = () => {
-  const {
-    wastedRenderReports,
-    performanceScore,
-    isAnalyzing,
-    analysisError,
-    runAnalysis,
-  } = useProfilerStore();
+  const { wastedRenderReports, performanceScore, isAnalyzing, analysisError, runAnalysis } =
+    useProfilerStore();
 
   if (isAnalyzing) {
     return (
@@ -94,7 +89,10 @@ export const AnalysisView: React.FC = () => {
                     : 'var(--danger)',
             }}
           >
-            {performanceScore.score.toFixed(0)}
+            <span aria-hidden="true">{performanceScore.score.toFixed(0)}</span>
+            <span className="srOnly">
+              Performance score: {performanceScore.score.toFixed(0)} out of 100
+            </span>
           </div>
         </div>
 
@@ -116,9 +114,7 @@ export const AnalysisView: React.FC = () => {
             </div>
             <div className={styles['metric']}>
               <span className={styles['metricLabel']}>Components</span>
-              <span className={styles['metricValue']}>
-                {performanceScore.totalComponents}
-              </span>
+              <span className={styles['metricValue']}>{performanceScore.totalComponents}</span>
             </div>
           </div>
         </div>
@@ -131,17 +127,10 @@ export const AnalysisView: React.FC = () => {
               {wastedRenderReports.slice(0, 5).map((report) => (
                 <div
                   key={report.componentName}
-                  className={`${styles['issue']} ${
-                    styles[report.severity || 'info']
-                  }`}
+                  className={`${styles['issue']} ${styles[report.severity || 'info']}`}
                 >
-                  <Icon
-                    name={report.severity === 'critical' ? 'error' : 'warning'}
-                    size={16}
-                  />
-                  <span className={styles['issueName']}>
-                    {report.componentName}
-                  </span>
+                  <Icon name={report.severity === 'critical' ? 'error' : 'warning'} size={16} />
+                  <span className={styles['issueName']}>{report.componentName}</span>
                   <span className={styles['issueDetail']}>
                     {(report.wastedRenderRate || 0).toFixed(0)}% wasted renders
                   </span>

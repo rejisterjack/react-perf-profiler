@@ -4,14 +4,14 @@
  */
 
 import type React from 'react';
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../Icon/Icon';
 import {
   formatShortcut,
   groupShortcutsByCategory,
   type ShortcutConfig,
 } from '@/panel/hooks/useKeyboardShortcuts';
+import { Icon } from '../Icon/Icon';
 import styles from './KeyboardShortcutsHelp.module.css';
 
 // =============================================================================
@@ -83,10 +83,14 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
     <form
       className={styles['overlay']}
       onClick={handleOverlayClick}
-      onKeyDown={(e) => { if (e.key === 'Escape') { onClose(); } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
       aria-label="Keyboard shortcuts overlay"
     >
-      <div 
+      <div
         className={styles['dialog']}
         role="dialog"
         aria-modal="true"
@@ -118,10 +122,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
               <h3 className={styles['categoryTitle']}>{group.label}</h3>
               <div className={styles['shortcutsList']}>
                 {group.shortcuts.map((shortcut, index) => (
-                  <ShortcutRow
-                    key={`${shortcut.key}-${index}`}
-                    shortcut={shortcut}
-                  />
+                  <ShortcutRow key={`${shortcut.key}-${index}`} shortcut={shortcut} />
                 ))}
               </div>
             </section>
@@ -133,9 +134,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
           <span className={styles['footerHint']}>
             Press <kbd>?</kbd> anytime to show this help
           </span>
-          <span className={styles['footerHint']}>
-            Shortcuts work when not typing in an input
-          </span>
+          <span className={styles['footerHint']}>Shortcuts work when not typing in an input</span>
         </div>
       </div>
     </form>,
@@ -153,7 +152,7 @@ interface ShortcutRowProps {
 
 const ShortcutRow: React.FC<ShortcutRowProps> = ({ shortcut }) => {
   const formattedKeys = formatShortcut(shortcut.key);
-  const keyParts = formattedKeys.split(mac ? ' ' : '+').filter(p => p !== '+');
+  const keyParts = formattedKeys.split(mac ? ' ' : '+').filter((p) => p !== '+');
 
   return (
     <div className={styles['shortcutItem']}>
@@ -168,10 +167,7 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ shortcut }) => {
           }
 
           return (
-            <kbd
-              key={index}
-              className={`${styles['key']} ${isWide ? styles['keyWide'] : ''}`}
-            >
+            <kbd key={index} className={`${styles['key']} ${isWide ? styles['keyWide'] : ''}`}>
               {part}
             </kbd>
           );
@@ -182,6 +178,10 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ shortcut }) => {
 };
 
 // Helper to detect Mac for key formatting display
-const mac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+const mac =
+  typeof navigator !== 'undefined' &&
+  ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ===
+    'macOS' ||
+    /Mac/i.test(navigator.platform));
 
 export default KeyboardShortcutsHelp;

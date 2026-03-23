@@ -15,7 +15,7 @@
   line-height: 1;
   border-radius: var(--radius-full);
   white-space: nowrap;
-  transition: 
+  transition:
     background-color var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-spring),
@@ -118,6 +118,16 @@
 
 .info:hover {
   background: rgba(88, 166, 255, 0.25);
+}
+
+.error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+.error:hover {
+  background: rgba(248, 81, 73, 0.25);
 }
 
 /* Severity variants */
@@ -224,7 +234,7 @@
   color: currentColor;
   cursor: pointer;
   opacity: 0.6;
-  transition: 
+  transition:
     opacity var(--duration-fast),
     background-color var(--duration-fast),
     transform var(--duration-fast);
@@ -256,7 +266,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

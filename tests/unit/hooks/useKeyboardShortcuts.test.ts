@@ -49,6 +49,10 @@ describe('Keyboard Shortcuts Utilities', () => {
       document.body.innerHTML = '';
     });
 
+    afterEach(() => {
+      document.body.innerHTML = '';
+    });
+
     it('should return false when no element is focused', () => {
       document.body.focus();
       expect(isInputFocused()).toBe(false);
@@ -78,6 +82,7 @@ describe('Keyboard Shortcuts Utilities', () => {
     it('should return true when contentEditable is focused', () => {
       const div = document.createElement('div');
       div.contentEditable = 'true';
+      div.tabIndex = 0; // required for jsdom to recognise the element as focusable
       document.body.appendChild(div);
       div.focus();
       expect(isInputFocused()).toBe(true);
@@ -288,8 +293,8 @@ describe('useKeyboardShortcuts', () => {
       window.dispatchEvent(event);
     });
 
-    // Actions should not be called because input is not focused check
-    expect(mockActions.clearData).not.toHaveBeenCalled();
+    // 'c' is bound to clearData; no input is focused so the shortcut fires
+    expect(mockActions.clearData).toHaveBeenCalledOnce();
   });
 });
 

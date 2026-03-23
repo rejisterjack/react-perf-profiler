@@ -145,7 +145,7 @@ export function validatePlugin(plugin: AnalysisPlugin): void {
 
   const { metadata } = plugin;
 
-  if (!metadata.id) {
+  if (metadata.id === undefined || metadata.id === null) {
     throw new Error('Plugin metadata.id is required');
   }
 

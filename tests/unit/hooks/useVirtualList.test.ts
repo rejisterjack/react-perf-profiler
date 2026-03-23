@@ -17,6 +17,8 @@ describe('useVirtualList', () => {
     container.scrollTop = 0;
     Object.defineProperty(container, 'scrollHeight', { value: 1000, writable: true });
     Object.defineProperty(container, 'clientHeight', { value: 400, writable: true });
+    // jsdom does not implement scrollTo — provide a no-op spy so tests don't throw
+    container.scrollTo = vi.fn() as unknown as typeof container.scrollTo;
     return container;
   };
 
@@ -45,8 +47,8 @@ describe('useVirtualList', () => {
     );
 
     // With containerHeight 400 and itemHeight 50, we can see ~8 items
-    // With overscan 2, we should have 12 items (8 + 2*2)
-    expect(result.current.virtualItems.length).toBeLessThanOrEqual(12);
+    // With overscan 2: startIndex clamped to 0, endIndex = 0 + 8 + 2*2 = 12 → 13 items (0..12)
+    expect(result.current.virtualItems.length).toBeLessThanOrEqual(13);
     expect(result.current.endIndex - result.current.startIndex + 1).toBe(result.current.virtualItems.length);
   });
 
@@ -125,10 +127,10 @@ describe('useVirtualList', () => {
       useVirtualList({ items, itemHeight: 50, containerHeight: 400, overscan: 5 })
     );
 
-    // With overscan 5, should render more items than visible
+    // With overscan 5: startIndex clamped to 0, endIndex = 0 + 8 + 5*2 = 18 → 19 items (0..18)
     const visibleCount = Math.ceil(400 / 50); // 8 items visible
-    const expectedCount = visibleCount + 5 * 2; // 8 + 10 = 18
-    
+    const expectedCount = visibleCount + 5 * 2 + 1; // 8 + 10 + 1 = 19 (inclusive range)
+
     expect(result.current.virtualItems.length).toBeLessThanOrEqual(expectedCount);
   });
 

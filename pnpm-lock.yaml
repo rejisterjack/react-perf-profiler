@@ -28,6 +28,9 @@ dependencies:
     version: 4.5.7(@types/react@18.3.28)(immer@10.2.0)(react@18.3.1)
 
 devDependencies:
+  '@axe-core/react':
+    specifier: ^4.10.0
+    version: 4.11.1
   '@biomejs/biome':
     specifier: ^2.4.8
     version: 2.4.8
@@ -67,6 +70,9 @@ devDependencies:
   '@vitest/coverage-v8':
     specifier: ^1.6.1
     version: 1.6.1(vitest@1.6.1)
+  axe-core:
+    specifier: ^4.11.1
+    version: 4.11.1
   jsdom:
     specifier: ^23.0.1
     version: 23.2.0
@@ -116,6 +122,13 @@ packages:
       bidi-js: 1.0.3
       css-tree: 2.3.1
       is-potential-custom-element-name: 1.0.1
+    dev: true
+
+  /@axe-core/react@4.11.1:
+    resolution: {integrity: sha512-tjTsYVQw0YhmVDpayb/r55Xbda/Og3l6UCvBZ26C+MtmuSTyQ47PKzq8z3QMgKCJ0RB7lsdiDy4HwO2SKiNuHg==}
+    dependencies:
+      axe-core: 4.11.1
+      requestidlecallback: 0.3.0
     dev: true
 
   /@babel/code-frame@7.29.0:
@@ -1694,6 +1707,11 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       possible-typed-array-names: 1.1.0
+    dev: true
+
+  /axe-core@4.11.1:
+    resolution: {integrity: sha512-BASOg+YwO2C+346x3LZOeoovTIoTrRqEsqMa6fmfAV0P+U9mFr9NsyOEpiYvFjbc64NMrSswhV50WdXzdb/Z5A==}
+    engines: {node: '>=4'}
     dev: true
 
   /balanced-match@1.0.2:
@@ -3455,6 +3473,10 @@ packages:
       get-proto: 1.0.1
       gopd: 1.2.0
       set-function-name: 2.0.2
+    dev: true
+
+  /requestidlecallback@0.3.0:
+    resolution: {integrity: sha512-TWHFkT7S9p7IxLC5A1hYmAYQx2Eb9w1skrXmQ+dS1URyvR8tenMLl4lHbqEOUnpEYxNKpkVMXUgknVpBZWXXfQ==}
     dev: true
 
   /require-from-string@2.0.2:

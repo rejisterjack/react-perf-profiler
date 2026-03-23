@@ -3,9 +3,9 @@
  * Identifies renders where props/state remained identical
  */
 
+import { FRAME_BUDGET } from '@/shared/constants';
 import type { CommitData, FiberData } from '../../content/types';
 import { shallowEqual, type FiberNode } from './shallowEqual';
-import { FRAME_BUDGET } from '@/shared/constants';
 
 /** Reasons why a wasted render might have occurred */
 export type WastedRenderReason =
@@ -93,17 +93,18 @@ export function analyzeWastedRenders(
   // Build session map using Map for O(1) lookups
   const sessionMap = new Map<string, RenderSession>();
 
+  // prevFiberMap is carried forward across iterations so each commit's fibers
+  // are indexed exactly once (O(N·M) total instead of O(2·N·M)).
+  let prevFiberMap = new Map<string, FiberData>();
+
   // Process each commit
   for (let i = 0; i < commitHistory.length; i++) {
     const commit = commitHistory[i]!;
-    const prevCommit = i > 0 ? commitHistory[i - 1]! : null;
 
-    if (!commit.fibers) continue;
-
-    // Create fiber lookup map for previous commit
-    const prevFiberMap = prevCommit?.fibers
-      ? buildFiberMap(prevCommit.fibers)
-      : new Map<string, FiberData>();
+    if (!commit.fibers) {
+      prevFiberMap = new Map();
+      continue;
+    }
 
     // Process each fiber in current commit
     for (let j = 0; j < commit.fibers.length; j++) {
@@ -159,6 +160,10 @@ export function analyzeWastedRenders(
       session.lastProps = fiber.memoizedProps ?? null;
       session.lastState = fiber.memoizedState ?? null;
     }
+
+    // Build lookup map for the next iteration from current commit's fibers.
+    // Doing this once per commit (not once per iteration pair) halves map-building work.
+    prevFiberMap = buildFiberMap(commit.fibers);
   }
 
   // Generate reports from sessions
@@ -217,13 +222,20 @@ function buildFiberMap(fibers: FiberData[]): Map<string, FiberData> {
 }
 
 /**
- * Detects if context has changed for a fiber
+ * Detects if context has changed for a fiber using React's internal flags bitmask.
+ *
+ * React marks fibers with a ContextChanged flag when a subscribed context value
+ * changes during the render. The flag value differs by version:
+ *   React 17  → 0x040 (64)
+ *   React 18  → 0x1000 (4096)
+ * We check both to support whichever version is installed on the profiled page.
  */
-function detectContextChange(_current: FiberData, _previous: FiberData | null): boolean {
-  if (!_previous) return false;
-  // Context changes are detected by React's flags
-  // In real implementation, this would check fiber.dependencies
-  return false;
+const REACT_CONTEXT_CHANGED_FLAGS = 0x040 | 0x1000;
+
+function detectContextChange(current: FiberData, previous: FiberData | null): boolean {
+  if (!previous) return false;
+  const flags = current.flags ?? 0;
+  return (flags & REACT_CONTEXT_CHANGED_FLAGS) !== 0;
 }
 
 /**

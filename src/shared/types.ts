@@ -115,6 +115,12 @@ export interface FiberData {
   tag: number;
   /** Index among siblings */
   index: number;
+  /**
+   * React internal flags bitmask (optional — populated by content script when available).
+   * React 17 sets ContextChanged = 0x40 when a context subscription changed.
+   * React 18 uses 0x1000 for the same purpose.
+   */
+  flags?: number;
   /** Bitfield for mode (concurrent, strict, etc.) */
   mode: number;
 }

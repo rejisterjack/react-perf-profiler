@@ -17,7 +17,7 @@ import { BudgetAlertBanner } from '@/panel/components/Layout/BudgetAlertBanner';
 
 async function axeCheck(container: HTMLElement): Promise<string[]> {
   try {
-    const axe = await import('axe-core');
+    const axe = await import(/* @vite-ignore */ 'axe-core');
     const results = await axe.default.run(container);
     return results.violations.map(
       (v) => `[${v.id}] ${v.description} — ${v.nodes.map((n) => n.html).join(', ')}`

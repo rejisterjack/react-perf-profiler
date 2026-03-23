@@ -182,17 +182,19 @@ describe('ErrorBoundary', () => {
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
-    
-    const tryAgainButton = screen.getByRole('button', { name: /try again/i });
-    fireEvent.click(tryAgainButton);
-    
-    // After clicking try again, the error boundary should reset
+
+    // Update children so they no longer throw, THEN reset the boundary.
+    // Doing it the other way causes the boundary to immediately catch a new
+    // error (the child still throws on the retry render).
     rerender(
       <ErrorBoundary>
         <ThrowError shouldThrow={false} />
       </ErrorBoundary>
     );
-    
+
+    const tryAgainButton = screen.getByRole('button', { name: /try again/i });
+    fireEvent.click(tryAgainButton);
+
     expect(screen.getByText('No error')).toBeInTheDocument();
   });
 

@@ -114,7 +114,7 @@ function mcSeverityColor(severity: MCseverity): string {
 // =============================================================================
 
 const ComponentTreeViewPlaceholder: React.FC = () => {
-  const { commits, selectedCommitId, selectedComponent } = useProfilerStore();
+  const { commits, selectedCommitId, selectedComponent, wastedRenderReports } = useProfilerStore();
 
   const commit = React.useMemo(
     () => commits.find((c) => c.id === selectedCommitId) ?? null,
@@ -148,13 +148,12 @@ const ComponentTreeViewPlaceholder: React.FC = () => {
       .slice(0, 5);
   }, [commit]);
 
-  // Wasted renders count
+  // Wasted renders count — components in this commit that appear in the authoritative wasted-render analysis
   const wastedRendersCount = React.useMemo(() => {
-    if (!commit?.nodes) return 0;
-    return commit.nodes.filter(
-      (n) => n.actualDuration > 0 && n.isMemoized && n.prevProps !== undefined
-    ).length;
-  }, [commit]);
+    if (!commit?.nodes || wastedRenderReports.length === 0) return 0;
+    const wastedNames = new Set(wastedRenderReports.map((r) => r.componentName));
+    return commit.nodes.filter((n) => wastedNames.has(n.displayName ?? '')).length;
+  }, [commit, wastedRenderReports]);
 
   if (!commit) {
     return (
@@ -338,7 +337,7 @@ const AnalysisViewPlaceholder: React.FC = () => {
         <Icon name="error" size={32} />
         <h3>Analysis Failed</h3>
         <p>{analysisError}</p>
-        <button onClick={runAnalysis} className={styles["retryButton"]}>
+        <button onClick={runAnalysis} className={styles["retryButton"]} aria-label="Retry performance analysis">
           Retry Analysis
         </button>
       </div>
@@ -351,7 +350,7 @@ const AnalysisViewPlaceholder: React.FC = () => {
         <Icon name="analysis" size={32} />
         <h3>No Analysis Yet</h3>
         <p>Run analysis to see detailed performance insights</p>
-        <button onClick={runAnalysis} className={styles["analyzeButton"]}>
+        <button onClick={runAnalysis} className={styles["analyzeButton"]} aria-label="Run performance analysis">
           <Icon name="play" size={16} />
           Run Analysis
         </button>

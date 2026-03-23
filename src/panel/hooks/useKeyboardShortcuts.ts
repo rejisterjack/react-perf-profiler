@@ -181,21 +181,22 @@ export const isMac = (): boolean => {
 };
 
 /**
- * Check if an input element is currently focused
+ * Check if an input element is currently focused.
+ * Uses the `contentEditable` attribute directly (instead of the computed
+ * `isContentEditable` property) for reliable behaviour in jsdom test environments.
  */
 export const isInputFocused = (): boolean => {
   const activeElement = document.activeElement;
-  if (!activeElement) return false;
+  // Treat no focus or focus on the document body as "not in an input"
+  if (!activeElement || activeElement === document.body) return false;
 
   const tagName = activeElement.tagName.toLowerCase();
-  const editable = (activeElement as HTMLElement).isContentEditable;
+  if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+    return true;
+  }
 
-  return (
-    tagName === 'input' ||
-    tagName === 'textarea' ||
-    tagName === 'select' ||
-    editable
-  );
+  const ce = (activeElement as HTMLElement).contentEditable;
+  return ce === 'true' || ce === '';
 };
 
 /**

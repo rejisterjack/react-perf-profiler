@@ -3,7 +3,7 @@
  * Extracts performance metrics and component information from React internals
  */
 
-import type { FiberData, CommitData } from './types';
+import type { CommitData, FiberData } from './types';
 
 // Counter for generating unique fiber IDs
 let fiberIdCounter = 0;
@@ -49,6 +49,7 @@ export function parseFiberNode(fiber: unknown): FiberData {
     tag: (fiberObj['tag'] as number) ?? 0,
     index: (fiberObj['index'] as number) ?? 0,
     mode: (fiberObj['mode'] as number) ?? 0,
+    flags: (fiberObj['flags'] as number) ?? 0,
   };
 }
 

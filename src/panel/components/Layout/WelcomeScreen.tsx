@@ -178,7 +178,7 @@ export const WelcomeScreen: React.FC = () => {
                                  detectionState.state === 'devtools-not-found';
 
   return (
-    <div className={styles["welcomeScreen"]} role="region" aria-label="Welcome">
+    <section className={styles["welcomeScreen"]} aria-label="Welcome">
       {/* Logo and Title */}
       <div className={styles["hero"]}>
         <div className={styles["logo"]}>
@@ -284,7 +284,7 @@ export const WelcomeScreen: React.FC = () => {
           </p>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

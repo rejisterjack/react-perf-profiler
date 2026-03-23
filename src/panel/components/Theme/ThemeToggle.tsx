@@ -20,6 +20,7 @@ export const ThemeToggle: React.FC = () => {
 
   return (
     <button
+      type="button"
       className={styles["themeToggle"]}
       onClick={toggleTheme}
       title={`Current theme: ${theme}. Click to change`}

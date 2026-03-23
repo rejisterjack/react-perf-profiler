@@ -72,6 +72,52 @@ export const SAVINGS_THRESHOLDS_MS = {
 } as const;
 
 /**
+ * Render duration severity thresholds (milliseconds)
+ * Used for consistent severity classification across the UI
+ * Based on 60fps frame budget (16.67ms per frame)
+ */
+export const RENDER_SEVERITY_MS = {
+  /** Critical: >= 16ms (exceeds 60fps frame budget) */
+  CRITICAL: 16,
+  /** Warning: >= 8ms (approaching frame budget) */
+  WARNING: 8,
+  /** Info: >= 2ms (minor but notable) */
+  INFO: 2,
+} as const;
+
+export type RenderSeverity = 'critical' | 'warning' | 'info' | 'none';
+
+/**
+ * Get severity level from render duration
+ * @param durationMs - Render duration in milliseconds
+ * @returns Severity level: 'critical', 'warning', 'info', or 'none'
+ */
+export function getRenderSeverity(durationMs: number): RenderSeverity {
+  if (durationMs >= RENDER_SEVERITY_MS.CRITICAL) return 'critical';
+  if (durationMs >= RENDER_SEVERITY_MS.WARNING) return 'warning';
+  if (durationMs >= RENDER_SEVERITY_MS.INFO) return 'info';
+  return 'none';
+}
+
+/**
+ * Get color for render severity level
+ * @param severity - Severity level
+ * @returns CSS color value
+ */
+export function getRenderSeverityColor(severity: RenderSeverity): string {
+  switch (severity) {
+    case 'critical':
+      return 'var(--severity-critical, #dc2626)';
+    case 'warning':
+      return 'var(--severity-warning, #f59e0b)';
+    case 'info':
+      return 'var(--severity-info, #3b82f6)';
+    default:
+      return 'var(--text-secondary, #9ca3af)';
+  }
+}
+
+/**
  * Memoization effectiveness thresholds
  */
 export const MEMO_EFFECTIVENESS_THRESHOLDS = {

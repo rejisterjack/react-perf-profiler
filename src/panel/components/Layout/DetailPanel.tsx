@@ -47,6 +47,7 @@ export const DetailPanel = forwardRef<HTMLDivElement>((_, ref) => {
       <div className={styles["header"]}>
         <h3 className={styles["title"]}>Component Details</h3>
         <button
+          type="button"
           className={styles["closeButton"]}
           onClick={toggleDetailPanel}
           aria-label="Close detail panel (Escape)"

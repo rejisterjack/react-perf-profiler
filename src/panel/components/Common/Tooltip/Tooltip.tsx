@@ -123,21 +123,24 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
   return (
     <>
-      <div
+      <span
         ref={triggerRef}
         className={styles["tooltipTrigger"]}
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
         onFocus={showTooltip}
         onBlur={hideTooltip}
+        aria-describedby={isVisible ? 'tooltip-content' : undefined}
+        role="img"
       >
         {children}
-      </div>
+      </span>
 
       {isVisible &&
         createPortal(
           <div
             ref={tooltipRef}
+            id="tooltip-content"
             className={`${styles["tooltip"]} ${styles[placement]}`}
             style={{
               top: position.top,

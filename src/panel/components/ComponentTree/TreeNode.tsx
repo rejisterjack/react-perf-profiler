@@ -180,12 +180,14 @@ export const TreeNode: React.FC<TreeNodeProps> = memo(
         className={`${styles["node"]} ${isSelected ? styles["selected"] : ''} ${severityClass}`}
         style={{ paddingLeft: `${node.depth * 16}px` }}
         onClick={onSelect}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
         role="treeitem"
         aria-selected={isSelected}
         aria-expanded={hasChildren ? isExpanded : undefined}
         aria-level={node.depth + 1}
         data-node-id={node.id}
         data-fiber-id={node.fiberId}
+        tabIndex={isSelected ? 0 : -1}
       >
         {/* Expand/collapse toggle button */}
         <button

@@ -227,15 +227,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             >
               <summary>Error Details {errorId && <span className={styles["errorId"]}>ID: {errorId}</span>}</summary>
               <div className={styles["errorDetailsContent"]}>
-                <div className={styles["errorType"]}
-                  role="button"
-                  tabIndex={0}
+                <button 
+                  type="button"
+                  className={styles["errorType"]}
                   onClick={this.handleCopyError}
-                  onKeyDown={(e) => e.key === 'Enter' && this.handleCopyError()}
                 >
                   <span>{error.name}: {error.message}</span>
                   <Icon name="copy" size={14} className={styles["copyIcon"]} />
-                </div>
+                </button>
                 {errorInfo?.componentStack && (
                   <pre className={styles["componentStack"]}>
                     {errorInfo.componentStack}
@@ -286,6 +285,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
           <div className={styles["secondaryActions"]}>
             <button 
+              type="button"
               className={styles["reportLink"]} 
               onClick={this.handleReportIssue}
             >

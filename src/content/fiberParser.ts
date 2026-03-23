@@ -9,6 +9,9 @@ import type { CommitData, FiberData } from './types';
 let fiberIdCounter = 0;
 const fiberIdMap = new WeakMap<object, string>();
 
+/** Maximum safe value for fiberIdCounter before reset */
+const MAX_FIBER_ID = 1000000; // Reset after 1 million IDs
+
 /**
  * Generate or retrieve a unique ID for a fiber node
  */
@@ -19,6 +22,11 @@ function getFiberId(fiber: unknown): string {
     return fiberIdMap.get(fiber)!;
   }
 
+  // Reset counter if it gets too large to prevent overflow
+  if (fiberIdCounter >= MAX_FIBER_ID) {
+    fiberIdCounter = 0;
+  }
+  
   const id = `fiber-${++fiberIdCounter}`;
   fiberIdMap.set(fiber, id);
   return id;

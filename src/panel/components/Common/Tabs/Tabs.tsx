@@ -67,6 +67,7 @@ export const Tab: React.FC<TabProps> = ({ id, children, icon, disabled = false }
 
   return (
     <button
+      type="button"
       role="tab"
       aria-selected={isActive}
       aria-controls={`tabpanel-${id}`}

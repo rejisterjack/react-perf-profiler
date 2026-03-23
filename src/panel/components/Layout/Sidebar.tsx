@@ -6,6 +6,7 @@
 import React, { forwardRef, useState } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Icon } from '../Common/Icon/Icon';
+import { getRenderSeverity, getRenderSeverityColor } from '@/shared/constants';
 import styles from './Sidebar.module.css';
 
 // =============================================================================
@@ -82,6 +83,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
           />
           {filterText && (
             <button
+              type="button"
               className={styles["clearButton"]}
               onClick={() => setFilterText('')}
               aria-label="Clear filter"
@@ -92,9 +94,10 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
         </div>
 
         {/* Severity Filters */}
-        <div className={styles["filterChips"]} role="group" aria-label="Severity filters">
+        <fieldset className={styles["filterChips"]} aria-label="Severity filters">
           {(['critical', 'warning', 'info'] as const).map((severity) => (
             <button
+              type="button"
               key={severity}
               className={`${styles["filterChip"]} ${
                 severityFilter.includes(severity) ? styles["active"] : ''
@@ -106,7 +109,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
               {severity.charAt(0).toUpperCase() + severity.slice(1)}
             </button>
           ))}
-        </div>
+        </fieldset>
 
         {/* Component Type Filter */}
         <select
@@ -128,6 +131,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
         <span className={styles["nodeCount"]}>{expandedNodes.size} nodes expanded</span>
         <div className={styles["actionButtons"]}>
           <button
+            type="button"
             className={styles["actionButton"]}
             onClick={expandAllNodes}
             disabled={!hasData}
@@ -138,6 +142,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
             Expand
           </button>
           <button
+            type="button"
             className={styles["actionButton"]}
             onClick={collapseAllNodes}
             disabled={!hasData}
@@ -183,26 +188,10 @@ Sidebar.displayName = 'Sidebar';
 // =============================================================================
 
 // =============================================================================
-// Severity helpers
+// Severity helpers (using shared constants)
 // =============================================================================
 
-type Severity = 'critical' | 'warning' | 'info' | 'none';
-
-function getSeverity(actualDuration: number): Severity {
-  if (actualDuration >= 16) return 'critical';
-  if (actualDuration >= 8) return 'warning';
-  if (actualDuration >= 2) return 'info';
-  return 'none';
-}
-
-function severityColor(severity: Severity): string {
-  switch (severity) {
-    case 'critical': return 'var(--severity-critical)';
-    case 'warning': return 'var(--severity-warning)';
-    case 'info': return 'var(--severity-info, var(--text-secondary))';
-    default: return 'var(--text-secondary)';
-  }
-}
+const severityColor = getRenderSeverityColor;
 
 // =============================================================================
 // TreeView row type
@@ -283,7 +272,7 @@ const TreeViewPlaceholder: React.FC = () => {
       if (componentTypeFilter === 'memoized' && !node.isMemoized) return false;
       if (componentTypeFilter === 'unmemoized' && node.isMemoized) return false;
       if (severityFilter.length > 0) {
-        const sev = getSeverity(node.actualDuration);
+        const sev = getRenderSeverity(node.actualDuration);
         if (sev === 'none') return false;
         if (!severityFilter.includes(sev as 'critical' | 'warning' | 'info')) return false;
       }
@@ -366,7 +355,7 @@ const TreeViewPlaceholder: React.FC = () => {
             const key = String(node.id);
             const isExpanded = expandedNodes.has(key);
             const hasChildren = node.children.length > 0;
-            const severity = getSeverity(node.actualDuration);
+            const severity = getRenderSeverity(node.actualDuration);
 
             return (
               <div
@@ -374,6 +363,8 @@ const TreeViewPlaceholder: React.FC = () => {
                 role="treeitem"
                 aria-expanded={hasChildren ? isExpanded : undefined}
                 aria-level={depth + 1}
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectComponent(node.displayName); } }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -391,6 +382,7 @@ const TreeViewPlaceholder: React.FC = () => {
               >
                 {/* Expand/collapse toggle */}
                 <button
+                  type="button"
                   onClick={() => hasChildren && toggleNodeExpanded(key)}
                   aria-label={isExpanded ? 'Collapse' : 'Expand'}
                   style={{
@@ -423,6 +415,7 @@ const TreeViewPlaceholder: React.FC = () => {
 
                 {/* Component name */}
                 <button
+                  type="button"
                   onClick={() => selectComponent(node.displayName)}
                   style={{
                     background: 'none',

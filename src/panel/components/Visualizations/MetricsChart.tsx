@@ -322,18 +322,21 @@ export const MetricsChart: React.FC = () => {
         <h3 className={styles["title"]}>Performance Metrics</h3>
         <div className={styles["chartControls"]}>
           <button
+            type="button"
             className={`${styles["chartButton"]} ${chartType === 'renders' ? styles["active"] : ''}`}
             onClick={() => setChartType('renders')}
           >
             Renders
           </button>
           <button
+            type="button"
             className={`${styles["chartButton"]} ${chartType === 'duration' ? styles["active"] : ''}`}
             onClick={() => setChartType('duration')}
           >
             Duration
           </button>
           <button
+            type="button"
             className={`${styles["chartButton"]} ${chartType === 'components' ? styles["active"] : ''}`}
             onClick={() => setChartType('components')}
           >

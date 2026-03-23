@@ -37,7 +37,7 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "off",
+        "noConsole": "warn",
         "noArrayIndexKey": "off"
       },
       "style": {
@@ -51,15 +51,15 @@
         "useLiteralKeys": "off"
       },
       "a11y": {
-        "useHtmlLang": "off",
-        "useButtonType": "off",
-        "noSvgWithoutTitle": "off",
-        "noStaticElementInteractions": "off",
-        "useKeyWithClickEvents": "off",
-        "useFocusableInteractive": "off",
-        "useSemanticElements": "off",
-        "useAriaPropsForRole": "off",
-        "useAriaPropsSupportedByRole": "off"
+        "useHtmlLang": "error",
+        "useButtonType": "error",
+        "noSvgWithoutTitle": "error",
+        "noStaticElementInteractions": "error",
+        "useKeyWithClickEvents": "error",
+        "useFocusableInteractive": "error",
+        "useSemanticElements": "error",
+        "useAriaPropsForRole": "error",
+        "useAriaPropsSupportedByRole": "error"
       }
     }
   },

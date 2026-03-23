@@ -341,7 +341,7 @@ export const Timeline: React.FC = () => {
             />
             <span>Wasted renders only</span>
           </label>
-          <button className={styles["resetButton"]} onClick={resetZoom}>
+          <button type="button" className={styles["resetButton"]} onClick={resetZoom}>
             Reset Zoom
           </button>
         </div>

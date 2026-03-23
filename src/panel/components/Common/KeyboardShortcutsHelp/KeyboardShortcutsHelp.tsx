@@ -80,14 +80,20 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
   const groupedShortcuts = groupShortcutsByCategory(shortcuts);
 
   return createPortal(
-    <div
+    <form
       className={styles['overlay']}
       onClick={handleOverlayClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="keyboard-shortcuts-title"
+      onKeyDown={(e) => { if (e.key === 'Escape') { onClose(); } }}
+      aria-label="Keyboard shortcuts overlay"
     >
-      <div className={styles['dialog']}>
+      <div 
+        className={styles['dialog']}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="keyboard-shortcuts-title"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className={styles['header']}>
           <h2 id="keyboard-shortcuts-title" className={styles['title']}>
@@ -95,6 +101,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
             Keyboard Shortcuts
           </h2>
           <button
+            type="button"
             className={styles['closeButton']}
             onClick={onClose}
             aria-label="Close keyboard shortcuts help"
@@ -131,7 +138,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
           </span>
         </div>
       </div>
-    </div>,
+    </form>,
     document.body
   );
 };

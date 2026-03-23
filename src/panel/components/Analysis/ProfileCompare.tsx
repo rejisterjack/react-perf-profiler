@@ -29,6 +29,7 @@ const DeltaBadge: React.FC<{ value: number; pct: number | null; unit?: string }>
   return (
     <span
       className={`${styles['delta']} ${isNeutral ? styles['neutral'] : isPositive ? styles['worse'] : styles['better']}`}
+      role="status"
       aria-label={`Change: ${formatted}${pctText}`}
     >
       {!isNeutral && <Icon name={isPositive ? 'arrowUp' : 'arrowDown'} size={10} />}
@@ -84,7 +85,7 @@ export const ProfileCompare: React.FC = () => {
   return (
     <div className={styles['container']}>
       {/* Controls */}
-      <div className={styles['controls']}>
+      <section className={styles['controls']}>
         {!baseline ? (
           <Button variant="primary" size="sm" icon="bookmark" iconPosition="left" onClick={pinBaseline}>
             Pin current as baseline ({commits.length} commits)
@@ -103,13 +104,13 @@ export const ProfileCompare: React.FC = () => {
             </Button>
           </>
         )}
-      </div>
+      </section>
 
       {/* Results */}
       {result && (
         <div className={styles['results']}>
           {/* Summary row */}
-          <div className={styles['summary']} role="region" aria-label="Comparison summary">
+          <section className={styles['summary']} aria-label="Comparison summary">
             <div className={styles['summaryItem']}>
               <span className={styles['summaryLabel']}>Total renders</span>
               <DeltaBadge value={result.totalRenderCountDelta} pct={null} unit="" />
@@ -122,7 +123,7 @@ export const ProfileCompare: React.FC = () => {
               <span className={styles['summaryLabel']}>Components</span>
               <span className={styles['summaryValue']}>{result.components.length}</span>
             </div>
-          </div>
+          </section>
 
           {/* Filter */}
           <input
@@ -135,7 +136,7 @@ export const ProfileCompare: React.FC = () => {
           />
 
           {/* Table */}
-          <div className={styles['tableWrapper']} role="region" aria-label="Per-component comparison">
+          <section className={styles['tableWrapper']} aria-label="Per-component comparison">
             <table className={styles['table']}>
               <thead>
                 <tr>
@@ -152,8 +153,8 @@ export const ProfileCompare: React.FC = () => {
                     className={`${d.isNew ? styles['rowNew'] : ''} ${d.isRemoved ? styles['rowRemoved'] : ''}`}
                   >
                     <td className={styles['componentName']}>
-                      {d.isNew && <span className={styles['badge']} aria-label="New component">NEW</span>}
-                      {d.isRemoved && <span className={styles['badge']} aria-label="Removed component">GONE</span>}
+                      {d.isNew && <span className={styles['badge']} role="status" aria-label="New component">NEW</span>}
+                      {d.isRemoved && <span className={styles['badge']} role="status" aria-label="Removed component">GONE</span>}
                       {d.name}
                     </td>
                     <td>
@@ -176,7 +177,7 @@ export const ProfileCompare: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
+          </section>
         </div>
       )}
     </div>

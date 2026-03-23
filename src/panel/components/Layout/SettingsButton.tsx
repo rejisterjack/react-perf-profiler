@@ -81,6 +81,7 @@ export const SettingsButton: React.FC = () => {
   return (
     <div className={styles["settingsContainer"]}>
       <button
+        type="button"
         ref={buttonRef}
         className={`${styles["settingsButton"]} ${isOpen ? styles["active"] : ''}`}
         onClick={handleToggle}
@@ -139,7 +140,7 @@ export const SettingsButton: React.FC = () => {
           </div>
 
           {/* Divider */}
-          <div className={styles["divider"]} role="separator" />
+          <hr className={styles["divider"]} />
 
           {/* Section: Component Type */}
           <div className={styles["section"]}>
@@ -186,17 +187,17 @@ export const SettingsButton: React.FC = () => {
           </div>
 
           {/* Divider */}
-          <div className={styles["divider"]} role="separator" />
+          <hr className={styles["divider"]} />
 
           {/* Section: Actions */}
           <div className={styles["section"]}>
             <button
+              type="button"
               className={styles["actionButton"]}
               onClick={() => {
                 clearData();
                 setIsOpen(false);
               }}
-              role="menuitem"
             >
               <Icon name="clear" size={16} />
               Clear All Data
@@ -204,7 +205,7 @@ export const SettingsButton: React.FC = () => {
           </div>
 
           {/* Divider */}
-          <div className={styles["divider"]} role="separator" />
+          <hr className={styles["divider"]} />
 
           {/* Footer */}
           <div className={styles["footer"]}>

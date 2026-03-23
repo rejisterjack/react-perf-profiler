@@ -254,7 +254,9 @@ function sendToBridge(payload: unknown): void {
     return;
   }
 
-  window.postMessage(message, '*');
+  // Use window.location.origin for security, fallback to '*' only for file:// pages
+  const targetOrigin = window.location.origin === 'null' ? '*' : window.location.origin;
+  window.postMessage(message, targetOrigin);
 }
 
 // =============================================================================

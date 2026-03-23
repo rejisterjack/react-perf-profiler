@@ -71,9 +71,10 @@ export const TimeTravelControls: React.FC = () => {
   const duration = commit ? (commit.duration ?? 0).toFixed(1) : '0.0';
 
   return (
-    <div className={styles['timeTravelControls']} role="group" aria-label="Time travel controls">
+    <fieldset className={styles['timeTravelControls']} aria-label="Time travel controls">
       <Tooltip content="First commit (Home)">
         <button
+          type="button"
           className={styles['navButton']}
           onClick={() => goTo(0)}
           disabled={currentIndex === 0}
@@ -85,6 +86,7 @@ export const TimeTravelControls: React.FC = () => {
 
       <Tooltip content="Previous commit (←)">
         <button
+          type="button"
           className={styles['navButton']}
           onClick={() => goTo(currentIndex - 1)}
           disabled={currentIndex === 0}
@@ -117,6 +119,7 @@ export const TimeTravelControls: React.FC = () => {
 
       <Tooltip content="Next commit (→)">
         <button
+          type="button"
           className={styles['navButton']}
           onClick={() => goTo(currentIndex + 1)}
           disabled={currentIndex >= total - 1}
@@ -128,6 +131,7 @@ export const TimeTravelControls: React.FC = () => {
 
       <Tooltip content={isLive ? 'Already at latest commit' : 'Jump to latest (End)'}>
         <button
+          type="button"
           className={`${styles['navButton']} ${isLive ? styles['liveActive'] : ''}`}
           onClick={goLive}
           disabled={isLive}
@@ -138,7 +142,7 @@ export const TimeTravelControls: React.FC = () => {
           <span className={styles['liveLabel']}>Live</span>
         </button>
       </Tooltip>
-    </div>
+    </fieldset>
   );
 };
 

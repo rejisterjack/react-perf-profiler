@@ -526,10 +526,11 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   if (!isOpen) return null;
 
   return (
-    <div 
+    <form 
       className={styles['overlay']} 
       onClick={handleClose}
-      role="presentation"
+      onKeyDown={(e) => { if (e.key === 'Escape') { handleClose(); } }}
+      aria-label="Import dialog overlay"
     >
       {/* Screen reader announcements */}
       <div 
@@ -544,6 +545,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
       <div 
         className={styles['dialog']} 
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="import-dialog-title"
@@ -551,6 +553,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
         <div className={styles['header']}>
           <h2 id="import-dialog-title" className={styles['title']}>Import Profile Data</h2>
           <button 
+            type="button"
             className={styles['closeButton']} 
             onClick={handleClose} 
             aria-label="Close dialog"
@@ -562,22 +565,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
         <div className={styles['content']}>
           {/* Drop Zone - only show in idle state */}
           {importState === 'idle' && (
-            <div
+            <button
+              type="button"
               className={getDropZoneClassName()}
               onClick={handleClick}
               onDrop={handleDrop}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              role="button"
               aria-label="Drop zone for JSON file. Click to browse or drag and drop a file."
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleClick();
-                }
-              }}
             >
               <div className={styles['dropZoneIconWrapper']}>
                 {getDropZoneIcon()}
@@ -589,7 +585,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
                 <Icon name="info" size={14} />
                 <span>Supports files exported from React Perf Profiler</span>
               </div>
-            </div>
+            </button>
           )}
 
           <input
@@ -715,6 +711,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
 
         <div className={styles['footer']}>
           <button 
+            type="button"
             className={styles['cancelButton']} 
             onClick={handleClose}
             disabled={importState === 'importing'}
@@ -722,6 +719,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
             Cancel
           </button>
           <button 
+            type="button"
             className={styles['importButton']} 
             onClick={handleImport} 
             disabled={!fileContent || importState === 'importing' || importState === 'migrating'}
@@ -733,7 +731,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
           </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 };
 

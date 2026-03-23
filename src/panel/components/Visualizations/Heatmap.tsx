@@ -345,6 +345,7 @@ export const Heatmap: React.FC = () => {
           />
           <div className={styles["modeButtons"]}>
             <button
+              type="button"
               className={`${styles["modeButton"]} ${colorMode === 'count' ? styles["active"] : ''}`}
               onClick={() => setColorMode('count')}
               title="Render Count"
@@ -352,6 +353,7 @@ export const Heatmap: React.FC = () => {
               Count
             </button>
             <button
+              type="button"
               className={`${styles["modeButton"]} ${colorMode === 'duration' ? styles["active"] : ''}`}
               onClick={() => setColorMode('duration')}
               title="Total Duration"
@@ -359,6 +361,7 @@ export const Heatmap: React.FC = () => {
               Duration
             </button>
             <button
+              type="button"
               className={`${styles["modeButton"]} ${colorMode === 'wasted' ? styles["active"] : ''}`}
               onClick={() => setColorMode('wasted')}
               title="Wasted Renders"

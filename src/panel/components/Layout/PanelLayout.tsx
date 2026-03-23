@@ -163,7 +163,7 @@ export const PanelLayout: React.FC = () => {
         </ErrorBoundary>
 
         {/* Resizer handle for sidebar */}
-        <div
+        <hr
           className={`${styles["resizer"]} ${activeResizer === 'sidebar' ? styles["active"] : ''}`}
           onMouseDown={(e) => startResize(e, 'sidebar')}
           onTouchStart={(e) => {
@@ -176,7 +176,6 @@ export const PanelLayout: React.FC = () => {
               'sidebar'
             );
           }}
-          role="separator"
           aria-orientation="vertical"
           aria-label="Resize sidebar"
           tabIndex={0}
@@ -199,7 +198,7 @@ export const PanelLayout: React.FC = () => {
         {detailPanelOpen && (
           <>
             {/* Resizer handle for detail panel */}
-            <div
+            <hr
               className={`${styles["resizer"]} ${activeResizer === 'detail' ? styles["active"] : ''}`}
               onMouseDown={(e) => startResize(e, 'detail')}
               onTouchStart={(e) => {
@@ -212,7 +211,6 @@ export const PanelLayout: React.FC = () => {
                   'detail'
                 );
               }}
-              role="separator"
               aria-orientation="vertical"
               aria-label="Resize detail panel"
               tabIndex={0}

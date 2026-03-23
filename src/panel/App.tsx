@@ -49,7 +49,8 @@ const ConnectionError: React.FC<{
     <div className={styles["errorContainer"]}>
       <div className={styles["errorContent"]}>
         <div className={styles["errorIcon"]}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" role="img" aria-label="Error">
+            <title>Error icon</title>
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -59,6 +60,7 @@ const ConnectionError: React.FC<{
         <p>{details.message}</p>
         <div className={styles["errorActions"]}>
           <button 
+            type="button"
             onClick={onRetry} 
             disabled={isRetrying}
             className={styles["retryButton"]}
@@ -102,10 +104,10 @@ const SessionRestoreBanner: React.FC<{
       Previous session ({commitCount} commits, saved{' '}
       {new Date(savedAt).toLocaleTimeString()}) available.
     </span>
-    <button onClick={onRestore} className={styles['restoreButton']}>
+    <button type="button" onClick={onRestore} className={styles['restoreButton']}>
       Restore
     </button>
-    <button onClick={onDiscard} className={styles['discardButton']}>
+    <button type="button" onClick={onDiscard} className={styles['discardButton']}>
       Discard
     </button>
   </div>

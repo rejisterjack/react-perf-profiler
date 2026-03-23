@@ -36,6 +36,7 @@ export const BudgetAlertBanner: React.FC = () => {
             <span className={styles['metric']}>{alert.metric}</span>
             <span className={styles['message']}>{alert.message}</span>
             <button
+              type="button"
               className={styles['dismissBtn']}
               onClick={() => dismiss(alert.id)}
               aria-label={`Dismiss ${alert.metric} alert`}
@@ -49,6 +50,7 @@ export const BudgetAlertBanner: React.FC = () => {
 
       {visible.length > 1 && (
         <button
+          type="button"
           className={styles['dismissAll']}
           onClick={dismissAll}
           aria-label="Dismiss all budget alerts"

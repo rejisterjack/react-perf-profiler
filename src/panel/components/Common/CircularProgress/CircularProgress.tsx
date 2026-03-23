@@ -48,7 +48,8 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={styles["svg"]}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={styles["svg"]} aria-hidden="true">
+        <title>Progress: {clampedValue}%</title>
         {/* Background circle */}
         <circle
           cx={center}

@@ -54,12 +54,12 @@ export const ViewModeToggle: React.FC = () => {
 
         return (
           <button
+            type="button"
             key={mode}
             className={`${styles["modeButton"]} ${isActive ? styles["active"] : ''} ${isDisabled ? styles["disabled"] : ''}`}
             onClick={() => handleModeChange(mode)}
             disabled={isDisabled}
-            role="radio"
-            aria-checked={isActive}
+            aria-pressed={isActive}
             title={`${label} (${shortcut})${isDisabled ? ' - Start recording to enable' : ''}`}
           >
             <Icon name={icon} size={16} />

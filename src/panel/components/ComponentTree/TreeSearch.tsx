@@ -117,8 +117,7 @@ const SeverityButton: React.FC<SeverityButtonProps> = memo(
         onKeyDown={handleKeyDown}
         disabled={disabled}
         type="button"
-        role="checkbox"
-        aria-checked={isActive}
+        aria-pressed={isActive}
         aria-label={`Filter by ${label} severity`}
         title={`Toggle ${label} issues visibility`}
       >
@@ -276,7 +275,7 @@ export const TreeSearch: React.FC<TreeSearchProps> = memo(
             <span className={styles["filterLabel"]}>Show:</span>
           </div>
 
-          <div className={styles["severityButtons"]} role="group" aria-label="Filter by severity">
+          <div className={styles["severityButtons"]} role="toolbar" aria-label="Filter by severity">
             <SeverityButton
               severity="critical"
               label="Critical"

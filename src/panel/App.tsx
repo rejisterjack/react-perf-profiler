@@ -192,8 +192,15 @@ export const App: React.FC = () => {
         }, 1000)
       );
     } finally {
-      // Reset retry state after timeout
-      retryTimeoutsRef.current.push(setTimeout(() => setIsRetrying(false), 5000));
+      // Reset retry state after delay only if still not connected
+      retryTimeoutsRef.current.push(
+        setTimeout(() => {
+          const currentState = useConnectionStore.getState();
+          if (!currentState.isConnected) {
+            setIsRetrying(false);
+          }
+        }, 5000)
+      );
     }
   }, [connect, sendMessage]);
 

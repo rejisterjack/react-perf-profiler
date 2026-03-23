@@ -5,9 +5,7 @@
 
 import type { StoreApi } from 'zustand';
 import { create } from 'zustand';
-import { analyzeMemoEffectiveness, type ComponentMetrics } from '@/panel/utils/memoAnalysis';
-import { analyzeWastedRenders } from '@/panel/utils/wastedRenderAnalysis';
-import { rscWorker } from '@/panel/workers/workerClient';
+import { analysisWorker, rscWorker } from '@/panel/workers/workerClient';
 import {
   DEFAULT_DETAIL_PANEL_WIDTH,
   DEFAULT_SIDEBAR_WIDTH,
@@ -307,17 +305,15 @@ const MAX_RSC_PAYLOADS = 100;
 const MAX_EXPANDED_NODES = 1000;
 
 /**
- * LRU Cache manager for component data
- * Tracks access order and evicts least recently used entries when limit is exceeded
+ * O(1) LRU Cache manager for component data
+ * Uses Map's insertion order preservation for O(1) access, update, and eviction
  */
 class ComponentDataLRUCache {
   private cache: Map<string, ComponentData>;
-  private accessOrder: string[];
   private maxSize: number;
 
   constructor(maxSize: number = 1000) {
     this.cache = new Map();
-    this.accessOrder = [];
     this.maxSize = maxSize;
   }
 
@@ -338,29 +334,30 @@ class ComponentDataLRUCache {
 
   /**
    * Get a component and update its access order (mark as recently used)
+   * O(1) operation
    */
   get(key: string): ComponentData | undefined {
     const data = this.cache.get(key);
     if (data) {
-      this.updateAccessOrder(key);
+      // Move to end (most recently used) by re-inserting
+      this.cache.delete(key);
+      this.cache.set(key, data);
     }
     return data;
   }
 
   /**
    * Set a component and update access order
+   * O(1) operation
    */
   set(key: string, value: ComponentData): void {
     if (this.cache.has(key)) {
-      // Update existing entry
-      this.cache.set(key, value);
-      this.updateAccessOrder(key);
-    } else {
-      // Add new entry
-      this.cache.set(key, value);
-      this.accessOrder.push(key);
-      this.enforceLimit();
+      // Update existing entry: delete and re-insert to move to end
+      this.cache.delete(key);
     }
+    // Add new entry
+    this.cache.set(key, value);
+    this.enforceLimit();
   }
 
   /**
@@ -372,12 +369,9 @@ class ComponentDataLRUCache {
 
   /**
    * Delete a component from cache
+   * O(1) operation
    */
   delete(key: string): boolean {
-    const index = this.accessOrder.indexOf(key);
-    if (index > -1) {
-      this.accessOrder.splice(index, 1);
-    }
     return this.cache.delete(key);
   }
 
@@ -423,26 +417,15 @@ class ComponentDataLRUCache {
    */
   clear(): void {
     this.cache.clear();
-    this.accessOrder = [];
-  }
-
-  /**
-   * Update access order for a key (move to end = most recently used)
-   */
-  private updateAccessOrder(key: string): void {
-    const index = this.accessOrder.indexOf(key);
-    if (index > -1) {
-      this.accessOrder.splice(index, 1);
-    }
-    this.accessOrder.push(key);
   }
 
   /**
    * Enforce the size limit by evicting least recently used entries
+   * O(1) per eviction: Map preserves insertion order, first entries are oldest
    */
   private enforceLimit(): void {
-    while (this.accessOrder.length > this.maxSize) {
-      const lruKey = this.accessOrder.shift(); // Remove oldest (least recently used)
+    while (this.cache.size > this.maxSize) {
+      const lruKey = this.cache.keys().next().value; // Get oldest (first) key
       if (lruKey) {
         this.cache.delete(lruKey);
       }
@@ -451,17 +434,26 @@ class ComponentDataLRUCache {
 
   /**
    * Get keys in LRU order (oldest first)
+   * O(n) - for debugging/admin purposes only
    */
   getKeysByAccessOrder(): string[] {
-    return [...this.accessOrder];
+    return [...this.cache.keys()];
   }
 
   /**
    * Get eviction candidates (least recently used keys)
+   * O(k) where k is count - for debugging/admin purposes only
    * @param count Number of candidates to return
    */
   getEvictionCandidates(count: number): string[] {
-    return this.accessOrder.slice(0, Math.min(count, this.accessOrder.length));
+    const keys: string[] = [];
+    let i = 0;
+    for (const key of this.cache.keys()) {
+      if (i >= count) break;
+      keys.push(key);
+      i++;
+    }
+    return keys;
   }
 }
 
@@ -794,11 +786,8 @@ const storeImplementation = (
   runAnalysis: async () => {
     set({ isAnalyzing: true, analysisError: null });
 
-    // Allow state update to propagate before starting analysis
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
     try {
-      const { commits } = get();
+      const { commits, config } = get();
 
       // Check if there are commits to analyze
       if (commits.length === 0) {
@@ -809,11 +798,11 @@ const storeImplementation = (
         return;
       }
 
-      // Aggregate component data using LRU cache
-      const { componentData, config } = get();
+      // Use the analysis worker for off-main-thread computation
+      const analysisResult = await analysisWorker.analyzeAll(commits);
 
-      // Ensure cache size is up to date
-      componentData.setMaxSize(config.maxComponentDataEntries);
+      // Aggregate component data using LRU cache for the store
+      const componentData = new ComponentDataLRUCache(config.maxComponentDataEntries);
 
       for (const commit of commits) {
         for (const node of commit.nodes ?? []) {
@@ -840,7 +829,7 @@ const storeImplementation = (
           data.totalDuration += node.actualDuration;
           data.commitIds.push(commit.id);
 
-          // Set/update in LRU cache (this updates access order)
+          // Set/update in LRU cache
           componentData.set(name, data);
         }
       }
@@ -850,101 +839,7 @@ const storeImplementation = (
         data.averageDuration = data.totalDuration / data.renderCount;
       }
 
-      // Build component metrics for memo analysis
-      const componentMetrics: ComponentMetrics[] = [];
-      for (const data of componentData.values()) {
-        // Build propChanges map from commit data
-        const propChanges = new Map<string, number>();
-        for (const commit of commits) {
-          for (const node of commit.nodes ?? []) {
-            if (node.displayName === data.name && node.props) {
-              for (const key of Object.keys(node.props)) {
-                propChanges.set(key, (propChanges.get(key) ?? 0) + 1);
-              }
-            }
-          }
-        }
-
-        componentMetrics.push({
-          componentName: data.name,
-          isMemoized: data.isMemoized,
-          memoHitRate: data.memoHitRate / 100, // Convert from percentage to 0-1
-          renderCount: data.renderCount,
-          propChanges,
-          averageRenderDuration: data.averageDuration,
-        });
-      }
-
-      // Run actual analysis using the utility functions
-      const wastedAnalysisReports = analyzeWastedRenders(commits);
-      const memoEffectivenessReports = analyzeMemoEffectiveness(commits, componentMetrics);
-
-      // Convert wasted render analysis reports to store format
-      const wastedReports: WastedRenderReport[] = wastedAnalysisReports.map((report) => ({
-        componentName: report.componentName,
-        renderCount: report.totalRenders,
-        totalRenders: report.totalRenders,
-        wastedRenders: report.wastedRenders,
-        wastedRenderRate: report.wastedRenderRate,
-        recommendedAction: report.wastedRenderRate > 0.3 ? 'memo' : 'none',
-        estimatedSavingsMs: report.totalWastedTime,
-        severity: report.severity === 'critical' || report.severity === 'warning' ? 'high' : 'low',
-        issues:
-          report.wastedRenders > 0
-            ? [
-                {
-                  type: 'inline-function',
-                  description: `Component has ${report.wastedRenders} wasted renders`,
-                  suggestion: 'Consider wrapping with React.memo()',
-                  occurrences: [],
-                  severity: report.severity === 'critical' ? 'high' : 'medium',
-                },
-              ]
-            : [],
-      }));
-
-      // Convert memo effectiveness reports to MemoReport format
-      const memoReports: MemoReport[] = memoEffectivenessReports.map((report) => ({
-        componentName: report.componentName,
-        hasMemo: report.hasMemo,
-        currentHitRate: report.currentHitRate,
-        optimalHitRate: report.optimalHitRate,
-        isEffective: report.isEffective,
-        issues: report.issues.map((issue) => ({
-          type:
-            issue.type === 'unstable-callback'
-              ? 'unstable-callback'
-              : issue.type === 'unstable-object'
-                ? 'unstable-object'
-                : issue.type === 'unstable-array'
-                  ? 'unstable-array'
-                  : issue.type === 'inline-function'
-                    ? 'inline-jsx'
-                    : issue.type === 'inline-object'
-                      ? 'deep-prop'
-                      : issue.type === 'inline-array'
-                        ? 'deep-prop'
-                        : issue.type === 'missing-memo'
-                          ? 'unstable-object'
-                          : 'deep-prop',
-          propName: issue.propName,
-          description: issue.description,
-          suggestion: issue.suggestion,
-          severity: issue.impact > 0.7 ? 'high' : issue.impact > 0.3 ? 'medium' : 'low',
-        })),
-        recommendations: report.recommendations.map((rec) => ({
-          type: rec.includes('useCallback')
-            ? 'useCallback'
-            : rec.includes('useMemo')
-              ? 'useMemo'
-              : rec.includes('React.memo')
-                ? 'React.memo'
-                : 'split-props',
-          description: rec,
-        })),
-      }));
-
-      // Calculate performance score
+      // Calculate performance score from analysis results
       const totalComponents = componentData.size;
       const totalRenderTime = Array.from(componentData.values()).reduce(
         (sum, c) => sum + c.totalDuration,
@@ -952,21 +847,22 @@ const storeImplementation = (
       );
       const avgRenderTime = totalComponents > 0 ? totalRenderTime / totalComponents : 0;
 
-      // Calculate wasted render rate from actual reports
-      const totalWastedRenders = wastedReports.reduce((sum, r) => sum + r.wastedRenders, 0);
-      const totalRenders = wastedReports.reduce((sum, r) => sum + r.totalRenders, 0);
+      // Calculate wasted render rate from worker reports
+      const wastedReports = analysisResult.wastedRenderReports ?? [];
+      const totalWastedRenders = wastedReports.reduce((sum: number, r) => sum + r.wastedRenders, 0);
+      const totalRenders = wastedReports.reduce((sum: number, r) => sum + r.totalRenders, 0);
       const wastedRenderRate = totalRenders > 0 ? (totalWastedRenders / totalRenders) * 100 : 0;
 
       // Calculate average memo hit rate
+      const memoReports = analysisResult.memoReports ?? [];
       const avgMemoHitRate =
         memoReports.length > 0
-          ? (memoReports.reduce((sum, r) => sum + r.currentHitRate, 0) / memoReports.length) * 100
+          ? (memoReports.reduce((sum: number, r) => sum + r.currentHitRate, 0) /
+              memoReports.length) *
+            100
           : 0;
 
       // Calculate performance score based on average render time
-      // Score decreases as average render time increases
-      // Formula: score = MAX - (avgRenderTime * MULTIPLIER)
-      // With MULTIPLIER=5: 20ms avg = 0 points, 10ms = 50 points, 5ms = 75 points
       const calculatedScore = MAX_PERFORMANCE_SCORE - avgRenderTime * RENDER_TIME_SCORE.MULTIPLIER;
       const clampedScore = Math.max(
         MIN_PERFORMANCE_SCORE,
@@ -987,6 +883,7 @@ const storeImplementation = (
         componentData,
         wastedRenderReports: wastedReports,
         memoReports: memoReports,
+        analysisResults: analysisResult,
       });
     } catch (error) {
       set({

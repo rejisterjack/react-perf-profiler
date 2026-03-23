@@ -5,11 +5,11 @@
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Icon } from '../Common/Icon/Icon';
-import { Button } from '../Common/Button/Button';
-import { reloadPanel, resetPanel, reportError, clearLastError } from '@/panel/utils/errorRecovery';
-import { GITHUB_REPO_URL, GENERIC_ISSUE_REPORT_URL } from '@/shared/constants';
+import { clearLastError, reloadPanel, reportError, resetPanel } from '@/panel/utils/errorRecovery';
+import { GENERIC_ISSUE_REPORT_URL, GITHUB_REPO_URL } from '@/shared/constants';
 import { logger } from '@/shared/logger';
+import { Button } from '../Common/Button/Button';
+import { Icon } from '../Common/Icon/Icon';
 import styles from './ErrorBoundary.module.css';
 
 // =============================================================================
@@ -42,6 +42,8 @@ interface ErrorBoundaryState {
   detailsExpanded: boolean;
   /** Error ID for tracking */
   errorId: string;
+  /** Whether the reset confirmation modal is open */
+  showResetConfirm: boolean;
 }
 
 // =============================================================================
@@ -57,6 +59,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       errorInfo: null,
       detailsExpanded: false,
       errorId: '',
+      showResetConfirm: false,
     };
   }
 
@@ -86,7 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     });
 
     // Report error to analytics
-    reportError(error, { 
+    reportError(error, {
       componentStack: errorInfo.componentStack ?? undefined,
       context: this.props.context,
       errorId: this.state.errorId,
@@ -101,14 +104,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     reloadPanel();
   };
 
-  private handleReset = (): void => {
-    const confirmed = window.confirm(
-      'This will clear all profiler data and reset the panel. Continue?'
-    );
-    if (confirmed) {
-      clearLastError();
-      resetPanel();
-    }
+  private handleResetClick = (): void => {
+    this.setState({ showResetConfirm: true });
+  };
+
+  private handleResetConfirm = (): void => {
+    clearLastError();
+    resetPanel();
+    this.setState({ showResetConfirm: false });
+  };
+
+  private handleResetCancel = (): void => {
+    this.setState({ showResetConfirm: false });
   };
 
   private handleRetry = (): void => {
@@ -122,47 +129,46 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   };
 
   private handleToggleDetails = (): void => {
-    this.setState(prev => ({
+    this.setState((prev) => ({
       detailsExpanded: !prev.detailsExpanded,
     }));
   };
 
   private handleReportIssue = (): void => {
     const { error, errorInfo, errorId } = this.state;
-    const title = encodeURIComponent(`[Bug] Error in React Perf Profiler: ${error?.message || 'Unknown error'}`);
+    const title = encodeURIComponent(
+      `[Bug] Error in React Perf Profiler: ${error?.message || 'Unknown error'}`
+    );
     const body = encodeURIComponent(
       `## Error Description\n\n` +
-      `**Error ID:** ${errorId}\n` +
-      `**Error Message:** ${error?.message || 'No error message'}\n\n` +
-      `**Stack Trace:**\n\`\`\`\n${error?.stack || 'No stack trace'}\n\`\`\`\n\n` +
-      `**Component Stack:**\n\`\`\`\n${errorInfo?.componentStack || 'No component stack'}\n\`\`\`\n\n` +
-      `**Context:** ${this.props.context || 'Unknown'}\n\n` +
-      `## Steps to Reproduce\n\n` +
-      `1. \n` +
-      `2. \n` +
-      `3. \n\n` +
-      `## Expected Behavior\n\n` +
-      `## Actual Behavior\n\n` +
-      `## Environment\n\n` +
-      `- Browser: ${navigator.userAgent}\n` +
-      `- URL: ${window.location.href}\n` +
-      `- Extension Version: ${import.meta.env?.['VITE_APP_VERSION'] || '1.0.0'}\n`
+        `**Error ID:** ${errorId}\n` +
+        `**Error Message:** ${error?.message || 'No error message'}\n\n` +
+        `**Stack Trace:**\n\`\`\`\n${error?.stack || 'No stack trace'}\n\`\`\`\n\n` +
+        `**Component Stack:**\n\`\`\`\n${errorInfo?.componentStack || 'No component stack'}\n\`\`\`\n\n` +
+        `**Context:** ${this.props.context || 'Unknown'}\n\n` +
+        `## Steps to Reproduce\n\n` +
+        `1. \n` +
+        `2. \n` +
+        `3. \n\n` +
+        `## Expected Behavior\n\n` +
+        `## Actual Behavior\n\n` +
+        `## Environment\n\n` +
+        `- Browser: ${navigator.userAgent}\n` +
+        `- URL: ${window.location.href}\n` +
+        `- Extension Version: ${import.meta.env?.['VITE_APP_VERSION'] || '1.0.0'}\n`
     );
-    
+
     // Use configurable GitHub URL with fallback
     const baseUrl = GITHUB_REPO_URL;
     const isValidGithubUrl = baseUrl.includes('github.com');
-    
+
     if (isValidGithubUrl) {
-      window.open(
-        `${baseUrl}/issues/new?title=${title}&body=${body}`,
-        '_blank'
-      );
+      window.open(`${baseUrl}/issues/new?title=${title}&body=${body}`, '_blank');
     } else {
       // Fallback to generic support URL
-      logger.warn('GitHub URL not configured, redirecting to support page', { 
+      logger.warn('GitHub URL not configured, redirecting to support page', {
         source: 'ErrorBoundary',
-        fallbackUrl: GENERIC_ISSUE_REPORT_URL 
+        fallbackUrl: GENERIC_ISSUE_REPORT_URL,
       });
       window.open(GENERIC_ISSUE_REPORT_URL, '_blank');
     }
@@ -171,7 +177,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   private handleCopyError = async (): Promise<void> => {
     const { error, errorInfo, errorId } = this.state;
     const errorText = `[${errorId}] ${error?.name}: ${error?.message}\n\nStack:\n${error?.stack}\n\nComponent Stack:\n${errorInfo?.componentStack}`;
-    
+
     try {
       await navigator.clipboard.writeText(errorText);
       // Could show a toast here
@@ -194,62 +200,59 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return fallback;
     }
 
-    const containerClass = compact ? styles["compact"] : '';
+    const containerClass = compact ? styles['compact'] : '';
 
     // Default error UI
     return (
-      <div 
-        className={`${styles["errorBoundary"]} ${containerClass}`} 
-        role="alert" 
+      <div
+        className={`${styles['errorBoundary']} ${containerClass}`}
+        role="alert"
         aria-live="assertive"
       >
-        <div className={styles["errorContent"]}>
-          <div className={styles["errorIcon"]}>
+        <div className={styles['errorContent']}>
+          <div className={styles['errorIcon']}>
             <Icon name="error" size={compact ? 32 : 48} />
           </div>
-          
-          <h2 className={styles["errorTitle"]}>
+
+          <h2 className={styles['errorTitle']}>
             {compact ? 'Something went wrong' : 'Oops! Something went wrong'}
           </h2>
-          
-          <p className={styles["errorMessage"]}>
-            {context 
+
+          <p className={styles['errorMessage']}>
+            {context
               ? `An error occurred in ${context}. Don't worry - your profiling data is safe.`
-              : "The profiler encountered an unexpected error. Your data has been preserved."
-            }
+              : 'The profiler encountered an unexpected error. Your data has been preserved.'}
           </p>
 
           {error && (
-            <details 
-              className={styles["errorDetails"]} 
+            <details
+              className={styles['errorDetails']}
               open={detailsExpanded}
               onToggle={this.handleToggleDetails}
             >
-              <summary>Error Details {errorId && <span className={styles["errorId"]}>ID: {errorId}</span>}</summary>
-              <div className={styles["errorDetailsContent"]}>
-                <button 
+              <summary>
+                Error Details {errorId && <span className={styles['errorId']}>ID: {errorId}</span>}
+              </summary>
+              <div className={styles['errorDetailsContent']}>
+                <button
                   type="button"
-                  className={styles["errorType"]}
+                  className={styles['errorType']}
                   onClick={this.handleCopyError}
                 >
-                  <span>{error.name}: {error.message}</span>
-                  <Icon name="copy" size={14} className={styles["copyIcon"]} />
+                  <span>
+                    {error.name}: {error.message}
+                  </span>
+                  <Icon name="copy" size={14} className={styles['copyIcon']} />
                 </button>
                 {errorInfo?.componentStack && (
-                  <pre className={styles["componentStack"]}>
-                    {errorInfo.componentStack}
-                  </pre>
+                  <pre className={styles['componentStack']}>{errorInfo.componentStack}</pre>
                 )}
-                {error.stack && (
-                  <pre className={styles["stackTrace"]}>
-                    {error.stack}
-                  </pre>
-                )}
+                {error.stack && <pre className={styles['stackTrace']}>{error.stack}</pre>}
               </div>
             </details>
           )}
 
-          <div className={styles["errorActions"]}>
+          <div className={styles['errorActions']}>
             <Button
               variant="primary"
               size={compact ? 'sm' : 'md'}
@@ -275,7 +278,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 variant="danger"
                 size={compact ? 'sm' : 'md'}
                 icon="trash"
-                onClick={this.handleReset}
+                onClick={this.handleResetClick}
                 title="Clear all data and reset the panel (use as last resort)"
               >
                 Reset
@@ -283,17 +286,44 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             )}
           </div>
 
-          <div className={styles["secondaryActions"]}>
-            <button 
-              type="button"
-              className={styles["reportLink"]} 
-              onClick={this.handleReportIssue}
-            >
+          <div className={styles['secondaryActions']}>
+            <button type="button" className={styles['reportLink']} onClick={this.handleReportIssue}>
               <Icon name="warning" size={14} />
               Report this issue on GitHub
             </button>
           </div>
         </div>
+
+        {/* Reset Confirmation Modal */}
+        {this.state.showResetConfirm && (
+          <div
+            className={styles['modalOverlay']}
+            onClick={this.handleResetCancel}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') this.handleResetCancel();
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-confirm-title"
+          >
+            <div className={styles['modalContent']}>
+              <h3 id="reset-confirm-title" className={styles['modalTitle']}>
+                Confirm Reset
+              </h3>
+              <p className={styles['modalMessage']}>
+                This will clear all profiler data and reset the panel. This action cannot be undone.
+              </p>
+              <div className={styles['modalActions']}>
+                <Button variant="secondary" size="md" onClick={this.handleResetCancel}>
+                  Cancel
+                </Button>
+                <Button variant="danger" size="md" icon="trash" onClick={this.handleResetConfirm}>
+                  Reset Panel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

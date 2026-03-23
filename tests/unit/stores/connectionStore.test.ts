@@ -32,7 +32,7 @@ const getInitialState = () => ({
   retryCount: 0,
   isReconnecting: false,
   tabId: null,
-  messageQueue: [],
+  pendingMessages: [],
   messageHandlers: new Set(),
 });
 
@@ -44,8 +44,7 @@ describe('connectionStore', () => {
     useConnectionStore.setState({
       ...currentState,
       ...initialState,
-      // Ensure both queue arrays are reset
-      messageQueue: [],
+      // Ensure pending messages are reset
       pendingMessages: [],
     });
     vi.clearAllMocks();
@@ -100,8 +99,8 @@ describe('connectionStore', () => {
 
     it('should send queued messages after connection', () => {
       const queuedMessage = { type: 'TEST', payload: {} };
-      // Set both messageQueue and pendingMessages (they are aliases)
-      useConnectionStore.setState({ messageQueue: [queuedMessage], pendingMessages: [queuedMessage] });
+      // Set pending messages queue
+      useConnectionStore.setState({ pendingMessages: [queuedMessage] });
 
       mockTabsQuery.mockImplementation((query, callback) => {
         callback([{ id: 123 }]);
@@ -112,7 +111,7 @@ describe('connectionStore', () => {
       store.connect();
 
       expect(mockPort.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'TEST' }));
-      expect(useConnectionStore.getState().messageQueue).toHaveLength(0);
+      expect(useConnectionStore.getState().pendingMessages).toHaveLength(0);
     });
 
     it('should handle disconnect event', () => {
@@ -182,8 +181,8 @@ describe('connectionStore', () => {
       const store = useConnectionStore.getState();
       store.sendMessage({ type: 'TEST' });
 
-      expect(useConnectionStore.getState().messageQueue).toHaveLength(1);
-      expect(useConnectionStore.getState().messageQueue[0].type).toBe('TEST');
+      expect(useConnectionStore.getState().pendingMessages).toHaveLength(1);
+      expect(useConnectionStore.getState().pendingMessages[0].type).toBe('TEST');
     });
 
     it('should queue message on send error', () => {
@@ -199,7 +198,7 @@ describe('connectionStore', () => {
       const store = useConnectionStore.getState();
       store.sendMessage({ type: 'TEST' });
 
-      expect(useConnectionStore.getState().messageQueue).toHaveLength(1);
+      expect(useConnectionStore.getState().pendingMessages).toHaveLength(1);
       expect(useConnectionStore.getState().isConnected).toBe(false);
     });
   });
@@ -223,7 +222,7 @@ describe('connectionStore', () => {
       const store = useConnectionStore.getState();
       store.sendTypedMessage({ type: 'PING' } as any);
 
-      expect(useConnectionStore.getState().messageQueue).toHaveLength(1);
+      expect(useConnectionStore.getState().pendingMessages).toHaveLength(1);
     });
   });
 
@@ -279,12 +278,12 @@ describe('connectionStore', () => {
     });
   });
 
-  describe('onMessage', () => {
+  describe('addMessageHandler', () => {
     it('should register handler and return unsubscribe', () => {
       const handler = vi.fn();
 
       const store = useConnectionStore.getState();
-      const unsubscribe = store.onMessage(handler);
+      const unsubscribe = store.addMessageHandler(handler);
 
       expect(useConnectionStore.getState().messageHandlers.has(handler)).toBe(true);
 

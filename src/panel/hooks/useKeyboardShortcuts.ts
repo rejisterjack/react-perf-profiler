@@ -3,9 +3,9 @@
  * Comprehensive keyboard shortcut management for React Perf Profiler
  */
 
-import { useEffect, useCallback, useRef, useState } from 'react';
-import { panelLogger } from '@/shared/logger';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SHORTCUT_FEEDBACK_TIMEOUT_MS } from '@/shared/constants';
+import { panelLogger } from '@/shared/logger';
 
 // =============================================================================
 // Types
@@ -33,13 +33,7 @@ export interface ShortcutConfig {
   feedbackMessage?: string;
 }
 
-export type ShortcutCategory =
-  | 'recording'
-  | 'navigation'
-  | 'views'
-  | 'data'
-  | 'analysis'
-  | 'help';
+export type ShortcutCategory = 'recording' | 'navigation' | 'views' | 'data' | 'analysis' | 'help';
 
 export interface ShortcutGroup {
   category: ShortcutCategory;
@@ -73,28 +67,28 @@ export interface ShortcutFeedback {
 export const RESERVED_BROWSER_SHORTCUTS: string[] = [
   // Browser command palette / quick open
   'ctrl+shift+p', // Chrome/Edge/Firefox command palette
-  'cmd+shift+p',  // macOS
+  'cmd+shift+p', // macOS
   // Common browser shortcuts
-  'ctrl+p',       // Print
-  'cmd+p',        // Print (macOS)
-  'ctrl+s',       // Save
-  'cmd+s',        // Save (macOS)
-  'ctrl+o',       // Open file
-  'cmd+o',        // Open file (macOS)
-  'ctrl+t',       // New tab
-  'cmd+t',        // New tab (macOS)
-  'ctrl+w',       // Close tab
-  'cmd+w',        // Close tab (macOS)
-  'ctrl+r',       // Reload
-  'cmd+r',        // Reload (macOS)
-  'f5',           // Reload
-  'ctrl+f',       // Find
-  'cmd+f',        // Find (macOS)
-  'ctrl+h',       // History
-  'cmd+y',        // History (macOS)
-  'ctrl+j',       // Downloads
-  'cmd+shift+j',  // Downloads (macOS)
-  'f12',          // DevTools
+  'ctrl+p', // Print
+  'cmd+p', // Print (macOS)
+  'ctrl+s', // Save
+  'cmd+s', // Save (macOS)
+  'ctrl+o', // Open file
+  'cmd+o', // Open file (macOS)
+  'ctrl+t', // New tab
+  'cmd+t', // New tab (macOS)
+  'ctrl+w', // Close tab
+  'cmd+w', // Close tab (macOS)
+  'ctrl+r', // Reload
+  'cmd+r', // Reload (macOS)
+  'f5', // Reload
+  'ctrl+f', // Find
+  'cmd+f', // Find (macOS)
+  'ctrl+h', // History
+  'cmd+y', // History (macOS)
+  'ctrl+j', // Downloads
+  'cmd+shift+j', // Downloads (macOS)
+  'f12', // DevTools
   'ctrl+shift+i', // DevTools
   'cmd+option+i', // DevTools (macOS)
 ];
@@ -114,23 +108,26 @@ export interface ShortcutConflict {
  */
 export const checkShortcutConflict = (shortcut: string): ShortcutConflict | null => {
   const normalizedShortcut = shortcut.toLowerCase().replace(/\s/g, '');
-  
+
   // Check against reserved browser shortcuts
   if (RESERVED_BROWSER_SHORTCUTS.includes(normalizedShortcut)) {
-    const isCommandPalette = normalizedShortcut === 'ctrl+shift+p' || normalizedShortcut === 'cmd+shift+p';
-    
+    const isCommandPalette =
+      normalizedShortcut === 'ctrl+shift+p' || normalizedShortcut === 'cmd+shift+p';
+
     return {
       shortcut,
       severity: isCommandPalette ? 'error' : 'warning',
       message: isCommandPalette
         ? `\`${shortcut}\` conflicts with browser Command Palette (Quick Open). Users may accidentally trigger browser features.`
         : `\`${shortcut}\` may conflict with browser shortcuts.`,
-      alternative: isCommandPalette 
-        ? (normalizedShortcut.startsWith('cmd') ? 'Cmd+Shift+R' : 'Ctrl+Shift+R')
+      alternative: isCommandPalette
+        ? normalizedShortcut.startsWith('cmd')
+          ? 'Cmd+Shift+R'
+          : 'Ctrl+Shift+R'
         : undefined,
     };
   }
-  
+
   return null;
 };
 
@@ -139,14 +136,14 @@ export const checkShortcutConflict = (shortcut: string): ShortcutConflict | null
  */
 export const validateShortcuts = (shortcuts: ShortcutConfig[]): ShortcutConflict[] => {
   const conflicts: ShortcutConflict[] = [];
-  
+
   for (const shortcut of shortcuts) {
     const conflict = checkShortcutConflict(shortcut.key);
     if (conflict) {
       conflicts.push(conflict);
     }
   }
-  
+
   return conflicts;
 };
 
@@ -204,9 +201,7 @@ export const isInputFocused = (): boolean => {
  * e.g., "ctrl+s" -> { modifiers: ['ctrl'], key: 's' }
  * e.g., "Space" -> { modifiers: [], key: ' ' }
  */
-export const parseShortcut = (
-  shortcut: string
-): { modifiers: ModifierKey[]; key: string } => {
+export const parseShortcut = (shortcut: string): { modifiers: ModifierKey[]; key: string } => {
   const parts = shortcut.toLowerCase().split('+');
   const key = parts.pop() || '';
   const modifiers = parts as ModifierKey[];
@@ -220,10 +215,7 @@ export const parseShortcut = (
 /**
  * Check if a keyboard event matches a shortcut configuration
  */
-export const matchesShortcut = (
-  event: KeyboardEvent,
-  shortcut: string
-): boolean => {
+export const matchesShortcut = (event: KeyboardEvent, shortcut: string): boolean => {
   const { modifiers, key } = parseShortcut(shortcut);
   const mac = isMac();
 
@@ -258,12 +250,10 @@ export const matchesShortcut = (
 
   // Handle special keys
   if (expectedKey === ' ' && eventKey === ' ') return true;
-  if (expectedKey === 'delete' && (eventKey === 'delete' || eventKey === 'del'))
-    return true;
+  if (expectedKey === 'delete' && (eventKey === 'delete' || eventKey === 'del')) return true;
   if (expectedKey === 'escape' && eventKey === 'escape') return true;
   if (expectedKey === 'enter' && eventKey === 'enter') return true;
-  if (expectedKey === 'space' && (eventKey === ' ' || eventKey === 'space'))
-    return true;
+  if (expectedKey === 'space' && (eventKey === ' ' || eventKey === 'space')) return true;
 
   // Handle arrow keys
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(expectedKey)) {
@@ -278,12 +268,10 @@ export const matchesShortcut = (
 // Default Shortcuts
 // =============================================================================
 
-export const createDefaultShortcuts = (
-  actions: ShortcutActions
-): ShortcutConfig[] => [
+export const createDefaultShortcuts = (actions: ShortcutActions): ShortcutConfig[] => [
   // Recording
   {
-    key: isMac() ? 'cmd+shift+p' : 'ctrl+shift+p',
+    key: isMac() ? 'cmd+shift+r' : 'ctrl+shift+r',
     handler: actions.toggleRecording,
     description: 'Start/Stop profiling',
     category: 'recording',
@@ -399,7 +387,7 @@ export const createDefaultShortcuts = (
     feedbackMessage: 'Profile exported',
   },
   {
-    key: isMac() ? 'cmd+o' : 'ctrl+o',
+    key: isMac() ? 'cmd+shift+i' : 'ctrl+shift+i',
     handler: actions.importData,
     description: 'Import profile',
     category: 'data',
@@ -522,7 +510,7 @@ export const useKeyboardShortcuts = (
   // Update shortcuts when actions change
   useEffect(() => {
     shortcuts.current = createDefaultShortcuts(actions as ShortcutActions);
-    
+
     // Check for conflicts and warn in development
     if (import.meta.env?.DEV) {
       showConflictWarnings(shortcuts.current);
@@ -598,9 +586,7 @@ export const useKeyboardShortcuts = (
 /**
  * Group shortcuts by category for display in help dialog
  */
-export const groupShortcutsByCategory = (
-  shortcuts: ShortcutConfig[]
-): ShortcutGroup[] => {
+export const groupShortcutsByCategory = (shortcuts: ShortcutConfig[]): ShortcutGroup[] => {
   const groups: Record<ShortcutCategory, ShortcutConfig[]> = {
     recording: [],
     navigation: [],
@@ -622,7 +608,7 @@ export const groupShortcutsByCategory = (
     { category: 'analysis', label: 'Analysis', shortcuts: groups.analysis },
     { category: 'help', label: 'Help', shortcuts: groups.help },
   ];
-  
+
   return result.filter((group) => group.shortcuts.length > 0);
 };
 

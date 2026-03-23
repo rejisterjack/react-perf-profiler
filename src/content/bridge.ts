@@ -4,9 +4,9 @@
  * It intercepts React commits and sends data to the content script via postMessage
  */
 
-import type { BridgeMessage } from './types';
+import { getReactVersion, parseFiberRoot } from './fiberParser';
 import type { FiberRoot } from './ReactInternals';
-import { parseFiberRoot, getReactVersion } from './fiberParser';
+import type { BridgeMessage } from './types';
 
 // Store original hook methods
 let originalOnCommitFiberRoot:
@@ -104,7 +104,7 @@ function initBridge(): void {
     isInitialized = true;
     initRetryCount = 0;
     lastError = null;
-    
+
     // Send initialization success message
     sendMessage({
       type: 'INIT',
@@ -125,7 +125,7 @@ function initBridge(): void {
  */
 function handleInitFailure(reason: 'DEVTOOLS_NOT_FOUND' | 'INIT_FAILED', details?: string): void {
   const timestamp = Date.now();
-  
+
   // Store error info
   lastError = {
     type: reason,
@@ -239,11 +239,7 @@ function setupHookInterception(hook: NonNullable<ReturnType<typeof getReactDevTo
   }
 
   // Wrap the onCommitFiberRoot method
-  hook.onCommitFiberRoot = (
-    rendererID: number,
-    root: FiberRoot,
-    priorityLevel: number
-  ): void => {
+  hook.onCommitFiberRoot = (rendererID: number, root: FiberRoot, priorityLevel: number): void => {
     // Call original first
     if (originalOnCommitFiberRoot) {
       try {
@@ -449,7 +445,7 @@ function detectReact(): boolean {
       const allElements = document.querySelectorAll('*');
       for (const el of allElements) {
         const keys = Object.keys(el);
-        if (keys.some(k => k.startsWith('__react') || k.startsWith('_react'))) {
+        if (keys.some((k) => k.startsWith('__react') || k.startsWith('_react'))) {
           return true;
         }
       }
@@ -544,10 +540,7 @@ function tryInit(): void {
   try {
     initBridge();
   } catch (error) {
-    handleInitFailure(
-      'INIT_FAILED',
-      error instanceof Error ? error.message : String(error)
-    );
+    handleInitFailure('INIT_FAILED', error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -592,18 +585,17 @@ window.addEventListener('beforeunload', cleanup);
 // Expose cleanup for testing
 window.__REACT_PERF_PROFILER_CLEANUP__ = cleanup;
 window.__REACT_PERF_PROFILER_DETECT_REACT__ = detectReact;
-window.__REACT_PERF_PROFILER_GET_INFO__ = getReactDetectionInfo;
 
 // Export for module usage (if needed)
 export {
-  initBridge,
-  startProfiling,
-  stopProfiling,
+  cancelRetry,
   cleanup,
   detectReact,
   getReactDetectionInfo,
-  sendMessage,
   handleBridgeMessage,
+  initBridge,
   scheduleRetry,
-  cancelRetry,
+  sendMessage,
+  startProfiling,
+  stopProfiling,
 };

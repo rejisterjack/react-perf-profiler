@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { TIME_DURATION, RETRY_CONSTANTS } from '@/shared/constants';
+import { RETRY_CONSTANTS, TIME_DURATION } from '@/shared/constants';
 import type { PanelMessage } from '@/shared/types';
 
 /**
@@ -27,8 +27,6 @@ export interface ConnectionState {
   lastError: string | null;
   /** Last successful ping timestamp */
   lastPing: number;
-  /** Pending messages waiting for connection (alias for pendingMessages) */
-  messageQueue: PanelMessage[];
   /** Pending messages waiting for connection */
   pendingMessages: PanelMessage[];
   /** Set of message handlers */
@@ -63,8 +61,6 @@ interface ConnectionActions {
   sendTypedMessage: <T extends PanelMessage>(message: T) => void;
   /** Handle incoming message from content script */
   handleMessage: (message: PanelMessage) => void;
-  /** Register a message handler (alias for addMessageHandler) */
-  onMessage: (handler: (message: PanelMessage) => void) => () => void;
   /** Send a ping to check connection */
   ping: () => void;
   /** Attempt to reconnect with exponential backoff */
@@ -108,7 +104,6 @@ export const useConnectionStore = create<ConnectionStore>()(
       error: null,
       lastError: null,
       lastPing: 0,
-      messageQueue: [],
       pendingMessages: [],
       messageHandlers: new Set(),
       retryCount: 0,
@@ -211,11 +206,12 @@ export const useConnectionStore = create<ConnectionStore>()(
                     set({
                       reactDetected: message.payload.reactDetected ?? null,
                       devtoolsDetected: message.payload.devtoolsDetected ?? null,
-                      bridgeState: message.payload.reactDetected && message.payload.devtoolsDetected
-                        ? 'success'
-                        : message.payload.reactDetected
-                          ? 'not-detected'
-                          : 'failed',
+                      bridgeState:
+                        message.payload.reactDetected && message.payload.devtoolsDetected
+                          ? 'success'
+                          : message.payload.reactDetected
+                            ? 'not-detected'
+                            : 'failed',
                     });
                   }
                   break;
@@ -226,11 +222,13 @@ export const useConnectionStore = create<ConnectionStore>()(
                     set({
                       error: errMsg,
                       lastError: errMsg,
-                      bridgeError: message.payload.errorType ? {
-                        type: message.payload.errorType,
-                        message: errMsg,
-                        recoverable: message.payload.recoverable !== false,
-                      } : null,
+                      bridgeError: message.payload.errorType
+                        ? {
+                            type: message.payload.errorType,
+                            message: errMsg,
+                            recoverable: message.payload.recoverable !== false,
+                          }
+                        : null,
                     });
                   }
                   break;
@@ -254,7 +252,7 @@ export const useConnectionStore = create<ConnectionStore>()(
 
             // Flush pending messages immediately after connection
             get().flushPendingMessages();
-            
+
             // Request bridge status
             newPort.postMessage({ type: 'GET_BRIDGE_STATUS' });
           } catch (error) {
@@ -282,7 +280,6 @@ export const useConnectionStore = create<ConnectionStore>()(
           error: null,
           lastError: null,
           pendingMessages: [],
-          messageQueue: [],
           retryCount: 0,
           isReconnecting: false,
           tabId: null,
@@ -311,7 +308,6 @@ export const useConnectionStore = create<ConnectionStore>()(
             const newQueue = [...pendingMessages, message];
             set({
               pendingMessages: newQueue,
-              messageQueue: newQueue,
               isConnected: false,
               error: error instanceof Error ? error.message : 'Failed to send message',
               lastError: error instanceof Error ? error.message : 'Failed to send message',
@@ -322,7 +318,6 @@ export const useConnectionStore = create<ConnectionStore>()(
           const newQueue = [...pendingMessages, message];
           set({
             pendingMessages: newQueue,
-            messageQueue: newQueue,
           });
         }
       },
@@ -358,10 +353,6 @@ export const useConnectionStore = create<ConnectionStore>()(
             }
             break;
         }
-      },
-
-      onMessage: (handler) => {
-        return get().addMessageHandler(handler);
       },
 
       ping: () => {
@@ -437,18 +428,15 @@ export const useConnectionStore = create<ConnectionStore>()(
       },
 
       flushPendingMessages: () => {
-        const { port, pendingMessages, messageQueue } = get();
+        const { port, pendingMessages } = get();
 
         if (!port) return;
 
-        // Merge both queues (they should be aliases but may diverge in tests)
-        const messagesToFlush = pendingMessages.length > 0 ? pendingMessages : messageQueue;
-
-        if (messagesToFlush.length === 0) return;
+        if (pendingMessages.length === 0) return;
 
         const failedMessages: PanelMessage[] = [];
 
-        messagesToFlush.forEach((message) => {
+        pendingMessages.forEach((message: PanelMessage) => {
           try {
             port.postMessage(message);
           } catch {
@@ -456,16 +444,21 @@ export const useConnectionStore = create<ConnectionStore>()(
           }
         });
 
-        set({ pendingMessages: failedMessages, messageQueue: failedMessages });
+        set({ pendingMessages: failedMessages });
       },
 
       addMessageHandler: (handler) => {
         const { messageHandlers } = get();
-        messageHandlers.add(handler);
+        const newHandlers = new Set(messageHandlers);
+        newHandlers.add(handler);
+        set({ messageHandlers: newHandlers });
 
         // Return unsubscribe function
         return () => {
-          messageHandlers.delete(handler);
+          const { messageHandlers: currentHandlers } = get();
+          const updatedHandlers = new Set(currentHandlers);
+          updatedHandlers.delete(handler);
+          set({ messageHandlers: updatedHandlers });
         };
       },
 

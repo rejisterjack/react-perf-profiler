@@ -57,8 +57,8 @@ export default defineConfig({
         /* Chrome extension testing requires specific args */
         launchOptions: {
           args: [
-            '--disable-extensions-except=./dist',
-            '--load-extension=./dist',
+            '--disable-extensions-except=./dist-chrome',
+            '--load-extension=./dist-chrome',
           ],
         },
       },

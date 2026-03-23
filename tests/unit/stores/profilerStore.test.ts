@@ -8,6 +8,41 @@ vi.mock('zustand/middleware', () => ({
   persist: (fn: any) => fn,
 }));
 
+// Mock the analysis worker
+vi.mock('@/panel/workers/workerClient', () => ({
+  analysisWorker: {
+    analyzeAll: vi.fn().mockResolvedValue({
+      timestamp: Date.now(),
+      totalCommits: 1,
+      wastedRenderReports: [{
+        componentName: 'TestComponent',
+        renderCount: 1,
+        totalRenders: 1,
+        wastedRenders: 0,
+        wastedRenderRate: 0,
+        recommendedAction: 'none',
+        estimatedSavingsMs: 0,
+        severity: 'low',
+        issues: [],
+      }],
+      memoReports: [],
+      performanceScore: 100,
+      topOpportunities: [],
+    }),
+    terminate: vi.fn(),
+  },
+  rscWorker: {
+    analyzeRSC: vi.fn().mockResolvedValue({
+      boundaries: [],
+      boundaryCrossings: [],
+      metrics: null,
+      recommendations: [],
+      issues: [],
+    }),
+    terminate: vi.fn(),
+  },
+}));
+
 // Get the store's initial state for reset
 const getInitialState = () => {
   const store = useProfilerStore.getState();
@@ -17,7 +52,7 @@ const getInitialState = () => {
     recordingDuration: 0,
     commits: [],
     selectedCommitId: null,
-    selectedComponentName: null,
+    selectedComponent: null,
     componentData: new Map(),
     wastedRenderReports: [],
     memoReports: [],
@@ -30,7 +65,7 @@ const getInitialState = () => {
     viewMode: 'tree' as const,
     sidebarWidth: 280,
     detailPanelWidth: 320,
-    detailPanelOpen: true,
+    isDetailPanelOpen: true,
     expandedNodes: new Set<string>(),
   };
 };
@@ -190,8 +225,8 @@ describe('profilerStore', () => {
       store.selectComponent('MyComponent');
       
       const newState = useProfilerStore.getState();
-      expect(newState.selectedComponentName).toBe('MyComponent');
-      expect(newState.detailPanelOpen).toBe(true);
+      expect(newState.selectedComponent).toBe('MyComponent');
+      expect(newState.isDetailPanelOpen).toBe(true);
     });
 
     it('should close detail panel when deselecting component', () => {
@@ -201,8 +236,8 @@ describe('profilerStore', () => {
       store.selectComponent(null);
       
       const newState = useProfilerStore.getState();
-      expect(newState.selectedComponentName).toBeNull();
-      expect(newState.detailPanelOpen).toBe(false);
+      expect(newState.selectedComponent).toBeNull();
+      expect(newState.isDetailPanelOpen).toBe(false);
     });
   });
 
@@ -248,17 +283,17 @@ describe('profilerStore', () => {
     it('should toggle detail panel', () => {
       const store = useProfilerStore.getState();
       
-      expect(store.detailPanelOpen).toBe(true);
+      expect(store.isDetailPanelOpen).toBe(true);
       
       store.toggleDetailPanel();
       
       let newState = useProfilerStore.getState();
-      expect(newState.detailPanelOpen).toBe(false);
+      expect(newState.isDetailPanelOpen).toBe(false);
       
       store.toggleDetailPanel();
       
       newState = useProfilerStore.getState();
-      expect(newState.detailPanelOpen).toBe(true);
+      expect(newState.isDetailPanelOpen).toBe(true);
     });
 
     it('should set sidebar width with constraints', () => {

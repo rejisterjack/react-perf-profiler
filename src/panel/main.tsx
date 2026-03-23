@@ -22,8 +22,13 @@ window.addEventListener('message', (event) => {
   }
 });
 
-// Mount React app
-const root = ReactDOM.createRoot(document.getElementById('root')!);
+// Mount React app with null check
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  console.error('Fatal: Could not find root element');
+  throw new Error('Could not find root element');
+}
+const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ThemeProvider>

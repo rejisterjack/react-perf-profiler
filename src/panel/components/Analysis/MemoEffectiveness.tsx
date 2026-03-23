@@ -36,7 +36,7 @@ export const MemoEffectiveness: React.FC<MemoEffectivenessProps> = ({ reports })
                 <span className={styles["name"]}>{report.componentName}</span>
                 <div className={styles["badges"]}>
                   <Badge variant={report.isEffective ? 'success' : 'warning'}>
-                    {Math.round(report.currentHitRate)}%
+                    {Math.round(report.currentHitRate * 100)}%
                   </Badge>
                 </div>
               </div>
@@ -55,11 +55,11 @@ export const MemoEffectiveness: React.FC<MemoEffectivenessProps> = ({ reports })
               <div className={styles["potential"]}>
                 <span className={styles["potentialLabel"]}>Potential:</span>
                 <span className={styles["potentialValue"]}>
-                  {Math.round(report.optimalHitRate)}%
+                  {Math.round(report.optimalHitRate * 100)}%
                 </span>
                 {!report.isEffective && (
                   <span className={styles["improvement"]}>
-                    (+{Math.round(report.optimalHitRate - report.currentHitRate)}%)
+                    (+{Math.round((report.optimalHitRate - report.currentHitRate) * 100)}%)
                   </span>
                 )}
               </div>

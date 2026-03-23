@@ -37,7 +37,7 @@ describe('Heatmap', () => {
     
     const svg = screen.getByRole('img');
     expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute('aria-label', expect.stringContaining('heatmap'));
+    expect(svg).toHaveAttribute('aria-label', expect.stringContaining('Heatmap'));
   });
 
   it('renders color mode buttons', () => {

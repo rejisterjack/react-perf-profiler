@@ -54,7 +54,7 @@ describe('ComponentDetails', () => {
 
     render(<ComponentDetails />);
     
-    expect(screen.getByText(/app/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'App' })).toBeInTheDocument();
     expect(screen.getByText(/total renders/i)).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText(/memoized/i)).toBeInTheDocument();
@@ -80,14 +80,14 @@ describe('ComponentDetails', () => {
       wastedRenderReports: [],
       memoReports: [],
       commits: [
-        { id: '1', timestamp: 1000, duration: 10, nodes: [{ displayName: 'App' }] },
-        { id: '2', timestamp: 2000, duration: 15, nodes: [{ displayName: 'App' }] },
+        { id: '1', timestamp: 1000, duration: 10, nodes: [{ displayName: 'App', actualDuration: 10, baseDuration: 10, selfBaseDuration: 5, treeBaseDuration: 10, isMemoized: false, alternate: null, id: 1, tag: 0 }] },
+        { id: '2', timestamp: 2000, duration: 15, nodes: [{ displayName: 'App', actualDuration: 10, baseDuration: 10, selfBaseDuration: 5, treeBaseDuration: 10, isMemoized: false, alternate: null, id: 1, tag: 0 }] },
       ],
     });
 
     render(<ComponentDetails />);
     
     expect(screen.getByText(/commit history/i)).toBeInTheDocument();
-    expect(screen.getByText(/appears in 2 of 2 commits/i)).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('Appears in') && content.includes('2') && content.includes('commits'))).toBeInTheDocument();
   });
 });

@@ -95,6 +95,19 @@ export const MetricsChart: React.FC = () => {
     return data.sort((a, b) => a.timestamp - b.timestamp);
   }, [commits, chartType]);
 
+  // Calculate stats BEFORE any conditional returns to follow Rules of Hooks
+  const stats = useMemo(() => {
+    if (chartData.length === 0) return null;
+
+    const values = chartData.map((d) => d.value);
+    const total = values.reduce((a, b) => a + b, 0);
+    const average = total / values.length;
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+
+    return { total, average, max, min };
+  }, [chartData]);
+
   // Get label and color based on chart type
   const getChartConfig = useCallback((type: ChartType) => {
     switch (type) {
@@ -303,18 +316,6 @@ export const MetricsChart: React.FC = () => {
       </div>
     );
   }
-
-  const stats = useMemo(() => {
-    if (chartData.length === 0) return null;
-
-    const values = chartData.map((d) => d.value);
-    const total = values.reduce((a, b) => a + b, 0);
-    const average = total / values.length;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-
-    return { total, average, max, min };
-  }, [chartData]);
 
   return (
     <div ref={containerRef} className={styles["container"]}>

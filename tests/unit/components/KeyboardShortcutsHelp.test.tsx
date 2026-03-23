@@ -1,6 +1,9 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { KeyboardShortcutsHelp } from '@/panel/components/Common/KeyboardShortcutsHelp/KeyboardShortcutsHelp';
+
+vi.mock('focus-trap-react', () => ({ default: ({ children }: { children: React.ReactNode }) => children }));
 
 describe('KeyboardShortcutsHelp', () => {
   const mockShortcuts = [
@@ -29,7 +32,7 @@ describe('KeyboardShortcutsHelp', () => {
       />
     );
     
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument();
     expect(screen.getByText(/keyboard shortcuts/i)).toBeInTheDocument();
   });
 
@@ -74,7 +77,7 @@ describe('KeyboardShortcutsHelp', () => {
       />
     );
     
-    const closeButton = screen.getByRole('button', { name: /close keyboard shortcuts help/i });
+    const closeButton = screen.getByRole('button', { name: /close keyboard shortcuts help/i, hidden: true });
     fireEvent.click(closeButton);
     expect(onClose).toHaveBeenCalled();
   });
@@ -101,7 +104,7 @@ describe('KeyboardShortcutsHelp', () => {
       />
     );
     
-    const dialog = screen.getByRole('dialog');
+    const dialog = screen.getByRole('dialog', { hidden: true });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveAttribute('aria-labelledby', 'keyboard-shortcuts-title');
   });

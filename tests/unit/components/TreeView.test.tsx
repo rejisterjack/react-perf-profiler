@@ -5,10 +5,15 @@ import { TreeView } from '@/panel/components/ComponentTree/TreeView';
 // Mock the profiler store
 vi.mock('@/panel/stores/profilerStore', () => ({
   useProfilerStore: vi.fn(),
+}));
+
+// Mock the selectors
+vi.mock('@/panel/stores/selectors', () => ({
   selectTreeData: vi.fn(),
 }));
 
-import { useProfilerStore, selectTreeData } from '@/panel/stores/profilerStore';
+import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { selectTreeData } from '@/panel/stores/selectors';
 
 const mockUseProfilerStore = useProfilerStore as unknown as ReturnType<typeof vi.fn>;
 const mockSelectTreeData = selectTreeData as unknown as ReturnType<typeof vi.fn>;

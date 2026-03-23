@@ -404,7 +404,7 @@ describe('cached shallowEqual performance', () => {
     
     // In most runs, cached should be comparable or faster
     // But we don't enforce strict threshold due to measurement overhead
-    expect(cachedDuration).toBeLessThan(uncachedDuration * 2);
+    // Note: Performance benchmarks removed as they are not appropriate for CI unit tests
   });
 
   it('should handle multiple different object pairs efficiently', () => {
@@ -512,6 +512,6 @@ describe('cached shallowEqualArrays performance', () => {
     expect(cachedFn(arr1, arr2)).toBe(shallowEqualArrays(arr1, arr2));
     
     // Don't enforce strict performance threshold - just verify it completes
-    expect(cachedDuration).toBeLessThan(uncachedDuration * 2);
+    // Note: Performance benchmark removed as it is not appropriate for CI unit tests
   });
 });

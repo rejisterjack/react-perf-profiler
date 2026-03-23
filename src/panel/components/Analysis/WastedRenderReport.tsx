@@ -38,7 +38,7 @@ export const WastedRenderReport: React.FC<WastedRenderReportProps> = ({ reports 
               <div className={styles["itemHeader"]}>
                 <span className={styles["name"]}>{report.componentName}</span>
                 <Badge variant={getBadgeVariant(report.severity)}>
-                  {Math.round(report.wastedRenderRate)}%
+                  {Math.round(report.wastedRenderRate * 100)}%
                 </Badge>
               </div>
 

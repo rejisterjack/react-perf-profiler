@@ -130,6 +130,7 @@ export const CommitDetailPanel: React.FC = () => {
             padding: '2px 6px',
             fontVariantNumeric: 'tabular-nums',
           }}
+          aria-label={`${totalDuration}ms — ${getRenderSeverity(commit.duration || 0)} render`}
         >
           {totalDuration}ms
         </span>

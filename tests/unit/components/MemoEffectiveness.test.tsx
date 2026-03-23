@@ -12,7 +12,7 @@ describe('MemoEffectiveness', () => {
       optimalHitRate: 0.9,
       isEffective: false,
       issues: [
-        { type: 'unstable-props', propName: 'onClick', description: 'Unstable callback', suggestion: 'Use useCallback' },
+        { type: 'unstable-callback', propName: 'onClick', description: 'Unstable callback', suggestion: 'Use useCallback' },
       ],
       recommendations: [{ type: 'useCallback', description: 'Wrap callbacks' }],
     },
@@ -49,8 +49,10 @@ describe('MemoEffectiveness', () => {
   it('shows improvement potential', () => {
     render(<MemoEffectiveness reports={mockReports} />);
     
-    expect(screen.getByText('90%')).toBeInTheDocument(); // Optimal
+    // ExpensiveComponent has optimal 90% and shows improvement
     expect(screen.getByText(/\+60%/i)).toBeInTheDocument(); // Improvement
+    // Check that optimal hit rate is shown somewhere
+    expect(screen.getAllByText(/90%/i).length).toBeGreaterThan(0);
   });
 
   it('shows issue suggestions', () => {

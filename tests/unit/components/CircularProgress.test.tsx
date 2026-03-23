@@ -45,10 +45,10 @@ describe('CircularProgress', () => {
 
   it('applies different color variants', () => {
     const { container: container1 } = render(<CircularProgress value={25} color="error" />);
-    expect(container1.firstChild).toHaveClass('error');
+    expect(container1.firstChild).toHaveAttribute('class', expect.stringContaining('error'));
     
     const { container: container2 } = render(<CircularProgress value={75} color="success" />);
-    expect(container2.firstChild).toHaveClass('success');
+    expect(container2.firstChild).toHaveAttribute('class', expect.stringContaining('success'));
   });
 
   it('accepts custom size', () => {

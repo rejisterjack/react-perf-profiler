@@ -1,13 +1,13 @@
 import type React from 'react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import type { PluginMetric } from '@/panel/plugins/types';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
-import { PerformanceScore } from './PerformanceScore';
-import { WastedRenderReport } from './WastedRenderReport';
+import { PluginMetricsPanel } from '../Plugins/PluginMetricsPanel';
+import styles from './AnalysisView.module.css';
 import { MemoEffectiveness } from './MemoEffectiveness';
 import { OptimizationSuggestions } from './OptimizationSuggestions';
-import { PluginMetricsPanel } from '../Plugins/PluginMetricsPanel';
-import type { PluginMetric } from '@/panel/plugins/types';
-import styles from './AnalysisView.module.css';
+import { PerformanceScore } from './PerformanceScore';
+import { WastedRenderReport } from './WastedRenderReport';
 
 /**
  * Extract plugin metrics from analysis results
@@ -138,21 +138,39 @@ function extractPluginMetrics(analysisResults: Record<string, unknown> | null): 
  * - Optimization suggestions
  */
 export const AnalysisView: React.FC = () => {
-  const { 
-    commits, 
-    isAnalyzing, 
-    runAnalysis, 
-    performanceScore, 
-    wastedRenderReports, 
+  const {
+    commits,
+    isAnalyzing,
+    runAnalysis,
+    performanceScore,
+    wastedRenderReports,
     memoReports,
-    analysisResults 
+    analysisResults,
   } = useProfilerStore();
 
-  // Auto-run analysis when commits change
+  // Debounce ref for analysis timeout
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-run analysis when commits change (debounced)
   useEffect(() => {
     if (commits.length > 0 && !isAnalyzing) {
-      runAnalysis();
+      // Clear any existing timeout
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+
+      // Debounce analysis by 500ms to avoid running during active recording
+      analysisTimeoutRef.current = setTimeout(() => {
+        runAnalysis();
+      }, 500);
     }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
   }, [commits.length, isAnalyzing, runAnalysis]);
 
   // Extract plugin metrics from analysis results
@@ -162,7 +180,7 @@ export const AnalysisView: React.FC = () => {
 
   if (commits.length === 0) {
     return (
-      <div className={styles["empty"]}>
+      <div className={styles['empty']}>
         <p>No data to analyze. Start recording to see analysis.</p>
       </div>
     );
@@ -170,8 +188,8 @@ export const AnalysisView: React.FC = () => {
 
   if (isAnalyzing) {
     return (
-      <div className={styles["loading"]}>
-        <div className={styles["spinner"]} />
+      <div className={styles['loading']}>
+        <div className={styles['spinner']} />
         <p>Analyzing performance data...</p>
       </div>
     );
@@ -180,16 +198,16 @@ export const AnalysisView: React.FC = () => {
   const hasPluginMetrics = pluginMetrics.length > 0;
 
   return (
-    <div className={styles["analysisView"]}>
+    <div className={styles['analysisView']}>
       <PerformanceScore score={performanceScore} />
 
-      <div className={styles["reportsGrid"]}>
+      <div className={styles['reportsGrid']}>
         <WastedRenderReport reports={wastedRenderReports} />
         <MemoEffectiveness reports={memoReports} />
       </div>
 
       {hasPluginMetrics && (
-        <div className={styles["pluginSection"]}>
+        <div className={styles['pluginSection']}>
           <PluginMetricsPanel metrics={pluginMetrics} />
         </div>
       )}

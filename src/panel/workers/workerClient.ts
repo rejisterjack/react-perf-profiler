@@ -22,31 +22,26 @@ import type {
   TimelineResult,
   TimelineProgress,
 } from './timeline.worker';
+import type {
+  WorkerRequest,
+  WorkerResponse,
+  WorkerRequestType,
+  WorkerResponseType,
+} from './analysis.worker';
+import type { WastedRenderConfig } from '@/panel/utils/wastedRenderAnalysis';
+import type { PerformanceScoreConfig } from '@/panel/utils/performanceScore';
 
 /**
- * Request message sent to the general analysis worker
+ * Extended analysis result with memo reports for internal handling
  */
-interface WorkerRequest {
-  /** Unique request ID */
-  id: string;
-  /** Type of analysis to perform */
-  type: 'analyzeAll' | 'analyzeWastedRenders' | 'analyzeMemo';
-  /** Data to analyze */
-  payload: CommitData[];
-}
-
-/**
- * Response message received from the general analysis worker
- */
-interface WorkerResponse {
-  /** Request ID this response corresponds to */
-  id: string;
-  /** Whether the analysis succeeded */
-  success: boolean;
-  /** Result data if successful */
-  data?: AnalysisResult;
-  /** Error message if failed */
-  error?: string;
+interface ExtendedAnalysisResult extends AnalysisResult {
+  memoReports?: Array<{
+    componentName: string;
+    currentHitRate: number;
+    optimalHitRate: number;
+    isEffective: boolean;
+    issues: string[];
+  }>;
 }
 
 /**
@@ -59,231 +54,74 @@ interface RSCPendingRequest<T> {
 }
 
 /**
+ * Pending request tracking for analysis worker
+ */
+interface AnalysisPendingRequest {
+  resolve: (value: ExtendedAnalysisResult) => void;
+  reject: (error: Error) => void;
+  expectedResponseType: WorkerResponseType;
+}
+
+/**
  * Singleton class for managing the analysis worker
  */
 class AnalysisWorkerClient {
   private worker: Worker | null = null;
-  private pendingRequests: Map<
-    string,
-    { resolve: (value: AnalysisResult) => void; reject: (error: Error) => void }
-  > = new Map();
+  private pendingRequests: Map<string, AnalysisPendingRequest> = new Map();
   private requestId = 0;
 
   /**
-   * Initialize the worker
+   * Initialize the worker using the proper analysis worker module
    */
   private initWorker(): Worker {
     if (this.worker) return this.worker;
 
-    // Create worker from blob URL (inline worker)
-    const workerCode = `
-      self.onmessage = function(e) {
-        const { id, type, payload } = e.data;
-        
-        try {
-          let result;
-          
-          switch (type) {
-            case 'analyzeAll':
-              result = analyzeAll(payload);
-              break;
-            case 'analyzeWastedRenders':
-              result = analyzeWastedRenders(payload);
-              break;
-            case 'analyzeMemo':
-              result = analyzeMemo(payload);
-              break;
-            default:
-              throw new Error('Unknown analysis type: ' + type);
-          }
-          
-          self.postMessage({ id, success: true, data: result });
-        } catch (error) {
-          self.postMessage({ 
-            id, 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Analysis failed' 
-          });
-        }
-      };
-      
-      function analyzeAll(commits) {
-        const wastedRenderReports = analyzeWastedRenders(commits);
-        const memoReports = analyzeMemo(commits);
-
-        // Constants for scoring (duplicated here since inline worker has no imports)
-        const MAX_SCORE = 100;
-        const MIN_SCORE = 0;
-        const OPPORTUNITY_THRESHOLD = 20; // Minimum wasted % to be considered
-        const HIGH_IMPACT_THRESHOLD = 50; // Wasted % for high impact classification
-        const TOP_OPPORTUNITIES_LIMIT = 5;  // Maximum opportunities to return
-
-        // Calculate performance score
-        // Score is inversely proportional to average wasted render rate
-        const totalWastedRate = wastedRenderReports.reduce((sum, r) => sum + r.wastedRenderRate, 0);
-        const avgWastedRate = wastedRenderReports.length > 0 ? totalWastedRate / wastedRenderReports.length : 0;
-        const calculatedScore = MAX_SCORE - avgWastedRate;
-        const performanceScore = Math.max(MIN_SCORE, Math.round(calculatedScore));
-
-        // Generate top opportunities
-        // Filter to only components with significant wasted render rates
-        const topOpportunities = wastedRenderReports
-          .filter(r => r.wastedRenderRate > OPPORTUNITY_THRESHOLD)
-          .sort((a, b) => b.wastedRenderRate - a.wastedRenderRate)
-          .slice(0, TOP_OPPORTUNITIES_LIMIT)
-          .map(r => ({
-            componentName: r.componentName,
-            type: r.recommendedAction,
-            impact: r.wastedRenderRate > HIGH_IMPACT_THRESHOLD ? 'high' : 'medium',
-            estimatedSavings: parseFloat(r.estimatedSavings) || 0,
-            description: 'High wasted render rate detected',
-          }));
-
-        return {
-          timestamp: Date.now(),
-          totalCommits: commits.length,
-          wastedRenderReports,
-          memoReports,
-          performanceScore,
-          topOpportunities,
-        };
-      }
-      
-      function analyzeWastedRenders(commits) {
-        const componentMap = new Map();
-        
-        commits.forEach(commit => {
-          commit.nodes.forEach(node => {
-            const key = node.displayName;
-            if (!key) return;
-            
-            if (!componentMap.has(key)) {
-              componentMap.set(key, {
-                componentName: key,
-                renderCount: 0,
-                wastedRenders: 0,
-                issues: [],
-              });
-            }
-            
-            const data = componentMap.get(key);
-            data.renderCount++;
-            
-            // Simple heuristic: check if props and state are unchanged
-            const propsEqual = shallowEqual(node.prevProps, node.props);
-            const stateEqual = shallowEqual(node.prevState, node.state);
-            
-            if (propsEqual && stateEqual && !node.hasContextChanged) {
-              data.wastedRenders++;
-            }
-          });
-        });
-        
-        return Array.from(componentMap.values()).map(data => {
-          const wastedRenderRate = data.renderCount > 0 
-            ? (data.wastedRenders / data.renderCount) * 100 
-            : 0;
-            
-          let recommendedAction = 'none';
-          if (wastedRenderRate > 30) recommendedAction = 'memo';
-          else if (wastedRenderRate > 15) recommendedAction = 'useMemo';
-          else if (wastedRenderRate > 5) recommendedAction = 'useCallback';
-          
-          return {
-            componentName: data.componentName,
-            renderCount: data.renderCount,
-            wastedRenders: data.wastedRenders,
-            wastedRenderRate: Math.round(wastedRenderRate * 100) / 100,
-            recommendedAction,
-            estimatedSavings: (data.wastedRenders * 2) + 'ms',
-            issues: data.issues,
-          };
-        });
-      }
-      
-      function analyzeMemo(commits) {
-        const componentMap = new Map();
-        
-        commits.forEach(commit => {
-          commit.nodes.forEach(node => {
-            const key = node.displayName;
-            if (!key || !node.isMemoized) return;
-            
-            if (!componentMap.has(key)) {
-              componentMap.set(key, {
-                componentName: key,
-                totalRenders: 0,
-                skippedRenders: 0,
-                issues: [],
-              });
-            }
-            
-            const data = componentMap.get(key);
-            data.totalRenders++;
-            
-            // Check if memo prevented render
-            const propsEqual = shallowEqual(node.prevProps, node.props);
-            if (propsEqual) {
-              data.skippedRenders++;
-            }
-          });
-        });
-        
-        return Array.from(componentMap.values()).map(data => {
-          const currentHitRate = data.totalRenders > 0 
-            ? data.skippedRenders / data.totalRenders 
-            : 0;
-            
-          return {
-            componentName: data.componentName,
-            currentHitRate: Math.round(currentHitRate * 100) / 100,
-            optimalHitRate: 0.9,
-            isEffective: currentHitRate > 0.7,
-            issues: data.issues,
-          };
-        });
-      }
-      
-      function shallowEqual(a, b) {
-        if (a === b) return true;
-        if (!a || !b) return false;
-        
-        const keysA = Object.keys(a);
-        const keysB = Object.keys(b);
-        
-        if (keysA.length !== keysB.length) return false;
-        
-        for (const key of keysA) {
-          if (a[key] !== b[key]) return false;
-        }
-        
-        return true;
-      }
-    `;
-
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    const workerUrl = URL.createObjectURL(blob);
-
-    this.worker = new Worker(workerUrl);
+    // Create worker using the analysis worker module
+    this.worker = new Worker(
+      new URL('./analysis.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
 
     this.worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
-      const { id, success, data, error } = e.data;
+      const { id, type, result, error } = e.data;
       const request = this.pendingRequests.get(id);
 
-      if (request) {
-        if (success && data) {
-          request.resolve(data);
+      if (!request) return;
+
+      if (type === 'ERROR') {
+        request.reject(new Error(error || 'Analysis failed'));
+      } else if (type === request.expectedResponseType) {
+        // Transform the result based on the expected response type
+        let transformedResult: ExtendedAnalysisResult;
+
+        if (type === 'ANALYSIS_COMPLETE') {
+          // Result is wasted render reports - build full AnalysisResult
+          const wastedRenderReports = (result as ExtendedAnalysisResult['wastedRenderReports']) || [];
+          transformedResult = this.buildAnalysisResult(wastedRenderReports, [], []);
         } else {
-          request.reject(new Error(error || 'Analysis failed'));
+          transformedResult = (result as ExtendedAnalysisResult) || {};
         }
-        this.pendingRequests.delete(id);
+
+        request.resolve(transformedResult);
+      } else {
+        request.reject(new Error(`Unexpected response type: ${type}`));
       }
+
+      this.pendingRequests.delete(id);
     };
 
-    this.worker.onerror = (_error) => {
+    this.worker.onerror = (error) => {
       // Reject all pending requests
       this.pendingRequests.forEach((request) => {
-        request.reject(new Error('Worker error'));
+        request.reject(new Error(`Worker error: ${error.message}`));
+      });
+      this.pendingRequests.clear();
+    };
+
+    this.worker.onmessageerror = (error) => {
+      // Reject all pending requests on message error
+      this.pendingRequests.forEach((request) => {
+        request.reject(new Error(`Worker message error: ${error}`));
       });
       this.pendingRequests.clear();
     };
@@ -292,24 +130,88 @@ class AnalysisWorkerClient {
   }
 
   /**
+   * Build a complete AnalysisResult from worker results
+   */
+  private buildAnalysisResult(
+    wastedRenderReports: ExtendedAnalysisResult['wastedRenderReports'],
+    memoReports: ExtendedAnalysisResult['memoReports'],
+    _commits: CommitData[]
+  ): ExtendedAnalysisResult {
+    // Constants for scoring
+    const MAX_SCORE = 100;
+    const MIN_SCORE = 0;
+    const OPPORTUNITY_THRESHOLD = 20;
+    const HIGH_IMPACT_THRESHOLD = 50;
+    const TOP_OPPORTUNITIES_LIMIT = 5;
+
+    // Calculate performance score
+    const totalWastedRate = wastedRenderReports.reduce(
+      (sum, r) => sum + (r.wastedRenderRate || 0),
+      0
+    );
+    const avgWastedRate =
+      wastedRenderReports.length > 0 ? totalWastedRate / wastedRenderReports.length : 0;
+    const calculatedScore = MAX_SCORE - avgWastedRate;
+    const performanceScore = Math.max(MIN_SCORE, Math.round(calculatedScore));
+
+    // Generate top opportunities
+    const topOpportunities = wastedRenderReports
+      .filter((r) => (r.wastedRenderRate || 0) > OPPORTUNITY_THRESHOLD)
+      .sort((a, b) => (b.wastedRenderRate || 0) - (a.wastedRenderRate || 0))
+      .slice(0, TOP_OPPORTUNITIES_LIMIT)
+      .map((r) => ({
+        componentName: r.componentName,
+        type: r.recommendedAction || 'none',
+        impact:
+          (r.wastedRenderRate || 0) > HIGH_IMPACT_THRESHOLD
+            ? ('high' as const)
+            : ('medium' as const),
+        estimatedSavings: parseFloat(r.estimatedSavings) || 0,
+        description: 'High wasted render rate detected',
+      }));
+
+    return {
+      timestamp: Date.now(),
+      totalCommits: wastedRenderReports.length > 0 ? wastedRenderReports[0].renderCount || 0 : 0,
+      wastedRenderReports,
+      memoReports,
+      performanceScore,
+      topOpportunities,
+    };
+  }
+
+  /**
    * Send a request to the worker
    */
-  private sendRequest(type: WorkerRequest['type'], payload: CommitData[]): Promise<AnalysisResult> {
+  private sendRequest<T>(
+    type: WorkerRequestType,
+    payload: unknown,
+    expectedResponseType: WorkerResponseType
+  ): Promise<T> {
     const worker = this.initWorker();
     const id = `${Date.now()}-${++this.requestId}`;
 
-    return new Promise((resolve, reject) => {
-      this.pendingRequests.set(id, { resolve, reject });
+    return new Promise<T>((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: resolve as (value: ExtendedAnalysisResult) => void,
+        reject,
+        expectedResponseType,
+      });
       worker.postMessage({ id, type, payload } as WorkerRequest);
     });
   }
 
   /**
    * Run complete analysis on all commits
+   * Uses ANALYZE_COMMITS followed by CALCULATE_SCORE for complete results
    * @param commits - Array of commit data to analyze
+   * @param config - Optional configuration for wasted render analysis
    * @returns Promise resolving to analysis results
    */
-  async analyzeAll(commits: CommitData[]): Promise<AnalysisResult> {
+  async analyzeAll(
+    commits: CommitData[],
+    config?: WastedRenderConfig
+  ): Promise<AnalysisResult> {
     if (commits.length === 0) {
       return {
         timestamp: Date.now(),
@@ -321,25 +223,180 @@ class AnalysisWorkerClient {
       };
     }
 
-    return this.sendRequest('analyzeAll', commits);
+    // First, get wasted render reports
+    const wastedRenderReports = await this.sendRequest<
+      ExtendedAnalysisResult['wastedRenderReports']
+    >('ANALYZE_COMMITS', { commits, config }, 'ANALYSIS_COMPLETE');
+
+    // For full analysis, we also need memo reports (derived from commits)
+    // The worker's ANALYZE_COMMITS returns wasted render reports
+    // We need to build the complete result with score calculation
+    return this.buildAnalysisResult(wastedRenderReports || [], [], commits);
   }
 
   /**
    * Analyze wasted renders only
    * @param commits - Array of commit data to analyze
+   * @param config - Optional configuration for wasted render analysis
    * @returns Promise resolving to analysis results
    */
-  async analyzeWastedRenders(commits: CommitData[]): Promise<AnalysisResult> {
-    return this.sendRequest('analyzeWastedRenders', commits);
+  async analyzeWastedRenders(
+    commits: CommitData[],
+    config?: WastedRenderConfig
+  ): Promise<AnalysisResult> {
+    if (commits.length === 0) {
+      return {
+        timestamp: Date.now(),
+        totalCommits: 0,
+        wastedRenderReports: [],
+        memoReports: [],
+        performanceScore: 100,
+        topOpportunities: [],
+      };
+    }
+
+    const wastedRenderReports = await this.sendRequest<
+      ExtendedAnalysisResult['wastedRenderReports']
+    >('ANALYZE_COMMITS', { commits, config }, 'ANALYSIS_COMPLETE');
+
+    return this.buildAnalysisResult(wastedRenderReports || [], [], commits);
   }
 
   /**
    * Analyze memo effectiveness only
+   * Note: This uses the same ANALYZE_COMMITS endpoint as wasted render analysis
+   * but filters for memo-related results
    * @param commits - Array of commit data to analyze
    * @returns Promise resolving to analysis results
    */
   async analyzeMemo(commits: CommitData[]): Promise<AnalysisResult> {
-    return this.sendRequest('analyzeMemo', commits);
+    if (commits.length === 0) {
+      return {
+        timestamp: Date.now(),
+        totalCommits: 0,
+        wastedRenderReports: [],
+        memoReports: [],
+        performanceScore: 100,
+        topOpportunities: [],
+      };
+    }
+
+    // Get the analysis results and build memo reports from commit data
+    const wastedRenderReports = await this.sendRequest<
+      ExtendedAnalysisResult['wastedRenderReports']
+    >('ANALYZE_COMMITS', { commits }, 'ANALYSIS_COMPLETE');
+
+    // Build memo reports from commit data with memoized components
+    const memoReports = this.buildMemoReports(commits);
+
+    return this.buildAnalysisResult(wastedRenderReports || [], memoReports, commits);
+  }
+
+  /**
+   * Build memo effectiveness reports from commit data
+   */
+  private buildMemoReports(
+    commits: CommitData[]
+  ): ExtendedAnalysisResult['memoReports'] {
+    const componentMap = new Map<
+      string,
+      {
+        componentName: string;
+        totalRenders: number;
+        skippedRenders: number;
+        issues: string[];
+      }
+    >();
+
+    commits.forEach((commit) => {
+      commit.nodes.forEach((node) => {
+        const key = node.displayName;
+        if (!key || !node.isMemoized) return;
+
+        if (!componentMap.has(key)) {
+          componentMap.set(key, {
+            componentName: key,
+            totalRenders: 0,
+            skippedRenders: 0,
+            issues: [],
+          });
+        }
+
+        const data = componentMap.get(key);
+        if (data) {
+          data.totalRenders++;
+          // Check if memo prevented render (props equal = render prevented)
+          const propsEqual = this.shallowEqual(node.prevProps, node.props);
+          if (propsEqual) {
+            data.skippedRenders++;
+          }
+        }
+      });
+    });
+
+    return Array.from(componentMap.values()).map((data) => {
+      const currentHitRate = data.totalRenders > 0 ? data.skippedRenders / data.totalRenders : 0;
+
+      return {
+        componentName: data.componentName,
+        currentHitRate: Math.round(currentHitRate * 100) / 100,
+        optimalHitRate: 0.9,
+        isEffective: currentHitRate > 0.7,
+        issues: data.issues,
+      };
+    });
+  }
+
+  /**
+   * Simple shallow equality check for objects
+   */
+  private shallowEqual(a: unknown, b: unknown): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (typeof a !== 'object' || typeof b !== 'object') return false;
+
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+
+    if (keysA.length !== keysB.length) return false;
+
+    for (const key of keysA) {
+      if ((a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Calculate performance score via worker
+   * @param commits - Array of commit data
+   * @param wastedRenderReports - Wasted render analysis results
+   * @param memoReports - Memo effectiveness reports
+   * @param config - Optional score configuration
+   * @returns Promise resolving to performance metrics
+   */
+  async calculateScore(
+    commits: CommitData[],
+    wastedRenderReports: ExtendedAnalysisResult['wastedRenderReports'],
+    memoReports: ExtendedAnalysisResult['memoReports'],
+    config?: PerformanceScoreConfig
+  ): Promise<{
+    score: number;
+    breakdown: {
+      wastedRenderPenalty: number;
+      memoEffectivenessBonus: number;
+      renderEfficiencyScore: number;
+    };
+    details: {
+      totalRenders: number;
+      wastedRenders: number;
+      memoizedComponents: number;
+      effectiveMemoizedComponents: number;
+    };
+  }> {
+    return this.sendRequest('CALCULATE_SCORE', { commits, wastedRenderReports, memoReports, config }, 'SCORE_READY');
   }
 
   /**

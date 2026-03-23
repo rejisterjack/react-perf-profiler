@@ -3,33 +3,47 @@
  * @module panel/stores/profilerStore
  */
 
-import { create } from 'zustand';
 import type { StoreApi } from 'zustand';
-import type {
-  CommitData,
-  AnalysisResult,
-  WastedRenderReport,
-  MemoReport,
-  ProfilerConfig,
-} from '@/shared/types';
-import type {
-  RSCPayload,
-  RSCAnalysisResult,
-  RSCMetrics,
-  RSCAnalysisConfig,
-} from '@/shared/types/rsc';
-import type { ExportedProfileV1, ExportedProfileV2, ImportValidationResult } from '@/shared/types/export';
-import { createExportProfile, validateImportData, isExportedProfileV1 } from '@/shared/types/export';
+import { create } from 'zustand';
+import { analyzeMemoEffectiveness, type ComponentMetrics } from '@/panel/utils/memoAnalysis';
+import { analyzeWastedRenders } from '@/panel/utils/wastedRenderAnalysis';
+import { rscWorker } from '@/panel/workers/workerClient';
 import {
+  DEFAULT_DETAIL_PANEL_WIDTH,
+  DEFAULT_SIDEBAR_WIDTH,
   MAX_PERFORMANCE_SCORE,
   MIN_PERFORMANCE_SCORE,
   RENDER_TIME_SCORE,
-  DEFAULT_SIDEBAR_WIDTH,
-  DEFAULT_DETAIL_PANEL_WIDTH,
 } from '@/shared/constants';
-import { autoMigrateProfileWithLogging, MigrationError, CorruptedProfileError } from '@/shared/export/migrations';
-import type { MigrationLogEntry } from '@/shared/types/export';
-import { rscWorker } from '@/panel/workers/workerClient';
+import {
+  autoMigrateProfileWithLogging,
+  CorruptedProfileError,
+  MigrationError,
+} from '@/shared/export/migrations';
+import type {
+  AnalysisResult,
+  CommitData,
+  MemoReport,
+  ProfilerConfig,
+  WastedRenderReport,
+} from '@/shared/types';
+import type {
+  ExportedProfileV1,
+  ExportedProfileV2,
+  ImportValidationResult,
+  MigrationLogEntry,
+} from '@/shared/types/export';
+import {
+  createExportProfile,
+  isExportedProfileV1,
+  validateImportData,
+} from '@/shared/types/export';
+import type {
+  RSCAnalysisConfig,
+  RSCAnalysisResult,
+  RSCMetrics,
+  RSCPayload,
+} from '@/shared/types/rsc';
 
 /**
  * Performance metrics for the profiler
@@ -205,7 +219,12 @@ interface ProfilerActions {
   /** Validate import data and return validation result */
   validateImportData: (json: string) => ImportValidationResult;
   /** Import data with migration if needed */
-  importDataWithMigration: (json: string) => { success: boolean; error?: string; migrated?: boolean; migrationLog?: MigrationLogEntry[] };
+  importDataWithMigration: (json: string) => {
+    success: boolean;
+    error?: string;
+    migrated?: boolean;
+    migrationLog?: MigrationLogEntry[];
+  };
   /** Update profiler configuration */
   updateConfig: (config: Partial<ProfilerConfig>) => void;
   /** Select a specific commit */
@@ -264,11 +283,6 @@ interface ProfilerActions {
  * Combined store type
  */
 export type ProfilerStore = ProfilerState & ProfilerActions;
-
-/**
- * Selector for tree data
- */
-export const selectTreeData = (state: ProfilerState) => state.componentData;
 
 /**
  * Selector for the currently selected commit
@@ -585,17 +599,17 @@ const storeImplementation = (
 
   exportData: () => {
     const { commits, recordingDuration, analysisResults, rscPayloads, rscAnalysis } = get();
-    
+
     // Extract React version from first commit if available
     const reactVersion = commits[0]?.reactVersion ?? 'unknown';
-    
+
     const profile: ExportedProfileV1 = createExportProfile(commits, recordingDuration, {
       reactVersion,
       analysisResults: analysisResults ?? undefined,
       rscPayloads: rscPayloads.length > 0 ? rscPayloads : undefined,
       rscAnalysis: rscAnalysis ?? undefined,
     });
-    
+
     return JSON.stringify(profile, null, 2);
   },
 
@@ -617,14 +631,14 @@ const storeImplementation = (
   importDataWithMigration: (json: string) => {
     try {
       const data = JSON.parse(json);
-      
+
       // Validate the import data
       const validation = validateImportData(data);
-      
+
       if (!validation.isValid) {
-        return { 
-          success: false, 
-          error: validation.error || 'Invalid import data' 
+        return {
+          success: false,
+          error: validation.error || 'Invalid import data',
         };
       }
 
@@ -642,18 +656,18 @@ const storeImplementation = (
           migrationLog = result.log;
         } catch (migrateError) {
           let errorMessage = 'Failed to migrate profile to current format';
-          
+
           if (migrateError instanceof MigrationError) {
             errorMessage = `Migration failed: ${migrateError.message}`;
             migrationLog = migrateError.log;
           } else if (migrateError instanceof CorruptedProfileError) {
             errorMessage = `Corrupted profile: ${migrateError.message}`;
           }
-          
-          return { 
-            success: false, 
+
+          return {
+            success: false,
             error: errorMessage,
-            migrationLog
+            migrationLog,
           };
         }
       } else if (isExportedProfileV1(data)) {
@@ -668,18 +682,18 @@ const storeImplementation = (
           migrationLog = result.log;
         } catch (migrateError) {
           let errorMessage = 'Unsupported profile format';
-          
+
           if (migrateError instanceof MigrationError) {
             errorMessage = `Migration failed: ${migrateError.message}`;
             migrationLog = migrateError.log;
           } else if (migrateError instanceof CorruptedProfileError) {
             errorMessage = `Corrupted profile: ${migrateError.message}`;
           }
-          
-          return { 
-            success: false, 
+
+          return {
+            success: false,
             error: errorMessage,
-            migrationLog
+            migrationLog,
           };
         }
       }
@@ -755,7 +769,18 @@ const storeImplementation = (
   },
 
   expandAll: () => {
-    set({ expandedNodes: new Set<string>() });
+    const { commits } = get();
+    const allNodeIds = new Set<string>();
+
+    for (const commit of commits) {
+      for (const node of commit.nodes ?? []) {
+        if (node.id !== undefined && node.id !== null) {
+          allNodeIds.add(`${commit.id}-${node.id}`);
+        }
+      }
+    }
+
+    set({ expandedNodes: allNodeIds });
   },
 
   collapseAll: () => {
@@ -788,13 +813,9 @@ const storeImplementation = (
         return;
       }
 
-      // Simulate analysis - in real implementation, this would use the worker
-      const wastedReports: WastedRenderReport[] = [];
-      const memoReports: MemoReport[] = [];
-
       // Aggregate component data using LRU cache
       const { componentData, config } = get();
-      
+
       // Ensure cache size is up to date
       componentData.setMaxSize(config.maxComponentDataEntries);
 
@@ -822,7 +843,7 @@ const storeImplementation = (
           data.renderCount++;
           data.totalDuration += node.actualDuration;
           data.commitIds.push(commit.id);
-          
+
           // Set/update in LRU cache (this updates access order)
           componentData.set(name, data);
         }
@@ -833,6 +854,100 @@ const storeImplementation = (
         data.averageDuration = data.totalDuration / data.renderCount;
       }
 
+      // Build component metrics for memo analysis
+      const componentMetrics: ComponentMetrics[] = [];
+      for (const data of componentData.values()) {
+        // Build propChanges map from commit data
+        const propChanges = new Map<string, number>();
+        for (const commit of commits) {
+          for (const node of commit.nodes ?? []) {
+            if (node.displayName === data.name && node.props) {
+              for (const key of Object.keys(node.props)) {
+                propChanges.set(key, (propChanges.get(key) ?? 0) + 1);
+              }
+            }
+          }
+        }
+
+        componentMetrics.push({
+          componentName: data.name,
+          isMemoized: data.isMemoized,
+          memoHitRate: data.memoHitRate / 100, // Convert from percentage to 0-1
+          renderCount: data.renderCount,
+          propChanges,
+          averageRenderDuration: data.averageDuration,
+        });
+      }
+
+      // Run actual analysis using the utility functions
+      const wastedAnalysisReports = analyzeWastedRenders(commits);
+      const memoEffectivenessReports = analyzeMemoEffectiveness(commits, componentMetrics);
+
+      // Convert wasted render analysis reports to store format
+      const wastedReports: WastedRenderReport[] = wastedAnalysisReports.map((report) => ({
+        componentName: report.componentName,
+        renderCount: report.totalRenders,
+        totalRenders: report.totalRenders,
+        wastedRenders: report.wastedRenders,
+        wastedRenderRate: report.wastedRenderRate,
+        recommendedAction: report.wastedRenderRate > 0.3 ? 'memo' : 'none',
+        estimatedSavingsMs: report.totalWastedTime,
+        severity: report.severity === 'critical' || report.severity === 'warning' ? 'high' : 'low',
+        issues:
+          report.wastedRenders > 0
+            ? [
+                {
+                  type: 'inline-function',
+                  description: `Component has ${report.wastedRenders} wasted renders`,
+                  suggestion: 'Consider wrapping with React.memo()',
+                  occurrences: [],
+                  severity: report.severity === 'critical' ? 'high' : 'medium',
+                },
+              ]
+            : [],
+      }));
+
+      // Convert memo effectiveness reports to MemoReport format
+      const memoReports: MemoReport[] = memoEffectivenessReports.map((report) => ({
+        componentName: report.componentName,
+        hasMemo: report.hasMemo,
+        currentHitRate: report.currentHitRate,
+        optimalHitRate: report.optimalHitRate,
+        isEffective: report.isEffective,
+        issues: report.issues.map((issue) => ({
+          type:
+            issue.type === 'unstable-callback'
+              ? 'unstable-callback'
+              : issue.type === 'unstable-object'
+                ? 'unstable-object'
+                : issue.type === 'unstable-array'
+                  ? 'unstable-array'
+                  : issue.type === 'inline-function'
+                    ? 'inline-jsx'
+                    : issue.type === 'inline-object'
+                      ? 'deep-prop'
+                      : issue.type === 'inline-array'
+                        ? 'deep-prop'
+                        : issue.type === 'missing-memo'
+                          ? 'unstable-object'
+                          : 'deep-prop',
+          propName: issue.propName,
+          description: issue.description,
+          suggestion: issue.suggestion,
+          severity: issue.impact > 0.7 ? 'high' : issue.impact > 0.3 ? 'medium' : 'low',
+        })),
+        recommendations: report.recommendations.map((rec) => ({
+          type: rec.includes('useCallback')
+            ? 'useCallback'
+            : rec.includes('useMemo')
+              ? 'useMemo'
+              : rec.includes('React.memo')
+                ? 'React.memo'
+                : 'split-props',
+          description: rec,
+        })),
+      }));
+
       // Calculate performance score
       const totalComponents = componentData.size;
       const totalRenderTime = Array.from(componentData.values()).reduce(
@@ -841,12 +956,22 @@ const storeImplementation = (
       );
       const avgRenderTime = totalComponents > 0 ? totalRenderTime / totalComponents : 0;
 
+      // Calculate wasted render rate from actual reports
+      const totalWastedRenders = wastedReports.reduce((sum, r) => sum + r.wastedRenders, 0);
+      const totalRenders = wastedReports.reduce((sum, r) => sum + r.totalRenders, 0);
+      const wastedRenderRate = totalRenders > 0 ? (totalWastedRenders / totalRenders) * 100 : 0;
+
+      // Calculate average memo hit rate
+      const avgMemoHitRate =
+        memoReports.length > 0
+          ? (memoReports.reduce((sum, r) => sum + r.currentHitRate, 0) / memoReports.length) * 100
+          : 0;
+
       // Calculate performance score based on average render time
       // Score decreases as average render time increases
       // Formula: score = MAX - (avgRenderTime * MULTIPLIER)
       // With MULTIPLIER=5: 20ms avg = 0 points, 10ms = 50 points, 5ms = 75 points
-      const calculatedScore =
-        MAX_PERFORMANCE_SCORE - avgRenderTime * RENDER_TIME_SCORE.MULTIPLIER;
+      const calculatedScore = MAX_PERFORMANCE_SCORE - avgRenderTime * RENDER_TIME_SCORE.MULTIPLIER;
       const clampedScore = Math.max(
         MIN_PERFORMANCE_SCORE,
         Math.min(MAX_PERFORMANCE_SCORE, calculatedScore)
@@ -855,8 +980,8 @@ const storeImplementation = (
       const performanceScore: PerformanceMetrics = {
         score: clampedScore,
         averageRenderTime: avgRenderTime,
-        wastedRenderRate: 0,
-        averageMemoHitRate: 0,
+        wastedRenderRate,
+        averageMemoHitRate: avgMemoHitRate,
         totalComponents,
       };
 
@@ -907,7 +1032,7 @@ const storeImplementation = (
     for (const commit of commits) {
       for (const node of commit.nodes ?? []) {
         if (node.id !== undefined && node.id !== null) {
-          allNodeIds.add(String(node.id));
+          allNodeIds.add(`${commit.id}-${node.id}`);
         }
       }
     }
@@ -926,7 +1051,7 @@ const storeImplementation = (
       newExpanded.delete(nodeId);
     } else {
       newExpanded.add(nodeId);
-      
+
       // Enforce max expanded nodes limit using FIFO eviction
       if (newExpanded.size > MAX_EXPANDED_NODES) {
         const firstKey = newExpanded.values().next().value;
@@ -941,12 +1066,12 @@ const storeImplementation = (
   addRSCPayload: (payload: RSCPayload) => {
     const { rscPayloads } = get();
     const newPayloads = [...rscPayloads, payload];
-    
+
     // Enforce max RSC payloads limit
     if (newPayloads.length > MAX_RSC_PAYLOADS) {
       newPayloads.shift(); // Remove oldest
     }
-    
+
     set({ rscPayloads: newPayloads });
   },
 
@@ -991,7 +1116,9 @@ const storeImplementation = (
         const firstChunk = payload.chunks[0];
         if (firstChunk && typeof firstChunk.data === 'string') {
           // Reconstruct from chunks if available
-          return payload.chunks.map((chunk: RSCPayload['chunks'][0]) => chunk.data ?? '').join('\n');
+          return payload.chunks
+            .map((chunk: RSCPayload['chunks'][0]) => chunk.data ?? '')
+            .join('\n');
         }
         // Otherwise serialize the parsed payload
         return JSON.stringify(payload);
@@ -1050,9 +1177,7 @@ const storeImplementation = (
         (sum: number, p: RSCPayload) => sum + p.chunks.length,
         0
       );
-      const chunkSizes = rscPayloads.flatMap((p: RSCPayload) =>
-        p.chunks.map((c) => c.size)
-      );
+      const chunkSizes = rscPayloads.flatMap((p: RSCPayload) => p.chunks.map((c) => c.size));
 
       const streamMetrics: RSCMetrics['streamMetrics'] = {
         chunkCount: totalChunks,
@@ -1061,8 +1186,7 @@ const storeImplementation = (
             ? chunkSizes.reduce((a: number, b: number) => a + b, 0) / chunkSizes.length
             : 0,
         maxChunkSize: chunkSizes.length > 0 ? Math.max(...chunkSizes) : 0,
-        minChunkSize:
-          chunkSizes.length > 0 ? Math.min(...chunkSizes) : 0,
+        minChunkSize: chunkSizes.length > 0 ? Math.min(...chunkSizes) : 0,
         boundaryChunks: rscPayloads.reduce(
           (sum: number, p: RSCPayload) => sum + p.chunks.filter((c) => c.containsBoundary).length,
           0

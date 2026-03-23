@@ -1,13 +1,13 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import styles from './App.module.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { PanelLayout } from './components/Layout/PanelLayout';
 import { Toolbar } from './components/Layout/Toolbar';
+import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { useSessionPersistence } from './hooks/useSessionPersistence';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
-import styles from './App.module.css';
 
 /**
  * Connection error display component
@@ -22,7 +22,8 @@ const ConnectionError: React.FC<{
     if (error.includes('React DevTools')) {
       return {
         title: 'React DevTools Not Found',
-        message: 'React Perf Profiler requires the React DevTools browser extension to be installed.',
+        message:
+          'React Perf Profiler requires the React DevTools browser extension to be installed.',
         action: 'Install React DevTools',
         actionUrl: 'https://react.dev/learn/react-developer-tools',
       };
@@ -46,10 +47,19 @@ const ConnectionError: React.FC<{
   const details = getErrorDetails();
 
   return (
-    <div className={styles["errorContainer"]}>
-      <div className={styles["errorContent"]}>
-        <div className={styles["errorIcon"]}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" role="img" aria-label="Error">
+    <div className={styles['errorContainer']}>
+      <div className={styles['errorContent']}>
+        <div className={styles['errorIcon']}>
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            role="img"
+            aria-label="Error"
+          >
             <title>Error icon</title>
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -58,16 +68,16 @@ const ConnectionError: React.FC<{
         </div>
         <h2>{details.title}</h2>
         <p>{details.message}</p>
-        <div className={styles["errorActions"]}>
-          <button 
+        <div className={styles['errorActions']}>
+          <button
             type="button"
-            onClick={onRetry} 
+            onClick={onRetry}
             disabled={isRetrying}
-            className={styles["retryButton"]}
+            className={styles['retryButton']}
           >
             {isRetrying ? (
               <>
-                <span className={styles["spinner"]} />
+                <span className={styles['spinner']} />
                 Retrying...
               </>
             ) : (
@@ -75,11 +85,11 @@ const ConnectionError: React.FC<{
             )}
           </button>
           {details.action && details.actionUrl && (
-            <a 
+            <a
               href={details.actionUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles["helpLink"]}
+              className={styles['helpLink']}
             >
               {details.action}
             </a>
@@ -101,8 +111,8 @@ const SessionRestoreBanner: React.FC<{
 }> = ({ commitCount, savedAt, onRestore, onDiscard }) => (
   <div className={styles['restoreBanner']} role="alert">
     <span>
-      Previous session ({commitCount} commits, saved{' '}
-      {new Date(savedAt).toLocaleTimeString()}) available.
+      Previous session ({commitCount} commits, saved {new Date(savedAt).toLocaleTimeString()})
+      available.
     </span>
     <button type="button" onClick={onRestore} className={styles['restoreButton']}>
       Restore
@@ -152,32 +162,37 @@ export const App: React.FC = () => {
   // Handle retry connection
   const handleRetry = useCallback(async () => {
     setIsRetrying(true);
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+
     try {
       // Force re-initialization
       sendMessage({ type: 'FORCE_INIT' });
-      
+
       // Also try to reconnect
       connect();
-      
+
       // Wait a bit and then check status
-      setTimeout(() => {
-        sendMessage({ type: 'DETECT_REACT' });
-      }, 1000);
+      timeouts.push(
+        setTimeout(() => {
+          sendMessage({ type: 'DETECT_REACT' });
+        }, 1000)
+      );
     } finally {
       // Reset retry state after timeout
-      setTimeout(() => setIsRetrying(false), 5000);
+      timeouts.push(setTimeout(() => setIsRetrying(false), 5000));
     }
+
+    // Cleanup function to clear timeouts
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
   }, [connect, sendMessage]);
 
   // Show connection error
   if (lastError && !isConnected) {
     return (
       <ErrorBoundary context="React Perf Profiler">
-        <ConnectionError 
-          error={lastError} 
-          onRetry={handleRetry}
-          isRetrying={isRetrying}
-        />
+        <ConnectionError error={lastError} onRetry={handleRetry} isRetrying={isRetrying} />
       </ErrorBoundary>
     );
   }
@@ -186,7 +201,7 @@ export const App: React.FC = () => {
   if (showWelcome && commits.length === 0 && !isRecording) {
     return (
       <ErrorBoundary context="React Perf Profiler">
-        <div className={styles["app"]}>
+        <div className={styles['app']}>
           <ErrorBoundary context="toolbar" compact>
             <Toolbar />
           </ErrorBoundary>
@@ -198,7 +213,7 @@ export const App: React.FC = () => {
 
   return (
     <ErrorBoundary context="React Perf Profiler">
-      <div className={styles["app"]} data-recording={isRecording}>
+      <div className={styles['app']} data-recording={isRecording}>
         <ErrorBoundary context="toolbar" compact>
           <Toolbar />
         </ErrorBoundary>

@@ -7,7 +7,8 @@
  * The store already tracks these — this is the missing UI surface.
  */
 
-import React, { useCallback, useEffect } from 'react';
+import type React from 'react';
+import { useCallback, useEffect } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Icon } from '../Common/Icon/Icon';
 import { Tooltip } from '../Common/Tooltip/Tooltip';
@@ -71,7 +72,8 @@ export const TimeTravelControls: React.FC = () => {
   const duration = commit ? (commit.duration ?? 0).toFixed(1) : '0.0';
 
   return (
-    <fieldset className={styles['timeTravelControls']} aria-label="Time travel controls">
+    <fieldset className={styles['timeTravelControls']}>
+      <legend className="sr-only">Time travel controls</legend>
       <Tooltip content="First commit (Home)">
         <button
           type="button"

@@ -55,7 +55,7 @@ export function useBudgetAlerts(thresholds: Partial<BudgetThresholds> = {}): {
   dismiss: (id: string) => void;
   dismissAll: () => void;
 } {
-  const t = { ...DEFAULT_THRESHOLDS, ...thresholds };
+  const t = useMemo(() => ({ ...DEFAULT_THRESHOLDS, ...thresholds }), [thresholds]);
 
   const wastedRenderReports = useProfilerStore((s) => s.wastedRenderReports);
   const memoReports = useProfilerStore((s) => s.memoReports);
@@ -112,8 +112,7 @@ export function useBudgetAlerts(thresholds: Partial<BudgetThresholds> = {}): {
 
     // ── Average render time ─────────────────────────────────────────────────
     if (commits.length > 0) {
-      const avgDuration =
-        commits.reduce((s, c) => s + (c.duration ?? 0), 0) / commits.length;
+      const avgDuration = commits.reduce((s, c) => s + (c.duration ?? 0), 0) / commits.length;
 
       if (avgDuration > t.maxRenderTimeMs) {
         found.push({
@@ -146,11 +145,9 @@ export function useBudgetAlerts(thresholds: Partial<BudgetThresholds> = {}): {
     return found;
   }, [wastedRenderReports, memoReports, performanceScore, commits, t]);
 
-  const dismiss = (id: string) =>
-    setDismissedIds((prev) => new Set([...prev, id]));
+  const dismiss = (id: string) => setDismissedIds((prev) => new Set([...prev, id]));
 
-  const dismissAll = () =>
-    setDismissedIds(new Set(alerts.map((a) => a.id)));
+  const dismissAll = () => setDismissedIds(new Set(alerts.map((a) => a.id)));
 
   return { alerts, dismissedIds, dismiss, dismissAll };
 }

@@ -4,8 +4,8 @@
  */
 
 import { createSelector } from 'reselect';
-import type { ProfilerState, ComponentData, TreeNode } from './profilerStore';
 import type { CommitData, FiberNode, WastedRenderReport } from '@/shared/types';
+import type { ComponentData, ProfilerState, TreeNode } from './profilerStore';
 
 // ============================================================================
 // Type Definitions
@@ -115,11 +115,6 @@ export const selectSelectedComponentData = createSelector(
           if (node.isMemoized) {
             componentData.isMemoized = true;
           }
-
-          // Simple wasted render detection
-          if (node.actualDuration < 0.1) {
-            componentData.wastedRenders++;
-          }
         }
       }
     }
@@ -128,17 +123,6 @@ export const selectSelectedComponentData = createSelector(
 
     componentData.totalDuration = totalDuration;
     componentData.averageDuration = totalDuration / componentData.renderCount;
-    componentData.wastedRenderRate =
-      (componentData.wastedRenders / componentData.renderCount) * 100;
-
-    // Determine severity
-    if (componentData.wastedRenderRate > 50) {
-      componentData.severity = 'critical';
-    } else if (componentData.wastedRenderRate > 20) {
-      componentData.severity = 'warning';
-    } else if (componentData.wastedRenderRate > 5) {
-      componentData.severity = 'info';
-    }
 
     return componentData;
   }
@@ -250,25 +234,12 @@ export const selectAllComponentData = createSelector(
         if (node.isMemoized) {
           data.isMemoized = true;
         }
-
-        if (node.actualDuration < 0.1) {
-          data.wastedRenders++;
-        }
       }
     }
 
-    // Calculate averages and severity
+    // Calculate averages
     for (const data of componentMap.values()) {
       data.averageDuration = data.totalDuration / data.renderCount;
-      data.wastedRenderRate = (data.wastedRenders / data.renderCount) * 100;
-
-      if (data.wastedRenderRate > 50) {
-        data.severity = 'critical';
-      } else if (data.wastedRenderRate > 20) {
-        data.severity = 'warning';
-      } else if (data.wastedRenderRate > 5) {
-        data.severity = 'info';
-      }
     }
 
     return componentMap;
@@ -345,6 +316,7 @@ export const selectIssuesCountBySeverity = createSelector(
 /**
  * Select tree data for virtual list rendering
  * Transforms commits into a flattened tree structure
+ * Uses O(1) node lookup map for efficient child traversal
  */
 export const selectTreeData = createSelector(
   [selectSelectedCommit, selectExpandedNodes, selectFilterText],
@@ -353,6 +325,14 @@ export const selectTreeData = createSelector(
 
     const nodes: TreeNode[] = [];
     const normalizedFilter = filterText.toLowerCase().trim();
+
+    // Build O(1) lookup map for nodes
+    const nodeMap = new Map<number, FiberNode>();
+    for (const node of selectedCommit.nodes ?? []) {
+      if (node.id !== undefined && node.id !== null) {
+        nodeMap.set(node.id, node);
+      }
+    }
 
     function processNode(fiber: FiberNode, depth: number, parentId: string | null): string {
       if (!selectedCommit) return '';
@@ -364,12 +344,6 @@ export const selectTreeData = createSelector(
       const matchesFilter =
         !normalizedFilter || fiber.displayName?.toLowerCase().includes(normalizedFilter);
 
-      // Calculate severity
-      let severity: 'critical' | 'warning' | 'info' | 'none' = 'none';
-      if (fiber.actualDuration < 0.1) {
-        severity = 'info';
-      }
-
       const treeNode: TreeNode = {
         id: nodeId,
         name: fiber.displayName || 'Unknown',
@@ -378,10 +352,10 @@ export const selectTreeData = createSelector(
         isExpanded,
         isSelected: false, // Would be set based on selection state
         renderCount: 1, // Would be aggregated from all commits
-        wastedRenders: severity !== 'none' ? 1 : 0,
+        wastedRenders: 0,
         averageDuration: fiber.actualDuration,
         isMemoized: fiber.isMemoized,
-        severity,
+        severity: 'none',
         parentId,
         childIds: [],
         fiberId: fiber.id,
@@ -393,10 +367,9 @@ export const selectTreeData = createSelector(
 
         // Process children if expanded or no filter
         if (hasChildren && (isExpanded || !normalizedFilter)) {
-          const nodes = selectedCommit?.nodes ?? [];
           for (const childId of fiber.children) {
-            // Find the child node in the commit
-            const childFiber = nodes.find((n) => n.id === childId);
+            // O(1) lookup instead of O(n) linear search
+            const childFiber = nodeMap.get(childId);
             if (childFiber) {
               const childNodeId = processNode(childFiber, depth + 1, nodeId);
               treeNode.childIds.push(childNodeId);
@@ -410,8 +383,7 @@ export const selectTreeData = createSelector(
 
     // Start processing from root
     if (selectedCommit?.rootId) {
-      const nodes = selectedCommit.nodes ?? [];
-      const rootFiber = nodes.find((n) => n.id === selectedCommit.rootId);
+      const rootFiber = nodeMap.get(selectedCommit.rootId);
       if (rootFiber) {
         processNode(rootFiber, 0, null);
       }
@@ -462,19 +434,27 @@ interface LocalFlamegraphNode {
 
 /**
  * Select flamegraph data for flamegraph view
+ * Uses O(1) node lookup map for efficient child traversal
  */
 export const selectFlamegraphData = createSelector(
   [selectSelectedCommit],
   (commit): LocalFlamegraphNode | null => {
     if (!commit) return null;
 
+    // Build O(1) lookup map for nodes
+    const nodeMap = new Map<number, FiberNode>();
+    for (const node of commit.nodes ?? []) {
+      if (node.id !== undefined && node.id !== null) {
+        nodeMap.set(node.id, node);
+      }
+    }
+
     function buildFlamegraphNode(fiber: FiberNode, depth: number): LocalFlamegraphNode {
       const children: LocalFlamegraphNode[] = [];
 
-      // Find child nodes
+      // Find child nodes using O(1) lookup
       for (const childId of fiber.children ?? []) {
-        const nodes = commit?.nodes ?? [];
-        const childFiber = nodes.find((n) => n.id === childId);
+        const childFiber = nodeMap.get(childId);
         if (childFiber) {
           children.push(buildFlamegraphNode(childFiber, depth + 1));
         }
@@ -489,8 +469,7 @@ export const selectFlamegraphData = createSelector(
       };
     }
 
-    const nodes = commit.nodes ?? [];
-    const rootFiber = nodes.find((n) => n.id === commit.rootId);
+    const rootFiber = nodeMap.get(commit.rootId ?? -1);
     return rootFiber ? buildFlamegraphNode(rootFiber, 0) : null;
   }
 );

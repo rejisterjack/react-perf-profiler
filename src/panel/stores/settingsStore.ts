@@ -4,11 +4,10 @@
  * Persists to chrome.storage for persistence across sessions
  */
 
-import { create } from 'zustand';
 import type { StoreApi } from 'zustand';
-import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { create } from 'zustand';
+import { createJSONStorage, devtools, persist, type StateStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { devtools } from 'zustand/middleware';
 import type { ProfilerConfig } from '../../shared/types';
 
 // ============================================================================
@@ -40,10 +39,12 @@ function createChromeStorage(): StateStorage {
           const parsed = JSON.parse(value);
           chrome.storage.local.set({ [name]: parsed }, () => {
             if (chrome.runtime.lastError) {
+              console.error('Failed to set storage item:', chrome.runtime.lastError);
             }
             resolve();
           });
-        } catch (_error) {
+        } catch (error) {
+          console.error('Failed to parse storage value:', error);
           resolve();
         }
       });
@@ -53,6 +54,7 @@ function createChromeStorage(): StateStorage {
       return new Promise((resolve) => {
         chrome.storage.local.remove(name, () => {
           if (chrome.runtime.lastError) {
+            console.error('Failed to remove storage item:', chrome.runtime.lastError);
           }
           resolve();
         });
@@ -191,6 +193,7 @@ const createActions = (
     return new Promise((resolve) => {
       chrome.storage.local.get(['profiler-settings'], (result) => {
         if (chrome.runtime.lastError) {
+          console.error('Failed to load settings:', chrome.runtime.lastError);
           set((state: SettingsState) => {
             state.loaded = true;
             return state;
@@ -254,6 +257,7 @@ const createActions = (
         },
         () => {
           if (chrome.runtime.lastError) {
+            console.error('Failed to save settings:', chrome.runtime.lastError);
           }
           resolve();
         }
@@ -384,7 +388,10 @@ export const useSettingsStore = create<SettingsState>()(
 
 // Override setState to ensure actions are always present
 const originalSetState = useSettingsStore.setState;
-useSettingsStore.setState = (partial: SettingsState | Partial<SettingsState>, replace?: boolean) => {
+useSettingsStore.setState = (
+  partial: SettingsState | Partial<SettingsState>,
+  replace?: boolean
+) => {
   if (replace && typeof partial === 'object' && partial !== null) {
     // When replacing, merge actions back into the state
     const merged = {

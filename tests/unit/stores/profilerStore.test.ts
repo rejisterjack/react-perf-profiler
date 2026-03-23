@@ -306,8 +306,9 @@ describe('profilerStore', () => {
       store.expandAllNodes();
       
       const newState = useProfilerStore.getState();
-      expect(newState.expandedNodes.has('node-1')).toBe(true);
-      expect(newState.expandedNodes.has('node-2')).toBe(true);
+      // Composite key format: ${commit.id}-${node.id}
+      expect(newState.expandedNodes.has('commit-1-node-1')).toBe(true);
+      expect(newState.expandedNodes.has('commit-1-node-2')).toBe(true);
     });
 
     it('should collapse all nodes', () => {

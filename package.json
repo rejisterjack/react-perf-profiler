@@ -14,7 +14,7 @@
     "build:firefox": "tsc && vite build --config vite.config.firefox.ts",
     "build:firefox:dev": "tsc && vite build --config vite.config.firefox.ts --mode development",
     "build:all": "pnpm run build && pnpm run build:firefox",
-    "build:cli": "tsc src/cli/perf-check.ts --outDir dist/cli --esModuleInterop --module ESNext --moduleResolution node --target ES2020 --resolveJsonModule",
+    "build:cli": "tsc -p tsconfig.cli.json",
     "analyze": "vite build --mode analyze",
     "test": "vitest run",
     "test:watch": "vitest",

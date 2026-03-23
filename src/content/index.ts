@@ -490,13 +490,6 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// Also try to initialize immediately (for document_start)
-try {
-  init();
-} catch (_e) {
-  // Ignore errors, will retry on DOMContentLoaded
-}
-
 // Export for testing
 export {
   init,

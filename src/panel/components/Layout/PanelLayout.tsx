@@ -5,14 +5,14 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ErrorBoundary } from '../ErrorBoundary';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { BudgetAlertBanner } from './BudgetAlertBanner';
 import { DetailPanel } from './DetailPanel';
 import { MainContent } from './MainContent';
+import styles from './PanelLayout.module.css';
 import { Sidebar } from './Sidebar';
 import { TimeTravelControls } from './TimeTravelControls';
-import styles from './PanelLayout.module.css';
 
 type ResizeTarget = 'sidebar' | 'detail';
 
@@ -142,29 +142,31 @@ export const PanelLayout: React.FC = () => {
   }, [isResizing, activeResizer, handleSidebarResize, handleDetailPanelResize, stopResize]);
 
   return (
-    <div ref={containerRef} className={styles["panelLayout"]} data-resizing={isResizing}>
+    <div ref={containerRef} className={styles['panelLayout']} data-resizing={isResizing}>
       {/* Budget violation alerts — spans full width, shown only when violations exist */}
       <ErrorBoundary context="budget alerts" compact>
         <BudgetAlertBanner />
       </ErrorBoundary>
 
       {/* Time travel scrubber — spans full width above the 3-panel area */}
-      <div className={styles["timeTravelRow"]}>
+      <div className={styles['timeTravelRow']}>
         <ErrorBoundary context="time travel controls" compact>
           <TimeTravelControls />
         </ErrorBoundary>
       </div>
 
       {/* Three-panel row: sidebar | main | detail */}
-      <div className={styles["panelRow"]}>
+      <div className={styles['panelRow']}>
         {/* Left sidebar - Component tree */}
         <ErrorBoundary context="component tree view">
           <Sidebar ref={sidebarRef} width={sidebarWidth} onResize={handleSidebarResize} />
         </ErrorBoundary>
 
         {/* Resizer handle for sidebar */}
-        <hr
-          className={`${styles["resizer"]} ${activeResizer === 'sidebar' ? styles["active"] : ''}`}
+        <button
+          type="button"
+          aria-label="Resize sidebar"
+          className={`${styles['resizer']} ${activeResizer === 'sidebar' ? styles['active'] : ''}`}
           onMouseDown={(e) => startResize(e, 'sidebar')}
           onTouchStart={(e) => {
             const touch = e.touches[0]!;
@@ -176,9 +178,6 @@ export const PanelLayout: React.FC = () => {
               'sidebar'
             );
           }}
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          tabIndex={0}
           onKeyDown={(e) => {
             const step = e.shiftKey ? 20 : 5;
             if (e.key === 'ArrowRight') {
@@ -191,15 +190,17 @@ export const PanelLayout: React.FC = () => {
 
         {/* Main content area */}
         <ErrorBoundary context="main content view">
-          <MainContent className={styles["mainContent"]} />
+          <MainContent className={styles['mainContent']} />
         </ErrorBoundary>
 
         {/* Right detail panel */}
         {detailPanelOpen && (
           <>
             {/* Resizer handle for detail panel */}
-            <hr
-              className={`${styles["resizer"]} ${activeResizer === 'detail' ? styles["active"] : ''}`}
+            <button
+              type="button"
+              aria-label="Resize detail panel"
+              className={`${styles['resizer']} ${activeResizer === 'detail' ? styles['active'] : ''}`}
               onMouseDown={(e) => startResize(e, 'detail')}
               onTouchStart={(e) => {
                 const touch = e.touches[0]!;
@@ -211,9 +212,6 @@ export const PanelLayout: React.FC = () => {
                   'detail'
                 );
               }}
-              aria-orientation="vertical"
-              aria-label="Resize detail panel"
-              tabIndex={0}
               onKeyDown={(e) => {
                 const step = e.shiftKey ? 20 : 5;
                 if (e.key === 'ArrowLeft') {
@@ -230,7 +228,7 @@ export const PanelLayout: React.FC = () => {
         )}
 
         {/* Resize overlay to prevent iframe/content issues during resize */}
-        {isResizing && <div className={styles["resizeOverlay"]} aria-hidden="true" />}
+        {isResizing && <div className={styles['resizeOverlay']} aria-hidden="true" />}
       </div>
     </div>
   );

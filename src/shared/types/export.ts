@@ -594,6 +594,31 @@ export function createExportProfile(
 }
 
 /**
+ * Determine whether a fiber node represents a wasted render.
+ * A render is wasted when props and state are shallowly equal to the previous
+ * render and no context change occurred — meaning the component re-rendered
+ * unnecessarily.
+ */
+function isNodeWastedRender(node: FiberNode): boolean {
+  // First render (no previous props/state) can never be wasted
+  if (node.prevProps === undefined && node.prevState === undefined) return false;
+  if (node.hasContextChanged) return false;
+
+  const prevProps = node.prevProps ?? {};
+  const currProps = node.props ?? {};
+  const prevState = node.prevState ?? {};
+  const currState = node.state ?? {};
+
+  const propsKeys = new Set([...Object.keys(prevProps), ...Object.keys(currProps)]);
+  const propsEqual = [...propsKeys].every((k) => Object.is(prevProps[k], currProps[k]));
+  if (!propsEqual) return false;
+
+  const stateKeys = new Set([...Object.keys(prevState), ...Object.keys(currState)]);
+  const stateEqual = [...stateKeys].every((k) => Object.is(prevState[k], currState[k]));
+  return stateEqual;
+}
+
+/**
  * Create CSV export from profile data
  */
 export function createCSVExport(commits: CommitData[]): string {
@@ -608,7 +633,7 @@ export function createCSVExport(commits: CommitData[]): string {
         actualDuration: node.actualDuration,
         baseDuration: node.baseDuration,
         isMemoized: node.isMemoized,
-        wastedRender: false, // TODO: Calculate wasted render status
+        wastedRender: isNodeWastedRender(node),
       });
     }
   }

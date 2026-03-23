@@ -305,7 +305,10 @@ function sendMessage(payload: BridgeMessage['payload']): void {
     payload,
   };
 
-  window.postMessage(message, '*');
+  // Use the page's own origin to prevent cross-origin eavesdropping.
+  // Falls back to '*' only for file:// pages where origin is 'null'.
+  const targetOrigin = window.location.origin === 'null' ? '*' : window.location.origin;
+  window.postMessage(message, targetOrigin);
 }
 
 /**
@@ -511,6 +514,9 @@ function cleanup(): void {
   // Cancel any pending retries
   cancelRetry();
 
+  // Stop the React-watcher observer if still running
+  stopReactWatcher();
+
   // Restore original hook
   const hook = getReactDevToolsHook();
   if (hook && originalOnCommitFiberRoot) {
@@ -552,25 +558,32 @@ if (document.readyState === 'loading') {
 }
 
 // Detect if React is present but not yet initialized
+let _reactWatchObserver: MutationObserver | null = null;
+let _reactWatchTimer: ReturnType<typeof setTimeout> | null = null;
+
+function stopReactWatcher(): void {
+  if (_reactWatchTimer !== null) {
+    clearTimeout(_reactWatchTimer);
+    _reactWatchTimer = null;
+  }
+  if (_reactWatchObserver !== null) {
+    _reactWatchObserver.disconnect();
+    _reactWatchObserver = null;
+  }
+}
+
 if (!isInitialized) {
-  // Set up a listener to detect React when it's loaded
-  const observer = new MutationObserver(() => {
-    if (!isInitialized && detectReact()) {
-      // React might have just loaded, try to initialize
-      if (getReactDevToolsHook()) {
-        observer.disconnect();
-        tryInit();
-      }
+  _reactWatchObserver = new MutationObserver(() => {
+    if (!isInitialized && detectReact() && getReactDevToolsHook()) {
+      stopReactWatcher();
+      tryInit();
     }
   });
 
-  observer.observe(document, {
-    childList: true,
-    subtree: true,
-  });
+  _reactWatchObserver.observe(document, { childList: true, subtree: true });
 
-  // Stop observing after 10 seconds
-  setTimeout(() => observer.disconnect(), 10000);
+  // Hard stop after 10 seconds regardless
+  _reactWatchTimer = setTimeout(stopReactWatcher, 10000);
 }
 
 // Handle page unload

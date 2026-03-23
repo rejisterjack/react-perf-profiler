@@ -3,7 +3,8 @@
  * @module panel/hooks/useLocalStorage
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '@/shared/logger';
 
 /**
  * Options for useLocalStorage hook
@@ -128,11 +129,11 @@ export function useLocalStorage<T>(options: UseLocalStorageOptions<T>): UseLocal
         const serialized = serializer(value);
         window.localStorage.setItem(key, serialized);
       } catch (error) {
-
-        // Check for quota exceeded error
+        // QuotaExceededError: storage is full — fail gracefully without crashing
         if (error instanceof Error && error.name === 'QuotaExceededError') {
+          logger.warn(`localStorage quota exceeded for key "${key}". Value not persisted.`, { source: 'useLocalStorage', key });
+          return;
         }
-
         throw new LocalStorageError(
           error instanceof Error ? error.message : 'Failed to write to localStorage',
           key
@@ -232,7 +233,9 @@ export function useLocalStorage<T>(options: UseLocalStorageOptions<T>): UseLocal
 }
 
 /**
- * Hook for managing multiple related localStorage values
+ * Hook for managing multiple related localStorage values without violating
+ * Rules of Hooks. All entries are stored in a single unified state object
+ * so no hook is ever called conditionally or inside a loop.
  *
  * @example
  * ```tsx
@@ -249,25 +252,69 @@ export function useLocalStorage<T>(options: UseLocalStorageOptions<T>): UseLocal
 export function useLocalStorageObject<T extends Record<string, unknown>>(
   config: { [K in keyof T]: { key: string; defaultValue: T[K] } }
 ): { [K in keyof T]: UseLocalStorageReturn<T[K]> } {
-  // Convert config to entries array for stable hook calls
-  const entries = Object.entries(config) as Array<
-    [keyof T, { key: string; defaultValue: T[keyof T] }]
-  >;
+  type Values = { [K in keyof T]: T[K] };
 
-  // Create an array of hook results in a stable order
-  const hookResults = entries.map(([, configItem]) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useLocalStorage({
-      key: configItem.key,
-      defaultValue: configItem.defaultValue,
-    })
-  );
-
-  // Reconstruct the result object
-  const result = {} as { [K in keyof T]: UseLocalStorageReturn<T[K]> };
-  entries.forEach(([key], index) => {
-    result[key] = hookResults[index] as UseLocalStorageReturn<T[keyof T]>;
+  // Build the initial state synchronously from localStorage (or defaults)
+  const [values, setValues] = useState<Values>(() => {
+    const initial = {} as Values;
+    for (const [field, cfg] of Object.entries(config) as Array<[keyof T, { key: string; defaultValue: T[keyof T] }]>) {
+      try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(cfg.key) : null;
+        initial[field] = raw !== null ? (JSON.parse(raw) as T[keyof T]) : cfg.defaultValue;
+      } catch {
+        initial[field] = cfg.defaultValue;
+      }
+    }
+    return initial;
   });
+
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  // Build the per-key API without calling any hooks in loops
+  const result = {} as { [K in keyof T]: UseLocalStorageReturn<T[K]> };
+
+  for (const [field, cfg] of Object.entries(config) as Array<[keyof T, { key: string; defaultValue: T[keyof T] }]>) {
+    const fieldKey = field;
+    const storageKey = cfg.key;
+    const defaultValue = cfg.defaultValue;
+
+    result[fieldKey] = {
+      value: values[fieldKey],
+      setValue: (valueOrUpdater: T[keyof T] | ((prev: T[keyof T]) => T[keyof T])) => {
+        setValues((prev) => {
+          const newVal =
+            typeof valueOrUpdater === 'function'
+              ? (valueOrUpdater as (p: T[keyof T]) => T[keyof T])(prev[fieldKey])
+              : valueOrUpdater;
+          try {
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem(storageKey, JSON.stringify(newVal));
+            }
+          } catch {
+            // quota exceeded — state still updates in memory
+          }
+          return { ...prev, [fieldKey]: newVal };
+        });
+      },
+      removeValue: () => {
+        setValues((prev) => {
+          try {
+            if (typeof window !== 'undefined') {
+              window.localStorage.removeItem(storageKey);
+            }
+          } catch {
+            // ignore
+          }
+          return { ...prev, [fieldKey]: defaultValue };
+        });
+      },
+      isLoaded,
+    } as UseLocalStorageReturn<T[keyof T]>;
+  }
 
   return result;
 }

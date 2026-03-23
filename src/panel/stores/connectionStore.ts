@@ -164,15 +164,15 @@ export const useConnectionStore = create<ConnectionStore>()(
             newPort.onMessage.addListener((message: PanelMessage) => {
               switch (message.type) {
                 case 'CONNECTION_STATUS':
-                  set({
-                    isConnected: message.payload.connected,
-                    lastPing: Date.now(),
-                    error: null,
-                  });
-
-                  // Flush pending messages once connected
-                  if (message.payload.connected) {
-                    get().flushPendingMessages();
+                  if (message.payload) {
+                    set({
+                      isConnected: message.payload.connected,
+                      lastPing: Date.now(),
+                      error: null,
+                    });
+                    if (message.payload.connected) {
+                      get().flushPendingMessages();
+                    }
                   }
                   break;
 
@@ -221,15 +221,18 @@ export const useConnectionStore = create<ConnectionStore>()(
                   break;
 
                 case 'ERROR':
-                  set({ 
-                    error: message.payload.message, 
-                    lastError: message.payload.message,
-                    bridgeError: message.payload.errorType ? {
-                      type: message.payload.errorType,
-                      message: message.payload.message,
-                      recoverable: message.payload.recoverable !== false,
-                    } : null,
-                  });
+                  if (message.payload) {
+                    const errMsg = message.payload.message ?? 'Unknown error';
+                    set({
+                      error: errMsg,
+                      lastError: errMsg,
+                      bridgeError: message.payload.errorType ? {
+                        type: message.payload.errorType,
+                        message: errMsg,
+                        recoverable: message.payload.recoverable !== false,
+                      } : null,
+                    });
+                  }
                   break;
               }
             });

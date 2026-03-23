@@ -45,6 +45,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   const dragLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const migrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const migrationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const importDataWithMigration = useProfilerStore((state) => state.importDataWithMigration);
   const validateImportData = useProfilerStore((state) => state.validateImportData);
@@ -68,6 +69,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
       clearTimeout(dragLeaveTimeoutRef.current);
       dragLeaveTimeoutRef.current = null;
     }
+    if (migrationIntervalRef.current) {
+      clearInterval(migrationIntervalRef.current);
+      migrationIntervalRef.current = null;
+    }
     if (migrationTimeoutRef.current) {
       clearTimeout(migrationTimeoutRef.current);
       migrationTimeoutRef.current = null;
@@ -87,6 +92,9 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
       }
       if (migrationTimeoutRef.current) {
         clearTimeout(migrationTimeoutRef.current);
+      }
+      if (migrationIntervalRef.current) {
+        clearInterval(migrationIntervalRef.current);
       }
     };
   }, []);
@@ -153,13 +161,14 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
         setImportState('migrating');
         setAnnounceMessage('Migrating profile to current format...');
         
-        // Simulate migration progress
+        // Simulate migration progress — tracked in a ref so it's cleared on unmount
         let progress = 0;
-        const progressInterval = setInterval(() => {
+        migrationIntervalRef.current = setInterval(() => {
           progress += 20;
           setMigrationProgress(progress);
           if (progress >= 100) {
-            clearInterval(progressInterval);
+            clearInterval(migrationIntervalRef.current!);
+            migrationIntervalRef.current = null;
           }
         }, 100);
 

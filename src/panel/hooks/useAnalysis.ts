@@ -271,8 +271,8 @@ export interface UseRSCAnalysisReturn {
 }
 
 export function useRSCAnalysis(): UseRSCAnalysisReturn {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [progress, setProgress] = useState(0);
+  // isAnalyzing and progress are kept in the return shape for API compatibility;
+  // they remain false/0 until a real worker is wired up.
   const [error, setError] = useState<string | null>(null);
 
   const clearError = useCallback(() => {
@@ -280,38 +280,18 @@ export function useRSCAnalysis(): UseRSCAnalysisReturn {
   }, []);
 
   const runRSCAnalysis = useCallback(async () => {
-    setIsAnalyzing(true);
-    setProgress(0);
-    setError(null);
-
-    const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(90, prev + Math.random() * 10));
-    }, 200);
-
-    try {
-      // TODO: Implement actual RSC analysis worker call
-      // For now, simulate the analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setProgress(100);
-      clearInterval(progressInterval);
-      
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setProgress(0);
-      }, 300);
-    } catch (err) {
-      clearInterval(progressInterval);
-      const errorMessage = err instanceof Error ? err.message : 'RSC analysis failed';
-      setError(errorMessage);
-      setIsAnalyzing(false);
-      setProgress(0);
-    }
+    // RSC analysis worker is not yet implemented.
+    // Surface a clear error instead of running a fake progress animation.
+    setError(
+      'RSC analysis is not yet available. ' +
+      'Server Component payload capture requires a Next.js App Router integration ' +
+      'that is planned for a future release.'
+    );
   }, []);
 
   return {
-    isAnalyzing,
-    progress,
+    isAnalyzing: false,
+    progress: 0,
     error,
     runRSCAnalysis,
     clearError,

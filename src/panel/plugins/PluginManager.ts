@@ -30,6 +30,7 @@ import type {
 } from './types';
 import type { CommitData, AnalysisResult } from '@/shared/types';
 import type { RSCPayload, RSCAnalysisResult } from '@/shared/types/rsc';
+import { logger } from '@/shared/logger';
 
 // =============================================================================
 // Types
@@ -1088,9 +1089,11 @@ export class PluginManager {
   }
 
   private handlePluginError(error: PluginError): void {
-    // Log to console
-    // eslint-disable-next-line no-console
-    console.error(`[Plugin Error] ${error.pluginId}:`, error.message, error.cause);
+    logger.error(`[Plugin Error] ${error.pluginId}: ${error.message}`, {
+      pluginId: error.pluginId,
+      cause: error.cause,
+      source: 'PluginManager',
+    });
 
     // Notify global handlers
     this.globalErrorHandlers.forEach((handler) => {

@@ -30,7 +30,8 @@
     "perf:check": "tsx src/cli/perf-check.ts",
     "perf:check:bundles": "tsx src/cli/perf-check.ts --check-bundles",
     "perf:check:coverage": "tsx src/cli/perf-check.ts --check-coverage",
-    "perf:check:all": "tsx src/cli/perf-check.ts --check-bundles --check-coverage --pr-comment"
+    "perf:check:all": "tsx src/cli/perf-check.ts --check-bundles --check-coverage --pr-comment",
+    "prepare": "sh scripts/install-hooks.sh"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.0.0",

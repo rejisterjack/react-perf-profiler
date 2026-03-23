@@ -4,7 +4,8 @@
  * per-component deltas after further profiling.
  */
 
-import React, { useState, useMemo } from 'react';
+import type React from 'react';
+import { useState, useMemo } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { compareProfiles, type ProfileComparisonResult } from '@/panel/utils/profileComparison';
 import type { CommitData } from '@/content/types';

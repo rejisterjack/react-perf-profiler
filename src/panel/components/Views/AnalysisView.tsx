@@ -4,7 +4,8 @@
  * and wasted render reports
  */
 
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './Views.module.css';

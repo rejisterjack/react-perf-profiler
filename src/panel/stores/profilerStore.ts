@@ -150,8 +150,6 @@ export interface ProfilerState {
   selectedCommitId: string | null;
   /** Currently selected component name */
   selectedComponent: string | null;
-  /** Alias for selectedComponent - component name currently selected */
-  selectedComponentName: string | null;
   /** Time travel position (index into commits) */
   timeTravelIndex: number | null;
   /** Current view mode */
@@ -172,8 +170,6 @@ export interface ProfilerState {
   isDetailPanelOpen: boolean;
   /** Width of the sidebar in pixels */
   sidebarWidth: number;
-  /** Whether detail panel is open (alias) */
-  detailPanelOpen: boolean;
   /** Width of the detail panel in pixels */
   detailPanelWidth: number;
   /** Filter for component types */
@@ -494,7 +490,7 @@ const storeImplementation = (
   config: defaultConfig,
   selectedCommitId: null,
   selectedComponent: null,
-  selectedComponentName: null,
+
   timeTravelIndex: null,
   viewMode: 'tree',
   filterText: '',
@@ -505,7 +501,7 @@ const storeImplementation = (
   componentData: new ComponentDataLRUCache(defaultConfig.maxComponentDataEntries),
   isDetailPanelOpen: true,
   sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
-  detailPanelOpen: true,
+
   detailPanelWidth: DEFAULT_DETAIL_PANEL_WIDTH,
   componentTypeFilter: 'all',
   severityFilter: ['critical', 'warning', 'info'],
@@ -542,7 +538,7 @@ const storeImplementation = (
       memoReports: [],
       selectedCommitId: null,
       selectedComponent: null,
-      selectedComponentName: null,
+
       timeTravelIndex: null,
       performanceScore: null,
       componentData: new ComponentDataLRUCache(get().config.maxComponentDataEntries),
@@ -709,7 +705,7 @@ const storeImplementation = (
         memoReports: profile.data.analysisResults?.memoReports || [],
         selectedCommitId: null,
         selectedComponent: null,
-        selectedComponentName: null,
+
         timeTravelIndex: null,
         analysisError: null,
       });
@@ -748,8 +744,8 @@ const storeImplementation = (
   selectComponent: (componentName: string | null) => {
     set({
       selectedComponent: componentName,
-      selectedComponentName: componentName,
-      detailPanelOpen: componentName !== null,
+
+      isDetailPanelOpen: componentName !== null,
     });
   },
 
@@ -1003,7 +999,6 @@ const storeImplementation = (
   toggleDetailPanel: () => {
     set((state: ProfilerState) => ({
       isDetailPanelOpen: !state.isDetailPanelOpen,
-      detailPanelOpen: !state.detailPanelOpen,
     }));
   },
 

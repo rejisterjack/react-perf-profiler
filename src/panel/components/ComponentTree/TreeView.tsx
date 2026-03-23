@@ -46,7 +46,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
   const treeData = useProfilerStore(selectTreeData);
 
   // Get UI state from store
-  const { selectedComponentName, selectComponent, expandedNodes, toggleNodeExpanded, setViewMode } =
+  const { selectedComponent, selectComponent, expandedNodes, toggleNodeExpanded, setViewMode } =
     useProfilerStore();
 
   // Convert treeData Map to array for virtualization
@@ -69,7 +69,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       // Get currently selected index
-      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponentName);
+      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponent);
 
       switch (e.key) {
         case 'ArrowDown': {
@@ -120,7 +120,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
         }
         case 'Enter': {
           e.preventDefault();
-          if (selectedComponentName) {
+          if (selectedComponent) {
             // Open detail view
             setViewMode('analysis');
           }
@@ -147,7 +147,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
     },
     [
       treeDataArray,
-      selectedComponentName,
+      selectedComponent,
       expandedNodes,
       selectComponent,
       toggleNodeExpanded,
@@ -184,7 +184,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
   // Listen for custom navigation events from keyboard shortcuts
   useEffect(() => {
     const handleNavigateUp = () => {
-      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponentName);
+      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponent);
       const prevIndex = Math.max(selectedIndex - 1, 0);
       if (prevIndex >= 0 && treeDataArray[prevIndex]) {
         selectComponent(treeDataArray[prevIndex].name);
@@ -193,7 +193,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
     };
 
     const handleNavigateDown = () => {
-      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponentName);
+      const selectedIndex = treeDataArray.findIndex((node) => node.name === selectedComponent);
       const nextIndex = Math.min(selectedIndex + 1, treeDataArray.length - 1);
       if (nextIndex >= 0 && treeDataArray[nextIndex]) {
         selectComponent(treeDataArray[nextIndex].name);
@@ -208,7 +208,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
       window.removeEventListener('profiler:navigateUp', handleNavigateUp);
       window.removeEventListener('profiler:navigateDown', handleNavigateDown);
     };
-  }, [treeDataArray, selectedComponentName, selectComponent, virtualizer]);
+  }, [treeDataArray, selectedComponent, selectComponent, virtualizer]);
 
   // Empty state when no data
   if (treeDataArray.length === 0) {
@@ -240,7 +240,7 @@ export const TreeView: React.FC<TreeViewProps> = memo(({ className }) => {
       >
         {virtualItems.map((virtualItem) => {
           const node = treeDataArray[virtualItem.index]!;
-          const isSelected = selectedComponentName === node.name;
+          const isSelected = selectedComponent === node.name;
           const isExpanded = expandedNodes.has(node.id);
 
           return (

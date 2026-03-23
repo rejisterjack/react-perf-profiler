@@ -3,46 +3,35 @@
  * @module panel/workers/workerClient
  */
 
-import type { CommitData, AnalysisResult } from '@/shared/types';
+import type { PerformanceScoreConfig } from '@/panel/utils/performanceScore';
+import type { WastedRenderConfig } from '@/panel/utils/wastedRenderAnalysis';
+import type { AnalysisResult, CommitData, MemoReport } from '@/shared/types';
 import type {
-  RSCPayload,
-  RSCMetrics,
-  RSCBoundary,
-  RSCAnalysisResult,
   RSCAnalysisConfig,
+  RSCAnalysisResult,
+  RSCBoundary,
+  RSCMetrics,
+  RSCPayload,
 } from '@/shared/types/rsc';
 import type {
-  RSCWorkerRequest,
-  RSCWorkerResponse,
-  RSCWorkerRequestType,
-  RSCWorkerResponseType,
-} from './rscAnalysis.worker';
-import type {
-  TimelineConfig,
-  TimelineResult,
-  TimelineProgress,
-} from './timeline.worker';
-import type {
   WorkerRequest,
-  WorkerResponse,
   WorkerRequestType,
+  WorkerResponse,
   WorkerResponseType,
 } from './analysis.worker';
-import type { WastedRenderConfig } from '@/panel/utils/wastedRenderAnalysis';
-import type { PerformanceScoreConfig } from '@/panel/utils/performanceScore';
+import type {
+  RSCWorkerRequest,
+  RSCWorkerRequestType,
+  RSCWorkerResponse,
+  RSCWorkerResponseType,
+} from './rscAnalysis.worker';
+import type { TimelineConfig, TimelineProgress, TimelineResult } from './timeline.worker';
 
 /**
  * Extended analysis result with memo reports for internal handling
+ * Uses the same type as AnalysisResult but allows partial memo reports during construction
  */
-interface ExtendedAnalysisResult extends AnalysisResult {
-  memoReports?: Array<{
-    componentName: string;
-    currentHitRate: number;
-    optimalHitRate: number;
-    isEffective: boolean;
-    issues: string[];
-  }>;
-}
+type ExtendedAnalysisResult = AnalysisResult;
 
 /**
  * RSC analysis pending request
@@ -77,10 +66,7 @@ class AnalysisWorkerClient {
     if (this.worker) return this.worker;
 
     // Create worker using the analysis worker module
-    this.worker = new Worker(
-      new URL('./analysis.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL('./analysis.worker.ts', import.meta.url), { type: 'module' });
 
     this.worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const { id, type, result, error } = e.data;
@@ -96,7 +82,8 @@ class AnalysisWorkerClient {
 
         if (type === 'ANALYSIS_COMPLETE') {
           // Result is wasted render reports - build full AnalysisResult
-          const wastedRenderReports = (result as ExtendedAnalysisResult['wastedRenderReports']) || [];
+          const wastedRenderReports =
+            (result as ExtendedAnalysisResult['wastedRenderReports']) || [];
           transformedResult = this.buildAnalysisResult(wastedRenderReports, [], []);
         } else {
           transformedResult = (result as ExtendedAnalysisResult) || {};
@@ -159,22 +146,28 @@ class AnalysisWorkerClient {
       .filter((r) => (r.wastedRenderRate || 0) > OPPORTUNITY_THRESHOLD)
       .sort((a, b) => (b.wastedRenderRate || 0) - (a.wastedRenderRate || 0))
       .slice(0, TOP_OPPORTUNITIES_LIMIT)
-      .map((r) => ({
-        componentName: r.componentName,
-        type: r.recommendedAction || 'none',
-        impact:
-          (r.wastedRenderRate || 0) > HIGH_IMPACT_THRESHOLD
-            ? ('high' as const)
-            : ('medium' as const),
-        estimatedSavings: parseFloat(r.estimatedSavings) || 0,
-        description: 'High wasted render rate detected',
-      }));
+      .map((r) => {
+        const opportunityType = r.recommendedAction || 'memo';
+        // Filter out 'none' and use valid types only
+        const validType: 'memo' | 'useMemo' | 'useCallback' | 'split-props' | 'colocate-state' =
+          opportunityType === 'none' ? 'memo' : opportunityType;
+        return {
+          componentName: r.componentName,
+          type: validType,
+          impact:
+            (r.wastedRenderRate || 0) > HIGH_IMPACT_THRESHOLD
+              ? ('high' as const)
+              : ('medium' as const),
+          estimatedSavings: r.estimatedSavingsMs || 0,
+          description: 'High wasted render rate detected',
+        };
+      });
 
     return {
       timestamp: Date.now(),
-      totalCommits: wastedRenderReports.length > 0 ? wastedRenderReports[0].renderCount || 0 : 0,
+      totalCommits: wastedRenderReports.length > 0 ? (wastedRenderReports[0]?.renderCount ?? 0) : 0,
       wastedRenderReports,
-      memoReports,
+      memoReports: memoReports ?? [],
       performanceScore,
       topOpportunities,
     };
@@ -208,10 +201,7 @@ class AnalysisWorkerClient {
    * @param config - Optional configuration for wasted render analysis
    * @returns Promise resolving to analysis results
    */
-  async analyzeAll(
-    commits: CommitData[],
-    config?: WastedRenderConfig
-  ): Promise<AnalysisResult> {
+  async analyzeAll(commits: CommitData[], config?: WastedRenderConfig): Promise<AnalysisResult> {
     if (commits.length === 0) {
       return {
         timestamp: Date.now(),
@@ -228,10 +218,11 @@ class AnalysisWorkerClient {
       ExtendedAnalysisResult['wastedRenderReports']
     >('ANALYZE_COMMITS', { commits, config }, 'ANALYSIS_COMPLETE');
 
-    // For full analysis, we also need memo reports (derived from commits)
-    // The worker's ANALYZE_COMMITS returns wasted render reports
-    // We need to build the complete result with score calculation
-    return this.buildAnalysisResult(wastedRenderReports || [], [], commits);
+    // Build memo reports from commit data with memoized components
+    const memoReports = this.buildMemoReports(commits);
+
+    // Return complete result with both wasted render and memo reports
+    return this.buildAnalysisResult(wastedRenderReports || [], memoReports, commits);
   }
 
   /**
@@ -295,21 +286,19 @@ class AnalysisWorkerClient {
   /**
    * Build memo effectiveness reports from commit data
    */
-  private buildMemoReports(
-    commits: CommitData[]
-  ): ExtendedAnalysisResult['memoReports'] {
+  private buildMemoReports(commits: CommitData[]): MemoReport[] {
     const componentMap = new Map<
       string,
       {
         componentName: string;
         totalRenders: number;
         skippedRenders: number;
-        issues: string[];
+        hasMemo: boolean;
       }
     >();
 
     commits.forEach((commit) => {
-      commit.nodes.forEach((node) => {
+      commit.nodes?.forEach((node) => {
         const key = node.displayName;
         if (!key || !node.isMemoized) return;
 
@@ -318,7 +307,7 @@ class AnalysisWorkerClient {
             componentName: key,
             totalRenders: 0,
             skippedRenders: 0,
-            issues: [],
+            hasMemo: true,
           });
         }
 
@@ -339,10 +328,12 @@ class AnalysisWorkerClient {
 
       return {
         componentName: data.componentName,
+        hasMemo: data.hasMemo,
         currentHitRate: Math.round(currentHitRate * 100) / 100,
         optimalHitRate: 0.9,
         isEffective: currentHitRate > 0.7,
-        issues: data.issues,
+        issues: [],
+        recommendations: [],
       };
     });
   }
@@ -396,7 +387,11 @@ class AnalysisWorkerClient {
       effectiveMemoizedComponents: number;
     };
   }> {
-    return this.sendRequest('CALCULATE_SCORE', { commits, wastedRenderReports, memoReports, config }, 'SCORE_READY');
+    return this.sendRequest(
+      'CALCULATE_SCORE',
+      { commits, wastedRenderReports, memoReports, config },
+      'SCORE_READY'
+    );
   }
 
   /**
@@ -432,10 +427,9 @@ class RSCWorkerClient {
 
     // Create worker using the RSC analysis worker module
     // In development, this uses the raw TS file; in production, it's the compiled JS
-    this.worker = new Worker(
-      new URL('./rscAnalysis.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL('./rscAnalysis.worker.ts', import.meta.url), {
+      type: 'module',
+    });
 
     this.worker.onmessage = (e: MessageEvent<RSCWorkerResponse>) => {
       const { id, type, result, error } = e.data;
@@ -473,10 +467,7 @@ class RSCWorkerClient {
   /**
    * Send a request to the RSC worker
    */
-  private sendRequest<T>(
-    type: RSCWorkerRequestType,
-    payload: unknown
-  ): Promise<T> {
+  private sendRequest<T>(type: RSCWorkerRequestType, payload: unknown): Promise<T> {
     const worker = this.initWorker();
     const id = `${Date.now()}-${++this.requestId}`;
 
@@ -542,9 +533,7 @@ class RSCWorkerClient {
    * @param payload - Parsed RSC payload
    * @returns Promise resolving to boundary crossing analysis
    */
-  async analyzeBoundaryCrossings(
-    payload: RSCPayload
-  ): Promise<{
+  async analyzeBoundaryCrossings(payload: RSCPayload): Promise<{
     totalCrossings: number;
     serverToClient: number;
     clientToServer: number;
@@ -625,18 +614,17 @@ class TimelineWorkerClient {
     if (this.worker) return this.worker;
 
     // Create worker by importing the timeline worker module
-    this.worker = new Worker(
-      new URL('./timeline.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL('./timeline.worker.ts', import.meta.url), { type: 'module' });
 
-    this.worker.onmessage = (e: MessageEvent<{
-      id: string;
-      type: 'TIMELINE_PROGRESS' | 'TIMELINE_COMPLETE' | 'TIMELINE_ERROR';
-      progress?: TimelineProgress;
-      result?: TimelineResult;
-      error?: string;
-    }>) => {
+    this.worker.onmessage = (
+      e: MessageEvent<{
+        id: string;
+        type: 'TIMELINE_PROGRESS' | 'TIMELINE_COMPLETE' | 'TIMELINE_ERROR';
+        progress?: TimelineProgress;
+        result?: TimelineResult;
+        error?: string;
+      }>
+    ) => {
       const { id, type, progress, result, error } = e.data;
       const request = this.pendingRequests.get(id);
 

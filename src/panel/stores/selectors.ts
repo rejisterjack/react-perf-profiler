@@ -80,6 +80,58 @@ export const selectLastCommit = createSelector([selectCommits], (commits): Commi
   return commits[commits.length - 1] ?? null;
 });
 
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Aggregate component data from commits
+ * Shared helper to eliminate duplication between selectors
+ */
+function aggregateComponentData(commits: CommitData[]): Map<string, ComponentData> {
+  const componentMap = new Map<string, ComponentData>();
+
+  for (const commit of commits) {
+    const nodes = commit.nodes ?? [];
+    for (const node of nodes) {
+      const name = node.displayName;
+      if (!name) continue;
+
+      let data = componentMap.get(name);
+      if (!data) {
+        data = {
+          name,
+          renderCount: 0,
+          wastedRenders: 0,
+          wastedRenderRate: 0,
+          averageDuration: 0,
+          totalDuration: 0,
+          isMemoized: false,
+          memoHitRate: 0,
+          commitIds: [],
+          severity: 'none',
+        };
+        componentMap.set(name, data);
+      }
+
+      data.renderCount++;
+      data.totalDuration += node.actualDuration;
+      data.commitIds.push(commit.id);
+
+      if (node.isMemoized) {
+        data.isMemoized = true;
+      }
+    }
+  }
+
+  // Calculate averages
+  for (const data of componentMap.values()) {
+    data.averageDuration = data.totalDuration / data.renderCount;
+  }
+
+  return componentMap;
+}
+
 /**
  * Select component data for the currently selected component
  * Aggregates data across all commits
@@ -89,42 +141,8 @@ export const selectSelectedComponentData = createSelector(
   (commits, componentName): ComponentData | null => {
     if (!componentName) return null;
 
-    const componentData: ComponentData = {
-      name: componentName,
-      renderCount: 0,
-      wastedRenders: 0,
-      wastedRenderRate: 0,
-      averageDuration: 0,
-      totalDuration: 0,
-      isMemoized: false,
-      memoHitRate: 0,
-      commitIds: [],
-      severity: 'none',
-    };
-
-    let totalDuration = 0;
-
-    for (const commit of commits) {
-      const nodes = commit.nodes ?? [];
-      for (const node of nodes) {
-        if (node.displayName === componentName) {
-          componentData.renderCount++;
-          totalDuration += node.actualDuration;
-          componentData.commitIds.push(commit.id);
-
-          if (node.isMemoized) {
-            componentData.isMemoized = true;
-          }
-        }
-      }
-    }
-
-    if (componentData.renderCount === 0) return null;
-
-    componentData.totalDuration = totalDuration;
-    componentData.averageDuration = totalDuration / componentData.renderCount;
-
-    return componentData;
+    const componentMap = aggregateComponentData(commits);
+    return componentMap.get(componentName) ?? null;
   }
 );
 
@@ -202,47 +220,7 @@ export const selectFilteredComponentNames = createSelector(
 export const selectAllComponentData = createSelector(
   [selectCommits],
   (commits): Map<string, ComponentData> => {
-    const componentMap = new Map<string, ComponentData>();
-
-    for (const commit of commits) {
-      const nodes = commit.nodes ?? [];
-      for (const node of nodes) {
-        const name = node.displayName;
-        if (!name) continue;
-
-        let data = componentMap.get(name);
-        if (!data) {
-          data = {
-            name,
-            renderCount: 0,
-            wastedRenders: 0,
-            wastedRenderRate: 0,
-            averageDuration: 0,
-            totalDuration: 0,
-            isMemoized: false,
-            memoHitRate: 0,
-            commitIds: [],
-            severity: 'none',
-          };
-          componentMap.set(name, data);
-        }
-
-        data.renderCount++;
-        data.totalDuration += node.actualDuration;
-        data.commitIds.push(commit.id);
-
-        if (node.isMemoized) {
-          data.isMemoized = true;
-        }
-      }
-    }
-
-    // Calculate averages
-    for (const data of componentMap.values()) {
-      data.averageDuration = data.totalDuration / data.renderCount;
-    }
-
-    return componentMap;
+    return aggregateComponentData(commits);
   }
 );
 

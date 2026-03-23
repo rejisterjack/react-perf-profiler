@@ -48,13 +48,13 @@ React's concurrent features and automatic batching make performance optimization
 
 ### 🎨 Visual Analysis
 
-| Feature | Screenshot | Description |
-|---------|------------|-------------|
-| **Flamegraph View** | ![Flamegraph](./docs/screenshots/flamegraph.png) | Interactive flamegraph showing render hierarchy and timing |
-| **Component Tree** | ![Tree](./docs/screenshots/tree.png) | Hierarchical view with wasted render indicators |
-| **Timeline** | ![Timeline](./docs/screenshots/timeline.png) | Scrollable timeline of all commits |
-| **Memo Report** | ![Memo](./docs/screenshots/memo.png) | Detailed memoization effectiveness analysis |
-| **RSC Analysis** | ![RSC](./docs/screenshots/rsc.png) | React Server Components payload & boundary analysis |
+| Feature | Description |
+|---------|-------------|
+| **Flamegraph View** | Interactive flamegraph showing render hierarchy and timing |
+| **Component Tree** | Hierarchical view with wasted render indicators |
+| **Timeline** | Scrollable timeline of all commits |
+| **Memo Report** | Detailed memoization effectiveness analysis |
+| **RSC Analysis** | React Server Components payload & boundary analysis |
 
 ### Render Analytics Dashboard
 
@@ -582,16 +582,16 @@ Create a `perf-budget.json` file in your project root:
 }
 ```
 
-### GitHub Actions Integration
+### CI/CD Integration
 
-The project includes a ready-to-use GitHub Actions workflow (`.github/workflows/perf-check.yml`) that:
+You can integrate the performance budget checker into your CI/CD pipeline:
 
-- ✅ Builds extensions for Chrome and Firefox
-- ✅ Checks bundle sizes against budgets
-- ✅ Runs all tests with coverage reporting
-- ✅ Validates performance budgets from profiles
-- ✅ Posts PR comments with detailed results
-- ✅ Fails CI if budgets are exceeded
+- ✅ Build extensions for Chrome and Firefox
+- ✅ Check bundle sizes against budgets
+- ✅ Run all tests with coverage reporting
+- ✅ Validate performance budgets from profiles
+- ✅ Post PR comments with detailed results
+- ✅ Fail CI if budgets are exceeded
 
 **PR Comment Format:**
 

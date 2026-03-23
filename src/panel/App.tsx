@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './App.module.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PanelLayout } from './components/Layout/PanelLayout';
@@ -134,6 +134,17 @@ export const App: React.FC = () => {
   const { hasPersistedSession, persistedSession, restoreSession, discardSession } =
     useSessionPersistence();
 
+  // Ref to store timeout IDs for cleanup
+  const retryTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      retryTimeoutsRef.current.forEach(clearTimeout);
+      retryTimeoutsRef.current = [];
+    };
+  }, []);
+
   // Set up message handlers
   useEffect(() => {
     const { addMessageHandler } = useConnectionStore.getState();
@@ -162,7 +173,10 @@ export const App: React.FC = () => {
   // Handle retry connection
   const handleRetry = useCallback(async () => {
     setIsRetrying(true);
-    const timeouts: ReturnType<typeof setTimeout>[] = [];
+
+    // Clear any existing timeouts
+    retryTimeoutsRef.current.forEach(clearTimeout);
+    retryTimeoutsRef.current = [];
 
     try {
       // Force re-initialization
@@ -172,20 +186,15 @@ export const App: React.FC = () => {
       connect();
 
       // Wait a bit and then check status
-      timeouts.push(
+      retryTimeoutsRef.current.push(
         setTimeout(() => {
           sendMessage({ type: 'DETECT_REACT' });
         }, 1000)
       );
     } finally {
       // Reset retry state after timeout
-      timeouts.push(setTimeout(() => setIsRetrying(false), 5000));
+      retryTimeoutsRef.current.push(setTimeout(() => setIsRetrying(false), 5000));
     }
-
-    // Cleanup function to clear timeouts
-    return () => {
-      timeouts.forEach(clearTimeout);
-    };
   }, [connect, sendMessage]);
 
   // Show connection error

@@ -25,8 +25,13 @@ export const PanelLayout: React.FC = () => {
   const detailPanelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { sidebarWidth, detailPanelOpen, detailPanelWidth, setSidebarWidth, setDetailPanelWidth } =
-    useProfilerStore();
+  const {
+    sidebarWidth,
+    isDetailPanelOpen: detailPanelOpen,
+    detailPanelWidth,
+    setSidebarWidth,
+    setDetailPanelWidth,
+  } = useProfilerStore();
 
   // Resize state
   const [isResizing, setIsResizing] = useState(false);

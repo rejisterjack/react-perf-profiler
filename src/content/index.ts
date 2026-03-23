@@ -3,7 +3,7 @@
  * Injects the bridge script, listens for messages, and communicates with background script
  */
 
-import type { BridgeMessage, BackgroundMessage } from './types';
+import type { BackgroundMessage, BridgeMessage } from './types';
 
 // Bridge script URL (must match web_accessible_resources in manifest)
 const BRIDGE_SCRIPT_URL = chrome.runtime.getURL('bridge.js');
@@ -111,13 +111,10 @@ function injectBridgeScript(): void {
     }
   } catch (error) {
     bridgeInitState = 'failed';
-    reportError(
-      'Failed to inject bridge script',
-      {
-        type: 'INJECTION_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }
-    );
+    reportError('Failed to inject bridge script', {
+      type: 'INJECTION_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 }
 
@@ -322,8 +319,8 @@ function handleBackgroundMessage(message: BackgroundMessage): void {
       // Respond to keep connection alive
       sendToBackground({
         type: 'PONG',
-        payload: { 
-          active: true, 
+        payload: {
+          active: true,
           bridgeState: bridgeInitState,
           bridgeError,
         },
@@ -384,7 +381,7 @@ function reportError(
   sendToBackground({
     type: 'ERROR',
     error,
-    payload: { 
+    payload: {
       url: window.location.href,
       errorType: context?.type,
       errorDetails: context?.details,
@@ -458,27 +455,6 @@ function checkReactAvailability(): boolean {
   );
 }
 
-/**
- * Get detailed React detection information
- */
-function getReactDetectionDetails(): {
-  available: boolean;
-  devtoolsHook: boolean;
-  reactGlobal: boolean;
-  reactRoot: boolean;
-  bridgeState: string;
-  error: typeof bridgeError;
-} {
-  return {
-    available: checkReactAvailability(),
-    devtoolsHook: !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
-    reactGlobal: !!window.React,
-    reactRoot: !!document.querySelector('[data-reactroot]'),
-    bridgeState: bridgeInitState,
-    error: bridgeError,
-  };
-}
-
 // =============================================================================
 // Setup
 // =============================================================================
@@ -492,13 +468,12 @@ if (document.readyState === 'loading') {
 
 // Export for testing
 export {
+  checkReactAvailability,
+  cleanup,
+  connectToBackground,
   init,
   injectBridgeScript,
-  setupBridgeListener,
-  connectToBackground,
-  sendToBridge,
   sendToBackground,
-  cleanup,
-  checkReactAvailability,
-  getReactDetectionDetails,
+  sendToBridge,
+  setupBridgeListener,
 };

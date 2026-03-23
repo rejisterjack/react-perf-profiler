@@ -59,7 +59,7 @@ export const Toolbar: React.FC = () => {
     exportData,
     viewMode,
     setViewMode,
-    selectedComponentName,
+    selectedComponent,
     toggleDetailPanel,
     selectCommit,
     runAnalysis,
@@ -144,23 +144,23 @@ export const Toolbar: React.FC = () => {
 
   const handleSelectNode = useCallback(() => {
     // If a component is selected, open analysis view
-    if (selectedComponentName && viewMode !== 'analysis') {
+    if (selectedComponent && viewMode !== 'analysis') {
       setViewMode('analysis');
     }
-  }, [selectedComponentName, viewMode, setViewMode]);
+  }, [selectedComponent, viewMode, setViewMode]);
 
   const handleToggleNodeExpansion = useCallback(() => {
     // Toggle expansion of currently selected node
-    if (selectedComponentName) {
+    if (selectedComponent) {
       const state = useProfilerStore.getState();
-      const componentData = state.componentData.get(selectedComponentName);
+      const componentData = state.componentData.get(selectedComponent);
       if (componentData) {
         // Find a node ID associated with this component
         const state2 = useProfilerStore.getState();
         const commits = state2.commits;
         for (const commit of commits) {
           for (const node of commit.nodes ?? []) {
-            if (node.displayName === selectedComponentName && node.id !== undefined) {
+            if (node.displayName === selectedComponent && node.id !== undefined) {
               toggleNodeExpanded(String(node.id));
               return;
             }
@@ -168,7 +168,7 @@ export const Toolbar: React.FC = () => {
         }
       }
     }
-  }, [selectedComponentName, toggleNodeExpanded]);
+  }, [selectedComponent, toggleNodeExpanded]);
 
   const handleClosePanel = useCallback(() => {
     toggleDetailPanel();

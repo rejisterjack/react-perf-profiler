@@ -7,62 +7,62 @@
 // Store Exports
 // ============================================================================
 
+export { type ConnectionState, useConnectionStore } from './connectionStore';
 export {
-  useProfilerStore,
-  type ProfilerState,
-  type PerformanceMetrics,
-  type TreeNode,
   type ComponentData,
-  type ViewMode,
+  type PerformanceMetrics,
+  type ProfilerState,
   type ProfilerStore,
+  type TreeNode,
+  useProfilerStore,
+  type ViewMode,
 } from './profilerStore';
-export { useConnectionStore, type ConnectionState } from './connectionStore';
-export { useSettingsStore, type SettingsState, DEFAULT_SETTINGS } from './settingsStore';
+export { DEFAULT_SETTINGS, type SettingsState, useSettingsStore } from './settingsStore';
 
 // ============================================================================
 // Selector Exports
 // ============================================================================
 
 export {
+  selectAllComponentData,
+  selectAllComponentNames,
   // Base selectors
   selectCommits,
-  selectSelectedCommitId,
-  selectSelectedComponent,
-  selectFilterText,
-  selectWastedRenderReports,
-  selectExpandedNodes,
-  selectViewMode,
-  selectIsDetailPanelOpen,
-  // Derived selectors
-  selectSelectedCommit,
-  selectLastCommit,
-  selectSelectedComponentData,
-  selectFilteredCommits,
-  selectVisibleCommits,
-  selectAllComponentNames,
-  selectFilteredComponentNames,
-  selectAllComponentData,
-  selectFilteredComponentData,
   selectCriticalIssuesCount,
-  selectWarningIssuesCount,
-  selectIssuesCountBySeverity,
-  selectTreeData,
-  selectTimelineData,
+  selectExpandedNodes,
+  selectFilteredCommits,
+  selectFilteredComponentData,
+  selectFilteredComponentNames,
+  selectFilterText,
   selectFlamegraphData,
-  selectSessionStats,
+  selectIsDetailPanelOpen,
+  selectIssuesCountBySeverity,
+  selectLastCommit,
   // Selector collection
   selectors,
+  // Derived selectors
+  selectSelectedCommit,
+  selectSelectedCommitId,
+  selectSelectedComponent,
+  selectSelectedComponentData,
+  selectSessionStats,
+  selectTimelineData,
+  selectTreeData,
+  selectViewMode,
+  selectVisibleCommits,
+  selectWarningIssuesCount,
+  selectWastedRenderReports,
 } from './selectors';
 
 // ============================================================================
 // Combined Hooks for Common Use Cases
 // ============================================================================
 
+import type { CommitData, MemoReport, WastedRenderReport } from '@/shared/types';
+import { useConnectionStore } from './connectionStore';
+import type { ComponentData, PerformanceMetrics } from './profilerStore';
 import { useProfilerStore } from './profilerStore';
 import { useSettingsStore } from './settingsStore';
-import { useConnectionStore } from './connectionStore';
-import type { CommitData, WastedRenderReport, MemoReport } from '@/shared/types';
-import type { ComponentData, PerformanceMetrics } from './profilerStore';
 
 /**
  * Hook to get the currently selected commit with reactive updates
@@ -282,8 +282,13 @@ export function importProfilingData(json: string): void {
  * Should be called once when the panel loads
  */
 export async function initializeStores(): Promise<void> {
-  // Load settings from storage
-  await useSettingsStore.getState().loadSettings();
+  // Note: Settings are automatically loaded by Zustand persist middleware
+  // No manual loading needed - just verify store is hydrated
+  const { loaded } = useSettingsStore.getState();
+  if (!loaded) {
+    // Wait a brief moment for hydration to complete
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 
   // Connect to background script
   useConnectionStore.getState().connect();

@@ -5,32 +5,32 @@ import { Icon } from '../Common/Icon/Icon';
 import styles from './ComponentDetails.module.css';
 
 export const ComponentDetails: React.FC = () => {
-  const { selectedComponentName, componentData, wastedRenderReports, memoReports, commits } =
+  const { selectedComponent, componentData, wastedRenderReports, memoReports, commits } =
     useProfilerStore();
 
   const component = useMemo(() => {
-    if (!selectedComponentName) return null;
-    return componentData.get(selectedComponentName) || null;
-  }, [selectedComponentName, componentData]);
+    if (!selectedComponent) return null;
+    return componentData.get(selectedComponent) || null;
+  }, [selectedComponent, componentData]);
 
   const wastedReport = useMemo(() => {
-    if (!selectedComponentName) return null;
-    return wastedRenderReports.find((r) => r.componentName === selectedComponentName) || null;
-  }, [selectedComponentName, wastedRenderReports]);
+    if (!selectedComponent) return null;
+    return wastedRenderReports.find((r) => r.componentName === selectedComponent) || null;
+  }, [selectedComponent, wastedRenderReports]);
 
   const memoReport = useMemo(() => {
-    if (!selectedComponentName) return null;
-    return memoReports.find((r) => r.componentName === selectedComponentName) || null;
-  }, [selectedComponentName, memoReports]);
+    if (!selectedComponent) return null;
+    return memoReports.find((r) => r.componentName === selectedComponent) || null;
+  }, [selectedComponent, memoReports]);
 
   const commitHistory = useMemo(() => {
-    if (!selectedComponentName) return [];
+    if (!selectedComponent) return [];
     return commits.filter((commit) =>
-      commit.nodes?.some((node) => node.displayName === selectedComponentName)
+      commit.nodes?.some((node) => node.displayName === selectedComponent)
     );
-  }, [selectedComponentName, commits]);
+  }, [selectedComponent, commits]);
 
-  if (!selectedComponentName || !component) {
+  if (!selectedComponent || !component) {
     return (
       <div className={styles["empty"]}>
         <div className={styles["emptyIcon"]}>

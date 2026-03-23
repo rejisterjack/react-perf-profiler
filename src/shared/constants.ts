@@ -23,6 +23,8 @@ export const DEFAULT_PROFILER_CONFIG: ProfilerConfig = {
   enableTimeTravel: true,
   /** Default: Store up to 1000 component entries in LRU cache */
   maxComponentDataEntries: 1000,
+  /** Default: 20% threshold for wasted renders */
+  wastedRenderThreshold: 20,
 };
 
 /**

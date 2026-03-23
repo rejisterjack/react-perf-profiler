@@ -4,8 +4,10 @@
  */
 
 import type React from 'react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+// @ts-ignore - focus-trap-react has type issues with verbatimModuleSyntax
+import FocusTrap from 'focus-trap-react';
 import {
   formatShortcut,
   groupShortcutsByCategory,
@@ -36,6 +38,8 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
   onClose,
   shortcuts,
 }) => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   // Handle escape key to close dialog
   const handleEscapeKey = useCallback(
     (event: KeyboardEvent) => {
@@ -80,64 +84,74 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
   const groupedShortcuts = groupShortcutsByCategory(shortcuts);
 
   return createPortal(
-    <form
+    <div
       className={styles['overlay']}
       onClick={handleOverlayClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      }}
-      aria-label="Keyboard shortcuts overlay"
+      aria-hidden="true"
     >
-      <div
-        className={styles['dialog']}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="keyboard-shortcuts-title"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+      <FocusTrap
+        active={isOpen}
+        focusTrapOptions={{
+          initialFocus: () => closeButtonRef.current,
+          returnFocusOnDeactivate: true,
+          clickOutsideDeactivates: true,
+          onDeactivate: onClose,
+        }}
       >
-        {/* Header */}
-        <div className={styles['header']}>
-          <h2 id="keyboard-shortcuts-title" className={styles['title']}>
-            <Icon name="info" size={20} className={styles['titleIcon']} />
-            Keyboard Shortcuts
-          </h2>
-          <button
-            type="button"
-            className={styles['closeButton']}
-            onClick={onClose}
-            aria-label="Close keyboard shortcuts help"
-            title="Close (Escape)"
-          >
-            <Icon name="close" size={20} />
-          </button>
-        </div>
+        <div
+          className={styles['dialog']}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="keyboard-shortcuts-title"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              onClose();
+            }
+          }}
+        >
+          {/* Header */}
+          <div className={styles['header']}>
+            <h2 id="keyboard-shortcuts-title" className={styles['title']}>
+              <Icon name="info" size={20} className={styles['titleIcon']} />
+              Keyboard Shortcuts
+            </h2>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className={styles['closeButton']}
+              onClick={onClose}
+              aria-label="Close keyboard shortcuts help"
+              title="Close (Escape)"
+            >
+              <Icon name="close" size={20} />
+            </button>
+          </div>
 
-        {/* Content */}
-        <div className={styles['content']}>
-          {groupedShortcuts.map((group) => (
-            <section key={group.category} className={styles['category']}>
-              <h3 className={styles['categoryTitle']}>{group.label}</h3>
-              <div className={styles['shortcutsList']}>
-                {group.shortcuts.map((shortcut, index) => (
-                  <ShortcutRow key={`${shortcut.key}-${index}`} shortcut={shortcut} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+          {/* Content */}
+          <div className={styles['content']}>
+            {groupedShortcuts.map((group) => (
+              <section key={group.category} className={styles['category']}>
+                <h3 className={styles['categoryTitle']}>{group.label}</h3>
+                <div className={styles['shortcutsList']}>
+                  {group.shortcuts.map((shortcut, index) => (
+                    <ShortcutRow key={`${shortcut.key}-${index}`} shortcut={shortcut} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
 
-        {/* Footer */}
-        <div className={styles['footer']}>
-          <span className={styles['footerHint']}>
-            Press <kbd>?</kbd> anytime to show this help
-          </span>
-          <span className={styles['footerHint']}>Shortcuts work when not typing in an input</span>
+          {/* Footer */}
+          <div className={styles['footer']}>
+            <span className={styles['footerHint']}>
+              Press <kbd>?</kbd> anytime to show this help
+            </span>
+            <span className={styles['footerHint']}>Shortcuts work when not typing in an input</span>
+          </div>
         </div>
-      </div>
-    </form>,
+      </FocusTrap>
+    </div>,
     document.body
   );
 };

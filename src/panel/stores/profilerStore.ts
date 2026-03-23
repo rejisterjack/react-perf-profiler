@@ -293,6 +293,7 @@ const defaultConfig: ProfilerConfig = {
   analysisWorkerCount: 2,
   enableTimeTravel: true,
   maxComponentDataEntries: 1000,
+  wastedRenderThreshold: 20,
 };
 
 /** Maximum component data entries (absolute limit) */

@@ -16,6 +16,10 @@ export interface CircularProgressProps {
   className?: string;
   /** Whether to show the percentage text */
   showLabel?: boolean;
+  /** ARIA label for the progressbar */
+  'aria-label'?: string;
+  /** ARIA value text for the progressbar (e.g., "50 out of 100") */
+  'aria-valuetext'?: string;
 }
 
 export const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -25,6 +29,8 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   strokeWidth = 4,
   className = '',
   showLabel = true,
+  'aria-label': ariaLabel = 'Progress',
+  'aria-valuetext': ariaValueText,
 }) => {
   // Clamp value between 0 and 100
   const clampedValue = Math.max(0, Math.min(100, value));
@@ -44,12 +50,14 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
       className={classNames}
       style={{ width: size, height: size }}
       role="progressbar"
+      aria-label={ariaLabel}
       aria-valuenow={clampedValue}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuetext={ariaValueText || `${clampedValue} out of 100`}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={styles["svg"]} aria-hidden="true">
-        <title>Progress: {clampedValue}%</title>
+        <title>{ariaLabel}: {clampedValue}%</title>
         {/* Background circle */}
         <circle
           cx={center}
@@ -78,7 +86,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
         />
       </svg>
 
-      {showLabel && <span className={styles["label"]}>{Math.round(clampedValue)}</span>}
+      {showLabel && <span className={styles["label"]} aria-hidden="true">{Math.round(clampedValue)}</span>}
     </div>
   );
 };

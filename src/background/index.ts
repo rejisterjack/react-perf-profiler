@@ -5,6 +5,7 @@
  */
 
 import { MessageTypeEnum, PortNameEnum } from '@/shared/constants';
+import { logger } from '@/shared/logger';
 import type { PortType } from './types';
 import { ConnectionManager } from './connectionManager';
 import { MessageRouter } from './messageRouter';
@@ -20,9 +21,6 @@ const EXTENSION_VERSION = '1.0.0';
 
 /** Enable debug logging based on environment */
 const ENABLE_DEBUG_LOG = process.env['NODE_ENV'] !== 'production';
-
-/** Logger prefix for background script */
-const LOG_PREFIX = '[ReactPerfProfiler:Background]';
 
 // ============================================================================
 // Manager Instances
@@ -57,27 +55,22 @@ let messageRouter: MessageRouter;
  * @param data - Optional data to log
  */
 function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
-  const fullMessage = `${LOG_PREFIX} ${message}`;
-  const logData = { timestamp: Date.now(), ...data };
+  const logData = { source: 'background', timestamp: Date.now(), ...data };
 
   switch (level) {
     case LogLevel.DEBUG:
       if (ENABLE_DEBUG_LOG) {
-        // eslint-disable-next-line no-console
-        console.debug(fullMessage, logData);
+        logger.debug(message, logData);
       }
       break;
     case LogLevel.INFO:
-      // eslint-disable-next-line no-console
-      console.info(fullMessage, logData);
+      logger.info(message, logData);
       break;
     case LogLevel.WARN:
-      // eslint-disable-next-line no-console
-      console.warn(fullMessage, logData);
+      logger.warn(message, logData);
       break;
     case LogLevel.ERROR:
-      // eslint-disable-next-line no-console
-      console.error(fullMessage, logData);
+      logger.error(message, logData);
       break;
   }
 }

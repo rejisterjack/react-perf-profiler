@@ -497,6 +497,8 @@ export interface ProfilerConfig {
   enableTimeTravel: boolean;
   /** Maximum number of component entries to store in LRU cache */
   maxComponentDataEntries: number;
+  /** Threshold percentage for wasted renders */
+  wastedRenderThreshold: number;
 }
 
 /**

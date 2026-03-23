@@ -10,6 +10,9 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Button } from '@/panel/components/Common/Button/Button';
 import { BudgetAlertBanner } from '@/panel/components/Layout/BudgetAlertBanner';
+import { CircularProgress } from '@/panel/components/Common/CircularProgress/CircularProgress';
+import { ErrorBoundary } from '@/panel/components/ErrorBoundary/ErrorBoundary';
+import { AnalysisView } from '@/panel/components/Views/AnalysisView';
 
 // ---------------------------------------------------------------------------
 // axe helper — dynamically imported so tests work without the optional dep
@@ -22,9 +25,16 @@ async function axeCheck(container: HTMLElement): Promise<string[]> {
     return results.violations.map(
       (v) => `[${v.id}] ${v.description} — ${v.nodes.map((n) => n.html).join(', ')}`
     );
-  } catch {
-    // axe-core not installed yet — skip silently so CI doesn't break before install
-    return [];
+  } catch (error) {
+    // Only suppress the specific HTMLCanvasElement error from jsdom
+    // Re-throw any other errors so they fail the test
+    if (
+      error instanceof Error &&
+      (error.message.includes('HTMLCanvasElement') || error.message.includes('Not implemented'))
+    ) {
+      return [];
+    }
+    throw error;
   }
 }
 
@@ -70,6 +80,84 @@ describe('BudgetAlertBanner — accessibility', () => {
     // The hook reads from the profiler store which is empty by default
     const { container } = render(<BudgetAlertBanner />);
     expect(container.firstChild).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CircularProgress
+// ---------------------------------------------------------------------------
+
+describe('CircularProgress — accessibility', () => {
+  it('has role="progressbar" with proper ARIA attributes', () => {
+    const { container } = render(<CircularProgress value={75} />);
+    const progressbar = container.querySelector('[role="progressbar"]');
+    expect(progressbar).toBeTruthy();
+    expect(progressbar).toHaveAttribute('aria-valuenow', '75');
+    expect(progressbar).toHaveAttribute('aria-valuemin', '0');
+    expect(progressbar).toHaveAttribute('aria-valuemax', '100');
+    expect(progressbar).toHaveAttribute('aria-label', 'Progress');
+    expect(progressbar).toHaveAttribute('aria-valuetext');
+  });
+
+  it('has custom aria-label when provided', () => {
+    const { container } = render(
+      <CircularProgress value={50} aria-label="Performance score" aria-valuetext="50 out of 100" />
+    );
+    const progressbar = container.querySelector('[role="progressbar"]');
+    expect(progressbar).toHaveAttribute('aria-label', 'Performance score');
+    expect(progressbar).toHaveAttribute('aria-valuetext', '50 out of 100');
+  });
+
+  it('has no axe violations', async () => {
+    const { container } = render(<CircularProgress value={60} />);
+    expect(await axeCheck(container)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ErrorBoundary
+// ---------------------------------------------------------------------------
+
+describe('ErrorBoundary — accessibility', () => {
+  it('renders error state with proper ARIA roles', () => {
+    const ThrowError = () => {
+      throw new Error('Test error');
+    };
+    
+    const { container } = render(
+      <ErrorBoundary>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+    
+    const alert = container.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(alert).toHaveAttribute('aria-live', 'assertive');
+  });
+
+  it('has no axe violations in error state', async () => {
+    const ThrowError = () => {
+      throw new Error('Test error');
+    };
+    
+    const { container } = render(
+      <ErrorBoundary>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+    
+    expect(await axeCheck(container)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AnalysisView
+// ---------------------------------------------------------------------------
+
+describe('AnalysisView — accessibility', () => {
+  it('has no axe violations in no analysis state', async () => {
+    const { container } = render(<AnalysisView />);
+    expect(await axeCheck(container)).toEqual([]);
   });
 });
 

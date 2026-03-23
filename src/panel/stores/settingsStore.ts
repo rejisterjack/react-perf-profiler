@@ -223,7 +223,7 @@ export const useSettingsStore = create<SettingsState>()(
           // Note: Zustand persist middleware handles persistence automatically
         },
 
-        getProfilerConfig: (): ProfilerConfig & { wastedRenderThreshold: number } => {
+        getProfilerConfig: (): ProfilerConfig => {
           const settings = get();
           return {
             maxCommits: settings.maxCommits,

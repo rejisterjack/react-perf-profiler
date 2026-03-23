@@ -4,7 +4,7 @@
  * and displays a fallback UI instead of crashing the panel
  */
 
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, createRef, type ErrorInfo, type ReactNode } from 'react';
 import { clearLastError, reloadPanel, reportError, resetPanel } from '@/panel/utils/errorRecovery';
 import { GENERIC_ISSUE_REPORT_URL, GITHUB_REPO_URL } from '@/shared/constants';
 import { logger } from '@/shared/logger';
@@ -51,6 +51,9 @@ interface ErrorBoundaryState {
 // =============================================================================
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  private cancelButtonRef = createRef<HTMLButtonElement>();
+  private resetButtonRef = createRef<HTMLButtonElement>();
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -188,7 +191,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   };
 
   override render(): ReactNode {
-    const { hasError, error, errorInfo, detailsExpanded, errorId } = this.state;
+    const { hasError, error, errorInfo, detailsExpanded, errorId, showResetConfirm } = this.state;
     const { children, fallback, context, showReset = true, compact = false } = this.props;
 
     if (!hasError) {
@@ -275,6 +278,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             )}
             {showReset && (
               <Button
+                ref={this.resetButtonRef}
                 variant="danger"
                 size={compact ? 'sm' : 'md'}
                 icon="trash"
@@ -295,12 +299,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         </div>
 
         {/* Reset Confirmation Modal */}
-        {this.state.showResetConfirm && (
+        {showResetConfirm && (
           <div
             className={styles['modalOverlay']}
             onClick={this.handleResetCancel}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') this.handleResetCancel();
+              if (e.key === 'Escape') {
+                this.handleResetCancel();
+              }
             }}
             role="dialog"
             aria-modal="true"
@@ -314,7 +320,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 This will clear all profiler data and reset the panel. This action cannot be undone.
               </p>
               <div className={styles['modalActions']}>
-                <Button variant="secondary" size="md" onClick={this.handleResetCancel}>
+                <Button
+                  ref={this.cancelButtonRef}
+                  variant="secondary"
+                  size="md"
+                  onClick={this.handleResetCancel}
+                >
                   Cancel
                 </Button>
                 <Button variant="danger" size="md" icon="trash" onClick={this.handleResetConfirm}>

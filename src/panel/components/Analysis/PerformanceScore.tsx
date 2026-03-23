@@ -30,7 +30,13 @@ export const PerformanceScore: React.FC<PerformanceScoreProps> = ({ score }) => 
     <div className={styles['scoreCard']}>
       <div className={styles['header']}>
         <h3>Performance Score</h3>
-        <CircularProgress value={score.score} size={80} color={getScoreColor(score.score)} />
+        <CircularProgress 
+          value={score.score} 
+          size={80} 
+          color={getScoreColor(score.score)} 
+          aria-label="Performance score"
+          aria-valuetext={`${Math.round(score.score)} out of 100`}
+        />
       </div>
 
       <div className={styles['categories']}>

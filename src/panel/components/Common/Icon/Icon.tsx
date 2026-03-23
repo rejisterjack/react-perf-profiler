@@ -43,7 +43,13 @@ export type IconName =
   | 'analysis'
   | 'expand'
   | 'collapse'
-  | 'moon';
+  | 'moon'
+  | 'arrowUp'
+  | 'arrowDown'
+  | 'bookmark'
+  | 'diff'
+  | 'skipBack'
+  | 'skipForward';
 
 interface IconProps {
   name: IconName;
@@ -131,6 +137,12 @@ const iconPaths: Record<IconName, string> = {
   expand: 'M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z',
   collapse: 'M19 13H5v-2h14v2z',
   moon: 'M9 2c-1.05 0-2.05.16-3 .46 1.69 1.2 2.79 3.18 2.79 5.42 0 3.53-2.61 6.43-6 6.92V21c5.52 0 10-4.48 10-10 0-3.53-2.61-6.43-6-6.92.21-.63.37-1.29.46-2H9z',
+  arrowUp: 'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z',
+  arrowDown: 'M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8z',
+  bookmark: 'M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z',
+  diff: 'M6 3h12v2H6zm0 16h12v2H6zm0-8h12v2H6zM3 7h2v10H3zM19 7h2v10h-2z',
+  skipBack: 'M6 6h2v12H6zm3.5 6 8.5 6V6z',
+  skipForward: 'M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z',
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 16, className, color, ariaLabel }) => {

@@ -90,7 +90,7 @@ export const TimeTravelControls: React.FC = () => {
           disabled={currentIndex === 0}
           aria-label="Go to previous commit"
         >
-          <Icon name="chevronLeft" size={14} />
+          <Icon name="chevron-left" size={14} />
         </button>
       </Tooltip>
 
@@ -122,7 +122,7 @@ export const TimeTravelControls: React.FC = () => {
           disabled={currentIndex >= total - 1}
           aria-label="Go to next commit"
         >
-          <Icon name="chevronRight" size={14} />
+          <Icon name="chevron-right" size={14} />
         </button>
       </Tooltip>
 

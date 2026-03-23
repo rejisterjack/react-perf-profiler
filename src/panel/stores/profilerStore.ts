@@ -110,7 +110,7 @@ export interface TreeNode {
 /**
  * View mode for the profiler
  */
-export type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis';
+export type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis' | 'compare';
 
 /**
  * State interface for the profiler store

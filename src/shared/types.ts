@@ -308,6 +308,8 @@ export interface MemoRecommendation {
 export interface MemoReport {
   /** Component name */
   componentName: string;
+  /** Whether component uses React.memo */
+  hasMemo: boolean;
   /** Current memo hit rate (0-1) */
   currentHitRate: number;
   /** Optimal achievable hit rate */

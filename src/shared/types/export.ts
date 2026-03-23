@@ -4,7 +4,7 @@
  * @module shared/types/export
  */
 
-import type { CommitData, AnalysisResult } from '../types';
+import type { AnalysisResult, CommitData, FiberNode } from '../types';
 import type { RSCPayload, RSCAnalysisResult } from './rsc';
 import { version as PACKAGE_VERSION } from '../../../package.json';
 

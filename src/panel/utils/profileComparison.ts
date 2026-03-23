@@ -67,17 +67,23 @@ function aggregateCommits(commits: CommitData[]): Map<string, ComponentSnapshot>
         existing.renderCount += 1;
         existing.totalDuration += duration;
         existing.averageDuration = existing.totalDuration / existing.renderCount;
-        // A wasted render: component re-rendered but props/state didn't change
-        if (node.didRender && !node.changedProps && !node.changedState) {
+        // A wasted render: component re-rendered but props and state were unchanged
+        const didRender = (node.actualDuration ?? 0) > 0;
+        const propsChanged = node.prevProps !== undefined;
+        const stateChanged = node.prevState !== undefined;
+        if (didRender && !propsChanged && !stateChanged) {
           existing.wastedRenders += 1;
         }
       } else {
+        const didRender = (node.actualDuration ?? 0) > 0;
+        const propsChanged = node.prevProps !== undefined;
+        const stateChanged = node.prevState !== undefined;
         map.set(name, {
           name,
           renderCount: 1,
           totalDuration: duration,
           averageDuration: duration,
-          wastedRenders: node.didRender && !node.changedProps && !node.changedState ? 1 : 0,
+          wastedRenders: didRender && !propsChanged && !stateChanged ? 1 : 0,
         });
       }
     }

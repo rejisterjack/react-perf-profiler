@@ -657,6 +657,80 @@ export class LocalStorageProvider extends BaseCloudSyncProvider {
 }
 
 /**
+ * Stub provider returned for cloud backends that are not yet implemented.
+ * Returns descriptive errors instead of crashing the caller.
+ */
+class UnsupportedCloudProvider implements CloudSyncProvider {
+  readonly type: CloudProviderType;
+  readonly name: string;
+
+  constructor(type: CloudProviderType) {
+    this.type = type;
+    this.name = type;
+  }
+
+  private unsupported(): { success: false; error: string } {
+    return {
+      success: false,
+      error: `Cloud provider "${this.type}" is not yet available. Only "local" storage is currently supported.`,
+    };
+  }
+
+  isAuthenticated(): boolean {
+    return false;
+  }
+
+  async authenticate(): Promise<boolean> {
+    return false;
+  }
+
+  async signOut(): Promise<void> {
+    // no-op
+  }
+
+  async uploadProfile(
+    _profile: ExportedProfileV1,
+    _filename: string,
+    _options?: { overwrite?: boolean; metadata?: Record<string, string> }
+  ): Promise<SyncResult> {
+    return this.unsupported();
+  }
+
+  async downloadProfile(_profileId: string): Promise<{
+    success: boolean;
+    data?: ExportedProfileV1;
+    error?: string;
+  }> {
+    return this.unsupported();
+  }
+
+  async listProfiles(_options?: {
+    limit?: number;
+    pageToken?: string;
+    search?: string;
+  }): Promise<ListProfilesResult> {
+    return this.unsupported();
+  }
+
+  async deleteProfile(_profileId: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    return this.unsupported();
+  }
+
+  async getQuota(): Promise<{
+    success: boolean;
+    used?: number;
+    total?: number;
+    available?: number;
+    error?: string;
+  }> {
+    return this.unsupported();
+  }
+}
+
+/**
  * Factory function to create cloud sync providers
  */
 export function createCloudProvider(
@@ -671,8 +745,7 @@ export function createCloudProvider(
     case 'dropbox':
     case 'onedrive':
     case 'custom':
-      // These will be implemented when cloud sync is fully enabled
-      throw new Error(`Cloud provider "${type}" is not yet implemented`);
+      return new UnsupportedCloudProvider(type);
     default:
       throw new Error(`Unknown cloud provider type: ${type}`);
   }

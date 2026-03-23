@@ -182,25 +182,124 @@ Sidebar.displayName = 'Sidebar';
 // Sub-components
 // =============================================================================
 
+// =============================================================================
+// Severity helpers
+// =============================================================================
+
+type Severity = 'critical' | 'warning' | 'info' | 'none';
+
+function getSeverity(actualDuration: number): Severity {
+  if (actualDuration >= 16) return 'critical';
+  if (actualDuration >= 8) return 'warning';
+  if (actualDuration >= 2) return 'info';
+  return 'none';
+}
+
+function severityColor(severity: Severity): string {
+  switch (severity) {
+    case 'critical': return 'var(--severity-critical)';
+    case 'warning': return 'var(--severity-warning)';
+    case 'info': return 'var(--severity-info, var(--text-secondary))';
+    default: return 'var(--text-secondary)';
+  }
+}
+
+// =============================================================================
+// TreeView row type
+// =============================================================================
+
+interface TreeRow {
+  node: {
+    id: number;
+    displayName: string;
+    actualDuration: number;
+    isMemoized: boolean;
+    children: number[];
+    parentId: number | null;
+  };
+  depth: number;
+}
+
+// =============================================================================
+// Real TreeView component
+// =============================================================================
+
 const TreeViewPlaceholder: React.FC = () => {
-  // Placeholder for the actual TreeView component
-  // This would be replaced with the real TreeView component
-  const { commits } = useProfilerStore();
+  const {
+    commits,
+    selectedCommitId,
+    selectCommit,
+    filterText,
+    severityFilter,
+    componentTypeFilter,
+    expandedNodes,
+    toggleNodeExpanded,
+    selectComponent,
+  } = useProfilerStore();
 
-  // Generate a simple list view as placeholder
-  const components = React.useMemo(() => {
-    const uniqueComponents = new Set<string>();
-    commits.forEach((commit) => {
-      commit.nodes?.forEach((node) => {
-        if (node.displayName) {
-          uniqueComponents.add(node.displayName);
+  // Local state to track which commit's tree to show (defaults to selectedCommitId or latest)
+  const [localCommitId, setLocalCommitId] = React.useState<string | null>(null);
+
+  const activeCommitId = localCommitId ?? selectedCommitId ?? commits[commits.length - 1]?.id ?? null;
+
+  const activeCommit = React.useMemo(
+    () => commits.find((c) => c.id === activeCommitId) ?? commits[commits.length - 1] ?? null,
+    [commits, activeCommitId]
+  );
+
+  // Build flat DFS list respecting expandedNodes
+  const allRows = React.useMemo<TreeRow[]>(() => {
+    if (!activeCommit?.nodes) return [];
+    const nodes = activeCommit.nodes;
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+    const roots = nodes.filter((n) => n.parentId === null);
+
+    const rows: TreeRow[] = [];
+
+    function dfs(nodeId: number, depth: number) {
+      const node = nodeMap.get(nodeId);
+      if (!node) return;
+      rows.push({ node, depth });
+      const key = String(nodeId);
+      if (expandedNodes.has(key) && node.children.length > 0) {
+        for (const childId of node.children) {
+          dfs(childId, depth + 1);
         }
-      });
-    });
-    return Array.from(uniqueComponents).slice(0, 50);
-  }, [commits]);
+      }
+    }
 
-  if (components.length === 0) {
+    for (const r of roots) {
+      dfs(r.id, 0);
+    }
+    return rows;
+  }, [activeCommit, expandedNodes]);
+
+  // Apply filters
+  const visibleRows = React.useMemo<TreeRow[]>(() => {
+    return allRows.filter(({ node }) => {
+      if (filterText && !node.displayName.toLowerCase().includes(filterText.toLowerCase())) {
+        return false;
+      }
+      if (componentTypeFilter === 'memoized' && !node.isMemoized) return false;
+      if (componentTypeFilter === 'unmemoized' && node.isMemoized) return false;
+      if (severityFilter.length > 0) {
+        const sev = getSeverity(node.actualDuration);
+        if (sev === 'none') return false;
+        if (!severityFilter.includes(sev as 'critical' | 'warning' | 'info')) return false;
+      }
+      return true;
+    });
+  }, [allRows, filterText, componentTypeFilter, severityFilter]);
+
+  // Summary stats
+  const summary = React.useMemo(() => {
+    const nodes = activeCommit?.nodes ?? [];
+    const memoizedCount = nodes.filter((n) => n.isMemoized).length;
+    const totalDuration = nodes.reduce((sum, n) => sum + n.actualDuration, 0);
+    return { total: nodes.length, memoized: memoizedCount, totalDuration };
+  }, [activeCommit]);
+
+  if (!activeCommit) {
     return (
       <div className={styles["emptyState"]}>
         <Icon name="component" size={24} />
@@ -210,27 +309,163 @@ const TreeViewPlaceholder: React.FC = () => {
   }
 
   return (
-    <div className={styles["placeholderList"]} role="tree">
-      {components.map((name, index) => (
-        <div
-          key={name}
-          className={styles["placeholderItem"]}
-          role="treeitem"
-          tabIndex={0}
-          style={{
-            paddingLeft: `${12 + (index % 3) * 20}px`,
-            color:
-              index % 5 === 0
-                ? 'var(--severity-critical)'
-                : index % 4 === 0
-                  ? 'var(--severity-warning)'
-                  : 'var(--text-primary)',
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* Commit selector */}
+      <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border-color, #333)', flexShrink: 0 }}>
+        <select
+          value={activeCommitId ?? ''}
+          onChange={(e) => {
+            const id = e.target.value;
+            setLocalCommitId(id);
+            selectCommit(id);
           }}
+          style={{
+            width: '100%',
+            background: 'var(--surface-2, #2a2a2a)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color, #444)',
+            borderRadius: '4px',
+            padding: '4px 6px',
+            fontSize: '11px',
+            cursor: 'pointer',
+          }}
+          aria-label="Select commit to inspect"
         >
-          <Icon name="component" size={16} />
-          <span className={styles["componentName"]}>{name}</span>
-        </div>
-      ))}
+          {commits.map((commit, idx) => (
+            <option key={commit.id} value={commit.id}>
+              Commit #{idx + 1} — {(commit.duration || 0).toFixed(1)}ms ({commit.nodes?.length ?? 0} components)
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Summary line */}
+      <div style={{
+        padding: '4px 8px',
+        fontSize: '11px',
+        color: 'var(--text-secondary)',
+        borderBottom: '1px solid var(--border-color, #333)',
+        flexShrink: 0,
+      }}>
+        {summary.total} components | {summary.memoized} memoized | {summary.totalDuration.toFixed(1)}ms total
+      </div>
+
+      {/* Tree rows */}
+      <div
+        role="tree"
+        aria-label="Component tree"
+        style={{ overflowY: 'auto', flex: 1 }}
+      >
+        {visibleRows.length === 0 ? (
+          <div className={styles["emptyState"]}>
+            <Icon name="component" size={24} />
+            <p>No components match filters</p>
+          </div>
+        ) : (
+          visibleRows.map(({ node, depth }) => {
+            const key = String(node.id);
+            const isExpanded = expandedNodes.has(key);
+            const hasChildren = node.children.length > 0;
+            const severity = getSeverity(node.actualDuration);
+
+            return (
+              <div
+                key={key}
+                role="treeitem"
+                aria-expanded={hasChildren ? isExpanded : undefined}
+                aria-level={depth + 1}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  paddingLeft: `${8 + depth * 16}px`,
+                  paddingRight: '8px',
+                  paddingTop: '3px',
+                  paddingBottom: '3px',
+                  cursor: 'default',
+                  userSelect: 'none',
+                  fontSize: '12px',
+                  minHeight: '24px',
+                  borderBottom: '1px solid var(--border-color-subtle, rgba(255,255,255,0.04))',
+                }}
+              >
+                {/* Expand/collapse toggle */}
+                <button
+                  onClick={() => hasChildren && toggleNodeExpanded(key)}
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: hasChildren ? 'pointer' : 'default',
+                    color: hasChildren ? 'var(--text-secondary)' : 'transparent',
+                    padding: '0',
+                    width: '14px',
+                    flexShrink: 0,
+                    fontSize: '10px',
+                    lineHeight: 1,
+                  }}
+                  tabIndex={hasChildren ? 0 : -1}
+                >
+                  {hasChildren ? (isExpanded ? '▼' : '▶') : ''}
+                </button>
+
+                {/* Severity dot */}
+                <span
+                  style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: severityColor(severity),
+                    flexShrink: 0,
+                  }}
+                  aria-hidden="true"
+                />
+
+                {/* Component name */}
+                <button
+                  onClick={() => selectComponent(node.displayName)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    padding: '0',
+                    fontSize: '12px',
+                    textAlign: 'left',
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={node.displayName}
+                >
+                  {node.displayName}
+                  {node.isMemoized && (
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '10px', marginLeft: '4px' }}>
+                      (memo)
+                    </span>
+                  )}
+                </button>
+
+                {/* Duration badge */}
+                <span
+                  style={{
+                    fontSize: '10px',
+                    color: severityColor(severity),
+                    background: 'var(--surface-2, rgba(0,0,0,0.3))',
+                    borderRadius: '3px',
+                    padding: '1px 4px',
+                    flexShrink: 0,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {node.actualDuration.toFixed(1)}ms
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };

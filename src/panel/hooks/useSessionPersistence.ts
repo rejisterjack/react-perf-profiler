@@ -39,11 +39,15 @@ export function useSessionPersistence(): SessionRestoreInfo {
 
   // On mount: check for a previous session
   useEffect(() => {
+    let mounted = true;
     loadLastSession().then((session) => {
-      if (session && session.commitCount > 0) {
+      if (mounted && session && session.commitCount > 0) {
         setPersistedSession(session);
       }
     });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Auto-save when recording transitions from active → stopped

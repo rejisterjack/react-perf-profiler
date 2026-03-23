@@ -452,10 +452,12 @@ export function getCommitMetrics(commitData: CommitData): {
 
   let slowestComponent: { name: string; duration: number } | null = null;
   let totalDuration = 0;
-  const memoizedCount = 0;
+  let memoizedCount = 0;
 
   for (const fiber of fibers) {
     totalDuration += fiber.actualDuration;
+
+    if (fiber.tag === 14 || fiber.tag === 15) memoizedCount++;
 
     if (!slowestComponent || fiber.actualDuration > slowestComponent.duration) {
       slowestComponent = {

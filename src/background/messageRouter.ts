@@ -265,7 +265,14 @@ export class MessageRouter {
     // Store the commit
     this.sessionManager.addCommit(tabId, commit);
 
-    // Forward to DevTools panel for real-time display
+    // Forward to panel for real-time display
+    this.connectionManager.broadcastToPort(tabId, 'panel', {
+      type: MessageTypeEnum.COMMIT,
+      payload: { commit },
+      timestamp: Date.now(),
+    });
+
+    // Also forward to DevTools legacy port if connected
     this.connectionManager.broadcastToPort(tabId, 'devtools', {
       type: MessageTypeEnum.COMMIT,
       payload: { commit },

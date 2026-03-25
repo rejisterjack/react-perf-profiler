@@ -1,0 +1,175 @@
+/**
+ * Notification Container Styles
+ * Toast notifications with animations
+ */
+
+.container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.notification {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-bg-elevated, #1a1a1a);
+  border: 1px solid var(--color-border, #333);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Notification Types */
+.success {
+  border-left: 4px solid #22c55e;
+}
+
+.success .icon {
+  color: #22c55e;
+}
+
+.error {
+  border-left: 4px solid #ef4444;
+}
+
+.error .icon {
+  color: #ef4444;
+}
+
+.warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.warning .icon {
+  color: #f59e0b;
+}
+
+.info {
+  border-left: 4px solid #3b82f6;
+}
+
+.info .icon {
+  color: #3b82f6;
+}
+
+/* Components */
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-primary, #fff);
+  margin-bottom: 4px;
+}
+
+.message {
+  font-size: 13px;
+  color: var(--color-text-secondary, #999);
+  line-height: 1.5;
+}
+
+.close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary, #666);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.close:hover {
+  color: var(--color-text-primary, #fff);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Progress bar */
+.progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.5;
+  animation: shrink linear forwards;
+}
+
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container {
+    left: 16px;
+    right: 16px;
+    max-width: none;
+  }
+  
+  .notification {
+    padding: 12px;
+  }
+  
+  .title {
+    font-size: 13px;
+  }
+  
+  .message {
+    font-size: 12px;
+  }
+}

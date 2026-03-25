@@ -12,6 +12,7 @@ import * as path from 'path';
 import { analyzeWastedRenders } from '@/panel/utils/wastedRenderAnalysis';
 import { calculatePerformanceScore } from '@/panel/utils/performanceScore';
 import type { CommitData, FiberData } from '@/content/types';
+import { FiberTag } from '@/shared/types';
 import type { MemoEffectivenessReport } from '@/panel/utils/memoAnalysis';
 import type { WastedRenderReport } from '@/panel/utils/wastedRenderAnalysis';
 import type {
@@ -514,8 +515,8 @@ function extractMetrics(profile: ProfileData): ExtractedMetrics {
       }
 
       // Track memoization
-      if (fiber.tag === 12 || fiber.tag === 21) {
-        // SimpleMemoComponent or MemoComponent
+      if (fiber.tag === FiberTag.SimpleMemoComponent || fiber.tag === FiberTag.MemoComponent) {
+        // SimpleMemoComponent (12) or MemoComponent (21)
         isMemoized.set(name, true);
       }
     }

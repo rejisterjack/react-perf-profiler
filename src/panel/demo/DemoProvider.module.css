@@ -1,0 +1,157 @@
+/**
+ * Demo Provider Styles
+ * Welcome banner and demo mode UI
+ */
+
+/* Banner */
+.banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.3),
+    0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.4s ease-out;
+  max-width: 600px;
+  width: calc(100% - 32px);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.content {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.text h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.text p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.primary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background: white;
+  color: #1e3a8a;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.secondary {
+  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Demo Button */
+.demo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border, #333);
+  border-radius: 6px;
+  background: var(--color-bg-elevated, #1a1a1a);
+  color: var(--color-text-primary, #fff);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.demo-button:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.demo-icon {
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .banner {
+    padding: 16px;
+    top: 8px;
+  }
+  
+  .content {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .icon {
+    font-size: 28px;
+  }
+  
+  .text h3 {
+    font-size: 16px;
+  }
+  
+  .text p {
+    font-size: 13px;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .primary,
+  .secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

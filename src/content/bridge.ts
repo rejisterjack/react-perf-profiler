@@ -411,53 +411,61 @@ function stopProfiling(): void {
 
 /**
  * Check if React is present on the page
+ * Optimized to avoid O(n) DOM queries on large pages
  */
 function detectReact(): boolean {
-  // Check for React DevTools hook (preferred method)
+  // Check for React DevTools hook (preferred method - fastest)
   if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
     return true;
   }
 
-  // Check for React in various ways
-  const indicators = [
-    () => window.React,
-    () => window.__REACT__,
-    () => document.querySelector('[data-reactroot]'),
-    () => document.querySelector('[data-reactid]'),
-    () => {
-      // Check for react root containers
-      const rootElements = document.querySelectorAll(
-        '[id^="root"], [id^="app"], [id^="__next"], [id^="__nuxt"]'
-      );
-      for (const el of rootElements) {
-        const elWithReact = el as {
-          _reactRootContainer?: unknown;
-          __reactContainer$?: unknown;
-        };
-        if (elWithReact._reactRootContainer || elWithReact.__reactContainer$) {
-          return true;
-        }
-      }
-      return false;
-    },
-    // Check for React-specific properties on elements
-    () => {
-      const allElements = document.querySelectorAll('*');
-      for (const el of allElements) {
+  // Check for React global (second fastest)
+  if (window.React || window.__REACT__) {
+    return true;
+  }
+
+  // Check for React root markers (single query)
+  if (document.querySelector('[data-reactroot], [data-reactid]')) {
+    return true;
+  }
+
+  // Check for react root containers (limited query)
+  const rootElements = document.querySelectorAll(
+    '[id="root"], [id="app"], [id="__next"], [id="__nuxt"]'
+  );
+  for (let i = 0; i < Math.min(rootElements.length, 5); i++) {
+    const el = rootElements[i] as {
+      _reactRootContainer?: unknown;
+      __reactContainer$?: unknown;
+    };
+    if (el._reactRootContainer || el.__reactContainer$) {
+      return true;
+    }
+  }
+
+  // Check for React-specific properties on a limited set of elements
+  // Limit to first 100 elements to avoid O(n) performance issue
+  const candidateSelectors = [
+    '#root > *',
+    '#app > *',
+    'body > div',
+    '[data-reactroot]',
+    '[data-reactid]',
+  ];
+  
+  for (const selector of candidateSelectors) {
+    try {
+      const elements = document.querySelectorAll(selector);
+      for (let i = 0; i < Math.min(elements.length, 20); i++) {
+        const el = elements[i];
+        if (!el) continue;
         const keys = Object.keys(el);
         if (keys.some((k) => k.startsWith('__react') || k.startsWith('_react'))) {
           return true;
         }
       }
-      return false;
-    },
-  ];
-
-  for (const check of indicators) {
-    try {
-      if (check()) return true;
-    } catch (_e) {
-      // Ignore errors
+    } catch {
+      // Ignore invalid selectors
     }
   }
 

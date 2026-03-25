@@ -123,6 +123,50 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 // ============================================================================
 
 /**
+ * Normalizes commit data to ensure compatibility with analysis functions.
+ * Panel format uses 'nodes' while content format uses 'fibers'.
+ */
+function normalizeCommits(commits: CommitData[]): CommitData[] {
+  return commits.map((commit) => {
+    // If commit already has fibers, it's in content format
+    if (commit.fibers && commit.fibers.length > 0) {
+      return commit;
+    }
+
+    // If commit has nodes, convert to fibers format
+    if (commit.nodes && commit.nodes.length > 0) {
+      const fibers = commit.nodes.map((node) => ({
+        id: `${node.id}`,
+        displayName: node.displayName,
+        key: null,
+        child: null,
+        sibling: null,
+        return: null,
+        type: null,
+        elementType: null,
+        memoizedProps: node.props || {},
+        memoizedState: node.state,
+        actualDuration: node.actualDuration,
+        actualStartTime: 0,
+        selfBaseDuration: node.actualDuration,
+        treeBaseDuration: node.baseDuration,
+        tag: node.isMemoized ? 12 : 0, // SimpleMemoComponent = 12, FunctionComponent = 0
+        index: 0,
+        mode: 0,
+        flags: node.hasContextChanged ? 0x040 : 0,
+      }));
+
+      return {
+        ...commit,
+        fibers,
+      };
+    }
+
+    return commit;
+  });
+}
+
+/**
  * Handles wasted render analysis for multiple commits
  * Processes commit history and identifies wasted renders
  */
@@ -134,8 +178,11 @@ function handleAnalyzeCommits(id: string, payload: AnalyzeCommitsPayload, startT
     throw new Error('Invalid commits: expected array');
   }
 
+  // Normalize commits to handle both panel (nodes) and content (fibers) formats
+  const normalizedCommits = normalizeCommits(commits);
+
   // Perform analysis
-  const reports = analyzeWastedRenders(commits, config);
+  const reports = analyzeWastedRenders(normalizedCommits, config);
 
   sendResponse(id, 'ANALYSIS_COMPLETE', reports, startTime);
 }

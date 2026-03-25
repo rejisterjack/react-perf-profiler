@@ -14,17 +14,28 @@ import type { ProfilerConfig } from '../../shared/types';
 // ============================================================================
 
 /**
- * Creates a StateStorage adapter using chrome.storage.local
+ * Creates a StateStorage adapter using chrome.storage.sync (with fallback to local)
  * This allows Zustand persist middleware to work with Chrome extension storage
+ * Settings sync across devices when user is signed into Chrome
  */
+/** Chrome storage area type */
+type ChromeStorageArea = typeof chrome.storage.sync | typeof chrome.storage.local;
+
 function createChromeStorage(): StateStorage {
+  // Use sync storage if available, otherwise fall back to local
+  const storageArea: ChromeStorageArea = chrome.storage.sync || chrome.storage.local;
+  
   return {
     getItem: async (name: string): Promise<string | null> => {
       return new Promise((resolve) => {
-        chrome.storage.local.get([name], (result) => {
+        storageArea.get([name], (result) => {
           if (chrome.runtime.lastError) {
             console.error('Failed to get storage item:', chrome.runtime.lastError);
-            resolve(null);
+            // Fallback to local storage on error
+            chrome.storage.local.get([name], (localResult) => {
+              const value = localResult[name];
+              resolve(value ? JSON.stringify(value) : null);
+            });
             return;
           }
           const value = result[name];
@@ -37,12 +48,18 @@ function createChromeStorage(): StateStorage {
       return new Promise((resolve) => {
         try {
           const parsed = JSON.parse(value);
-          chrome.storage.local.set({ [name]: parsed }, () => {
-            if (chrome.runtime.lastError) {
-              console.error('Failed to set storage item:', chrome.runtime.lastError);
-            }
-            resolve();
-          });
+          // Try sync first, then local as fallback
+          const trySetStorage = (area: ChromeStorageArea, isFallback = false) => {
+            area.set({ [name]: parsed }, () => {
+              if (chrome.runtime.lastError && !isFallback) {
+                console.warn('Failed to set sync storage, falling back to local:', chrome.runtime.lastError);
+                trySetStorage(chrome.storage.local, true);
+                return;
+              }
+              resolve();
+            });
+          };
+          trySetStorage(storageArea);
         } catch (error) {
           console.error('Failed to parse storage value:', error);
           resolve();
@@ -52,11 +69,11 @@ function createChromeStorage(): StateStorage {
 
     removeItem: async (name: string): Promise<void> => {
       return new Promise((resolve) => {
-        chrome.storage.local.remove(name, () => {
-          if (chrome.runtime.lastError) {
-            console.error('Failed to remove storage item:', chrome.runtime.lastError);
-          }
-          resolve();
+        // Remove from both sync and local to be safe
+        storageArea.remove(name, () => {
+          chrome.storage.local.remove(name, () => {
+            resolve();
+          });
         });
       });
     },

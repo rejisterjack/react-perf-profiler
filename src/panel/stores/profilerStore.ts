@@ -134,7 +134,7 @@ export interface ProfilerState {
   recordingStartTime: number | null;
   /** Recording duration in milliseconds */
   recordingDuration: number;
-  /** Array of captured commits */
+  /** Array of captured commits (computed from circular buffer) */
   commits: CommitData[];
   /** Analysis results from processing commits */
   analysisResults: AnalysisResult | null;
@@ -208,17 +208,10 @@ interface ProfilerActions {
   setMemoReports: (reports: MemoReport[]) => void;
   /** Export all data as JSON string */
   exportData: () => string;
-  /** Import data from JSON string */
-  importData: (json: string) => void;
+  /** Import data from JSON string with migration if needed */
+  importData: (json: string) => { success: boolean; error?: string; migrated?: boolean; migrationLog?: MigrationLogEntry[] };
   /** Validate import data and return validation result */
   validateImportData: (json: string) => ImportValidationResult;
-  /** Import data with migration if needed */
-  importDataWithMigration: (json: string) => {
-    success: boolean;
-    error?: string;
-    migrated?: boolean;
-    migrationLog?: MigrationLogEntry[];
-  };
   /** Update profiler configuration */
   updateConfig: (config: Partial<ProfilerConfig>) => void;
   /** Select a specific commit */
@@ -249,10 +242,6 @@ interface ProfilerActions {
   setComponentTypeFilter: (filter: 'all' | 'memoized' | 'unmemoized') => void;
   /** Set severity filter */
   setSeverityFilter: (filter: ('critical' | 'warning' | 'info')[]) => void;
-  /** Expand all nodes (alias) */
-  expandAllNodes: () => void;
-  /** Collapse all nodes (alias) */
-  collapseAllNodes: () => void;
   /** Toggle node expanded state */
   toggleNodeExpanded: (nodeId: string) => void;
   /** Add a new RSC payload */
@@ -617,7 +606,7 @@ const storeImplementation = (
     }
   },
 
-  importDataWithMigration: (json: string) => {
+  importData: (json: string) => {
     try {
       const data = JSON.parse(json);
 
@@ -711,12 +700,9 @@ const storeImplementation = (
     }
   },
 
-  importData: (json: string) => {
-    const result = get().importDataWithMigration(json);
-    if (!result.success) {
-      set({ analysisError: result.error || 'Import failed' });
-    }
-  },
+
+
+
 
   updateConfig: (newConfig: Partial<ProfilerConfig>) => {
     set((state: ProfilerState) => {
@@ -916,25 +902,6 @@ const storeImplementation = (
 
   setSeverityFilter: (filter: ('critical' | 'warning' | 'info')[]) => {
     set({ severityFilter: filter });
-  },
-
-  expandAllNodes: () => {
-    const { commits } = get();
-    const allNodeIds = new Set<string>();
-
-    for (const commit of commits) {
-      for (const node of commit.nodes ?? []) {
-        if (node.id !== undefined && node.id !== null) {
-          allNodeIds.add(`${commit.id}-${node.id}`);
-        }
-      }
-    }
-
-    set({ expandedNodes: allNodeIds });
-  },
-
-  collapseAllNodes: () => {
-    set({ expandedNodes: new Set<string>() });
   },
 
   toggleNodeExpanded: (nodeId: string) => {

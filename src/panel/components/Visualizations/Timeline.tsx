@@ -15,6 +15,7 @@ import type {
 } from '@/panel/workers/timeline.worker';
 import { timelineWorker } from '@/panel/workers/workerClient';
 import { panelLogger } from '@/shared/logger';
+import { ErrorBoundary } from '../ErrorBoundary';
 import styles from './Timeline.module.css';
 
 interface TooltipState {
@@ -331,6 +332,7 @@ export const Timeline: React.FC = () => {
     : null;
 
   return (
+    <ErrorBoundary context="Timeline" compact>
     <div ref={containerRef} className={styles['timelineContainer']}>
       <div className={styles['header']}>
         <h3 className={styles['title']}>Timeline</h3>
@@ -392,6 +394,7 @@ export const Timeline: React.FC = () => {
 
       <Tooltip tooltip={tooltip} />
     </div>
+    </ErrorBoundary>
   );
 };
 

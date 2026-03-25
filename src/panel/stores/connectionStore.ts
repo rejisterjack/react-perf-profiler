@@ -35,6 +35,8 @@ export interface ConnectionState {
   retryCount: number;
   /** Whether currently attempting to reconnect */
   isReconnecting: boolean;
+  /** Whether connection is in progress (prevents race conditions) */
+  isConnecting: boolean;
   /** Current tab ID */
   tabId: number | null;
   /** Bridge initialization state */
@@ -57,8 +59,6 @@ interface ConnectionActions {
   disconnect: () => void;
   /** Send a message to the content script */
   sendMessage: (message: PanelMessage) => void;
-  /** Send a typed message to the content script */
-  sendTypedMessage: <T extends PanelMessage>(message: T) => void;
   /** Handle incoming message from content script */
   handleMessage: (message: PanelMessage) => void;
   /** Send a ping to check connection */
@@ -108,6 +108,7 @@ export const useConnectionStore = create<ConnectionStore>()(
       messageHandlers: new Set(),
       retryCount: 0,
       isReconnecting: false,
+      isConnecting: false,
       tabId: null,
       bridgeState: 'pending',
       bridgeError: null,
@@ -116,16 +117,23 @@ export const useConnectionStore = create<ConnectionStore>()(
 
       // Actions
       connect: () => {
-        const { port, isConnected } = get();
+        const { port, isConnected, isConnecting } = get();
 
-        // Don't connect if already connected
-        if (isConnected && port) {
+        // Don't connect if already connected or connection in progress
+        if ((isConnected && port) || isConnecting) {
           return;
         }
 
+        // Mark connection as in progress to prevent race conditions
+        set({ isConnecting: true });
+
         // Disconnect existing port if any
         if (port) {
-          port.disconnect();
+          try {
+            port.disconnect();
+          } catch {
+            // Ignore disconnect errors
+          }
         }
 
         // Get current tab ID first
@@ -134,6 +142,7 @@ export const useConnectionStore = create<ConnectionStore>()(
             set({
               error: chrome.runtime.lastError.message,
               lastError: chrome.runtime.lastError.message,
+              isConnecting: false,
             });
             return;
           }
@@ -142,6 +151,7 @@ export const useConnectionStore = create<ConnectionStore>()(
             set({
               error: 'Could not determine current tab',
               lastError: 'Could not determine current tab',
+              isConnecting: false,
             });
             return;
           }
@@ -157,6 +167,9 @@ export const useConnectionStore = create<ConnectionStore>()(
 
             // Handle connection establishment
             newPort.onMessage.addListener((message: PanelMessage) => {
+              // First, propagate message to all registered handlers
+              get().handleMessage(message);
+
               switch (message.type) {
                 case 'CONNECTION_STATUS':
                   if (message.payload) {
@@ -172,8 +185,9 @@ export const useConnectionStore = create<ConnectionStore>()(
                   break;
 
                 case 'COMMIT_DATA':
-                  // Commit data is handled by the profiler store
-                  // This is just to acknowledge receipt
+                  // Commit data is handled by registered message handlers (e.g., in App.tsx)
+                  // Acknowledge receipt by updating connection state
+                  set({ lastPing: Date.now() });
                   break;
 
                 case 'BRIDGE_INIT':
@@ -248,7 +262,7 @@ export const useConnectionStore = create<ConnectionStore>()(
               });
             });
 
-            set({ port: newPort, error: null, isConnected: true });
+            set({ port: newPort, error: null, isConnected: true, isConnecting: false });
 
             // Flush pending messages immediately after connection
             get().flushPendingMessages();
@@ -262,6 +276,7 @@ export const useConnectionStore = create<ConnectionStore>()(
               port: null,
               error: errorMsg,
               lastError: errorMsg,
+              isConnecting: false,
             });
           }
         });
@@ -271,7 +286,11 @@ export const useConnectionStore = create<ConnectionStore>()(
         const { port } = get();
 
         if (port) {
-          port.disconnect();
+          try {
+            port.disconnect();
+          } catch {
+            // Ignore disconnect errors
+          }
         }
 
         set({
@@ -282,6 +301,7 @@ export const useConnectionStore = create<ConnectionStore>()(
           pendingMessages: [],
           retryCount: 0,
           isReconnecting: false,
+          isConnecting: false,
           tabId: null,
           bridgeState: 'pending',
           bridgeError: null,
@@ -320,10 +340,6 @@ export const useConnectionStore = create<ConnectionStore>()(
             pendingMessages: newQueue,
           });
         }
-      },
-
-      sendTypedMessage: (message) => {
-        get().sendMessage(message);
       },
 
       handleMessage: (message) => {

@@ -338,7 +338,7 @@ describe('profilerStore', () => {
         } as CommitData],
       });
       
-      store.expandAllNodes();
+      store.expandAll();
       
       const newState = useProfilerStore.getState();
       // Composite key format: ${commit.id}-${node.id}
@@ -353,7 +353,7 @@ describe('profilerStore', () => {
         expandedNodes: new Set(['node-1', 'node-2', 'node-3']),
       });
       
-      store.collapseAllNodes();
+      store.collapseAll();
       
       const newState = useProfilerStore.getState();
       expect(newState.expandedNodes.size).toBe(0);
@@ -474,7 +474,7 @@ describe('profilerStore', () => {
         recordingDuration: 8000,
       };
       
-      const result = store.importDataWithMigration(JSON.stringify(legacyData));
+      const result = store.importData(JSON.stringify(legacyData));
       
       expect(result.success).toBe(true);
       expect(result.migrated).toBe(true);

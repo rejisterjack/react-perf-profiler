@@ -188,11 +188,14 @@ function getPortTypeFromName(portName: string): PortType | null {
       return 'devtools';
     case PortNameEnum.POPUP_BACKGROUND:
       return 'popup';
+    case PortNameEnum.PANEL_BACKGROUND:
+      return 'panel';
     default:
       // Check if it starts with any known prefix
       if (portName.startsWith(PortNameEnum.CONTENT_BACKGROUND)) return 'content';
       if (portName.startsWith(PortNameEnum.DEVTOOLS_BACKGROUND)) return 'devtools';
       if (portName.startsWith(PortNameEnum.POPUP_BACKGROUND)) return 'popup';
+      if (portName.startsWith(PortNameEnum.PANEL_BACKGROUND)) return 'panel';
       return null;
   }
 }
@@ -243,6 +246,10 @@ function handlePortMessage(tabId: number, portType: PortType, message: unknown):
       break;
     case 'popup':
       messageRouter.handlePopupMessage(tabId, message);
+      break;
+    case 'panel':
+      // Panel messages are routed through devtools handler
+      messageRouter.handleDevtoolsMessage(tabId, message);
       break;
     default:
       log(LogLevel.WARN, 'Message from unknown port type', { portType });

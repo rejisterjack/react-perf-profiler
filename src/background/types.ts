@@ -8,7 +8,7 @@ import type { CommitData, ProfilerConfig } from '@/shared/types';
 /**
  * Connection port types for the extension
  */
-export type PortType = 'content' | 'devtools' | 'popup';
+export type PortType = 'content' | 'devtools' | 'popup' | 'panel';
 
 /**
  * Connection state for a single tab
@@ -23,6 +23,8 @@ export interface TabConnection {
   devtoolsPort: chrome.runtime.Port | null;
   /** Popup port connection */
   popupPort: chrome.runtime.Port | null;
+  /** Panel port connection */
+  panelPort: chrome.runtime.Port | null;
   /** Whether profiling is currently active */
   isProfiling: boolean;
   /** Session start timestamp (ms since epoch) */

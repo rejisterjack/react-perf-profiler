@@ -3,6 +3,7 @@
  * Extracts performance metrics and component information from React internals
  */
 
+import { FiberTag } from '@/shared/types';
 import type { CommitData, FiberData } from './types';
 
 // Counter for generating unique fiber IDs
@@ -359,8 +360,9 @@ export function hasMemoization(fiber: unknown): boolean {
 
   const fiberObj = fiber as Record<string, unknown>;
 
-  // Check for memo component
-  if (fiberObj['tag'] === 14 || fiberObj['tag'] === 15) {
+  // Check for memo component (SimpleMemoComponent = 12, MemoComponent = 21)
+  const tag = fiberObj['tag'];
+  if (tag === FiberTag.SimpleMemoComponent || tag === FiberTag.MemoComponent) {
     return true;
   }
 
@@ -435,7 +437,7 @@ export function isComponentFiber(fiber: unknown): boolean {
   if (!fiber || typeof fiber !== 'object') return false;
 
   const fiberObj = fiber as { tag?: number };
-  const componentTags = [0, 1, 2, 11, 14, 15]; // Function, Class, Indeterminate, ForwardRef, Memo
+  const componentTags = [0, 1, 2, 11, 12, 21]; // Function, Class, Indeterminate, ForwardRef, SimpleMemo, Memo
   return componentTags.includes(fiberObj.tag ?? -1);
 }
 
@@ -466,7 +468,7 @@ export function getCommitMetrics(commitData: CommitData): {
   for (const fiber of fibers) {
     totalDuration += fiber.actualDuration;
 
-    if (fiber.tag === 14 || fiber.tag === 15) memoizedCount++;
+    if (fiber.tag === FiberTag.SimpleMemoComponent || fiber.tag === FiberTag.MemoComponent) memoizedCount++;
 
     if (!slowestComponent || fiber.actualDuration > slowestComponent.duration) {
       slowestComponent = {

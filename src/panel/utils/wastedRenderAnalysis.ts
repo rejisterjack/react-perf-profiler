@@ -4,7 +4,7 @@
  */
 
 import { FRAME_BUDGET } from '@/shared/constants';
-import type { CommitData, FiberData } from '../../content/types';
+import type { CommitData, FiberData } from '@/shared/types';
 import { shallowEqual, type FiberNode } from './shallowEqual';
 
 /** Reasons why a wasted render might have occurred */

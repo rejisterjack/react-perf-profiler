@@ -203,15 +203,15 @@ describe('connectionStore', () => {
     });
   });
 
-  describe('sendTypedMessage', () => {
-    it('should send typed message when connected', () => {
+  describe('sendMessage', () => {
+    it('should send message when connected', () => {
       useConnectionStore.setState({
         isConnected: true,
         port: mockPort as any,
       });
 
       const store = useConnectionStore.getState();
-      store.sendTypedMessage({ type: 'PING' } as any);
+      store.sendMessage({ type: 'PING' } as any);
 
       expect(mockPort.postMessage).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'PING' })
@@ -220,7 +220,7 @@ describe('connectionStore', () => {
 
     it('should queue message when not connected', () => {
       const store = useConnectionStore.getState();
-      store.sendTypedMessage({ type: 'PING' } as any);
+      store.sendMessage({ type: 'PING' } as any);
 
       expect(useConnectionStore.getState().pendingMessages).toHaveLength(1);
     });

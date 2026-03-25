@@ -160,7 +160,7 @@ export class ConnectionManager {
           error: err,
         });
       }
-      connection[portKey as 'contentPort' | 'devtoolsPort' | 'popupPort'] = null;
+      connection[portKey as 'contentPort' | 'devtoolsPort' | 'popupPort' | 'panelPort'] = null;
     }
 
     this.log(LogLevel.INFO, `Disconnected ${portType} port for tab ${tabId}`, {
@@ -235,7 +235,7 @@ export class ConnectionManager {
     const connection = this.connections.get(tabId);
     if (!connection) return;
 
-    const ports: PortType[] = ['content', 'devtools', 'popup'];
+    const ports: PortType[] = ['content', 'devtools', 'popup', 'panel'];
     let sentCount = 0;
 
     ports.forEach((portType) => {
@@ -262,7 +262,7 @@ export class ConnectionManager {
     this.log(LogLevel.INFO, `Cleaning up connection for tab ${tabId}`, { tabId });
 
     // Disconnect all ports
-    (['content', 'devtools', 'popup'] as PortType[]).forEach((portType) => {
+    (['content', 'devtools', 'popup', 'panel'] as PortType[]).forEach((portType) => {
       this.disconnectPort(tabId, portType);
     });
 
@@ -318,6 +318,7 @@ export class ConnectionManager {
       contentPort: null,
       devtoolsPort: null,
       popupPort: null,
+      panelPort: null,
       isProfiling: false,
       sessionStartTime: null,
       commits: [],
@@ -340,6 +341,8 @@ export class ConnectionManager {
         return 'devtoolsPort';
       case 'popup':
         return 'popupPort';
+      case 'panel':
+        return 'panelPort';
       default:
         throw new Error(`Invalid port type: ${portType}`);
     }

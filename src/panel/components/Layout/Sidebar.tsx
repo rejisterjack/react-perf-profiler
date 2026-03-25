@@ -34,8 +34,8 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
     setComponentTypeFilter,
     commits,
     expandedNodes,
-    expandAllNodes,
-    collapseAllNodes,
+    expandAll,
+    collapseAll,
   } = useProfilerStore();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -133,7 +133,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
           <button
             type="button"
             className={styles["actionButton"]}
-            onClick={expandAllNodes}
+            onClick={expandAll}
             disabled={!hasData}
             title="Expand all nodes"
             aria-label="Expand all nodes"
@@ -144,7 +144,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ width }, ref)
           <button
             type="button"
             className={styles["actionButton"]}
-            onClick={collapseAllNodes}
+            onClick={collapseAll}
             disabled={!hasData}
             title="Collapse all nodes"
             aria-label="Collapse all nodes"

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import type { PluginMetric } from '@/panel/plugins/types';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { PluginMetricsPanel } from '../Plugins/PluginMetricsPanel';
@@ -148,8 +148,23 @@ export const AnalysisView: React.FC = () => {
     analysisResults,
   } = useProfilerStore();
 
+  // useTransition for non-urgent UI updates
+  const [isPending, startTransition] = useTransition();
+
+  // Local state for displayed reports (updated via transition)
+  const [displayedWastedReports, setDisplayedWastedReports] = useState(wastedRenderReports);
+  const [displayedMemoReports, setDisplayedMemoReports] = useState(memoReports);
+
   // Debounce ref for analysis timeout
-  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Update displayed reports via transition for smoother UI
+  useEffect(() => {
+    startTransition(() => {
+      setDisplayedWastedReports(wastedRenderReports);
+      setDisplayedMemoReports(memoReports);
+    });
+  }, [wastedRenderReports, memoReports]);
 
   // Auto-run analysis when commits change (debounced)
   useEffect(() => {
@@ -186,11 +201,12 @@ export const AnalysisView: React.FC = () => {
     );
   }
 
-  if (isAnalyzing) {
+  // Show loading state for both analyzing and pending transitions
+  if (isAnalyzing || isPending) {
     return (
       <div className={styles['loading']}>
         <div className={styles['spinner']} />
-        <p>Analyzing performance data...</p>
+        <p>{isAnalyzing ? 'Analyzing performance data...' : 'Updating results...'}</p>
       </div>
     );
   }
@@ -202,8 +218,8 @@ export const AnalysisView: React.FC = () => {
       <PerformanceScore score={performanceScore} />
 
       <div className={styles['reportsGrid']}>
-        <WastedRenderReport reports={wastedRenderReports} />
-        <MemoEffectiveness reports={memoReports} />
+        <WastedRenderReport reports={displayedWastedReports} />
+        <MemoEffectiveness reports={displayedMemoReports} />
       </div>
 
       {hasPluginMetrics && (
@@ -212,7 +228,7 @@ export const AnalysisView: React.FC = () => {
         </div>
       )}
 
-      <OptimizationSuggestions wastedReports={wastedRenderReports} memoReports={memoReports} />
+      <OptimizationSuggestions wastedReports={displayedWastedReports} memoReports={displayedMemoReports} />
     </div>
   );
 };

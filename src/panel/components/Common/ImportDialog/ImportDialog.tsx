@@ -47,7 +47,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
   const migrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const migrationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
-  const importDataWithMigration = useProfilerStore((state) => state.importDataWithMigration);
+  const importData = useProfilerStore((state) => state.importData);
   const validateImportData = useProfilerStore((state) => state.validateImportData);
 
   const resetState = useCallback(() => {
@@ -341,7 +341,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
     setImportState('importing');
     setAnnounceMessage('Importing profile data...');
 
-    const result = importDataWithMigration(fileContent);
+    const result = importData(fileContent);
     
     if (result.success) {
       setImportState('complete');
@@ -359,7 +359,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose }) =
       setImportState('error');
       setAnnounceMessage(`Error: ${errorMessage}`);
     }
-  }, [fileContent, importDataWithMigration, handleClose]);
+  }, [fileContent, importData, handleClose]);
 
   const getDropZoneClassName = () => {
     const baseClass = styles['dropZone'];

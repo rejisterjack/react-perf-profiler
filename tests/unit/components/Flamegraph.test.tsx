@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Flamegraph } from '@/panel/components/Visualizations/Flamegraph';
 
 // Mock the profiler store
@@ -8,9 +8,11 @@ vi.mock('@/panel/stores/profilerStore', () => ({
   selectSelectedCommit: vi.fn(),
 }));
 
-// Mock the flamegraph generator
-vi.mock('@/panel/workers/flamegraphGenerator', () => ({
-  generateFlamegraphData: vi.fn(),
+// Mock the worker client
+vi.mock('@/panel/workers/workerClient', () => ({
+  analysisWorker: {
+    generateFlamegraph: vi.fn(),
+  },
 }));
 
 // Mock d3 - simplified mock for basic tests
@@ -56,11 +58,11 @@ vi.mock('d3', () => ({
 }));
 
 import { useProfilerStore, selectSelectedCommit } from '@/panel/stores/profilerStore';
-import { generateFlamegraphData } from '@/panel/workers/flamegraphGenerator';
+import { analysisWorker } from '@/panel/workers/workerClient';
 
 const mockUseProfilerStore = useProfilerStore as unknown as ReturnType<typeof vi.fn>;
 const mockSelectSelectedCommit = selectSelectedCommit as unknown as ReturnType<typeof vi.fn>;
-const mockGenerateFlamegraphData = generateFlamegraphData as unknown as ReturnType<typeof vi.fn>;
+const mockGenerateFlamegraph = analysisWorker.generateFlamegraph as unknown as ReturnType<typeof vi.fn>;
 
 describe('Flamegraph', () => {
   beforeEach(() => {
@@ -78,7 +80,7 @@ describe('Flamegraph', () => {
     expect(screen.getByText(/select a commit to view flamegraph/i)).toBeInTheDocument();
   });
 
-  it('renders error state with message', () => {
+  it('renders error state with message', async () => {
     mockUseProfilerStore.mockImplementation((selector) => {
       if (selector === mockSelectSelectedCommit) return {
         id: '1',
@@ -88,13 +90,13 @@ describe('Flamegraph', () => {
       };
       return {};
     });
-    mockGenerateFlamegraphData.mockImplementation(() => {
-      throw new Error('Failed to generate flamegraph');
-    });
+    mockGenerateFlamegraph.mockRejectedValue(new Error('Failed to generate flamegraph'));
 
     render(<Flamegraph />);
 
-    expect(screen.getByText(/failed to render flamegraph/i)).toBeInTheDocument();
-    expect(screen.getByText(/failed to generate flamegraph/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/failed to render flamegraph/i)).toBeInTheDocument();
+      expect(screen.getByText(/failed to generate flamegraph/i)).toBeInTheDocument();
+    });
   });
 });

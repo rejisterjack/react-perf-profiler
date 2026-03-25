@@ -2,6 +2,8 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { Icon } from '../Common/Icon/Icon';
+import { PropDiffViewer } from './PropDiffViewer';
+import { RenderCauseAnalysis } from './RenderCauseBadge';
 import styles from './ComponentDetails.module.css';
 
 export const ComponentDetails: React.FC = () => {
@@ -136,6 +138,14 @@ export const ComponentDetails: React.FC = () => {
             </ul>
           )}
         </div>
+      )}
+
+      {/* Render Cause Analysis - shows WHY the component rendered */}
+      <RenderCauseAnalysis componentName={selectedComponent} commits={commits} maxRenders={20} />
+
+      {/* Prop Diff Viewer - shows prop changes between renders */}
+      {component.wastedRenders > 0 && (
+        <PropDiffViewer componentName={selectedComponent} commits={commits} maxChanges={10} />
       )}
 
       <div className={styles["section"]}>

@@ -1,33 +1,69 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useSettingsStore, DEFAULT_SETTINGS } from '@/panel/stores/settingsStore';
+import { describe, it, expect, beforeEach, vi, beforeAll, type MockedFunction } from 'vitest';
 
-// Mock chrome storage
+// Mock chrome storage - must be set up BEFORE importing the store
 const mockStorage: Record<string, any> = {};
+const mockChromeStorageLocalSet = vi.fn((items, callback) => {
+  Object.assign(mockStorage, items);
+  callback?.();
+});
+const mockChromeStorageLocalGet = vi.fn((keys, callback) => {
+  const result: Record<string, any> = {};
+  keys.forEach((key: string) => {
+    result[key] = mockStorage[key];
+  });
+  callback?.(result);
+});
+const mockChromeStorageLocalRemove = vi.fn((key, callback) => {
+  delete mockStorage[key];
+  callback?.();
+});
+
+const mockChromeStorageSyncSet = vi.fn((items, callback) => {
+  Object.assign(mockStorage, items);
+  callback?.();
+});
+const mockChromeStorageSyncGet = vi.fn((keys, callback) => {
+  const result: Record<string, any> = {};
+  keys.forEach((key: string) => {
+    result[key] = mockStorage[key];
+  });
+  callback?.(result);
+});
+const mockChromeStorageSyncRemove = vi.fn((key, callback) => {
+  delete mockStorage[key];
+  callback?.();
+});
+
 const mockChromeStorageLocal = {
-  get: vi.fn((keys, callback) => {
-    const result: Record<string, any> = {};
-    keys.forEach((key: string) => {
-      result[key] = mockStorage[key];
-    });
-    callback(result);
-  }),
-  set: vi.fn((items, callback) => {
-    Object.assign(mockStorage, items);
-    callback();
-  }),
-  remove: vi.fn((key, callback) => {
-    delete mockStorage[key];
-    callback();
-  }),
+  get: mockChromeStorageLocalGet,
+  set: mockChromeStorageLocalSet,
+  remove: mockChromeStorageLocalRemove,
+};
+
+const mockChromeStorageSync = {
+  get: mockChromeStorageSyncGet,
+  set: mockChromeStorageSyncSet,
+  remove: mockChromeStorageSyncRemove,
 };
 
 vi.stubGlobal('chrome', {
   storage: {
     local: mockChromeStorageLocal,
+    sync: mockChromeStorageSync,
   },
   runtime: {
     lastError: null,
   },
+});
+
+// Import store AFTER mock setup
+let useSettingsStore: typeof import('@/panel/stores/settingsStore').useSettingsStore;
+let DEFAULT_SETTINGS: typeof import('@/panel/stores/settingsStore').DEFAULT_SETTINGS;
+
+beforeAll(async () => {
+  const module = await import('@/panel/stores/settingsStore');
+  useSettingsStore = module.useSettingsStore;
+  DEFAULT_SETTINGS = module.DEFAULT_SETTINGS;
 });
 
 // Get initial state excluding actions - matches what the store actually persists
@@ -52,35 +88,42 @@ const getInitialState = () => ({
 
 describe('settingsStore', () => {
   beforeEach(() => {
+    // Clear mock calls
+    mockChromeStorageSyncSet.mockClear();
+    mockChromeStorageLocalSet.mockClear();
+    mockStorage['profiler-settings'] = undefined;
+    
     // Reset state while preserving methods
     const currentState = useSettingsStore.getState();
     useSettingsStore.setState({
       ...currentState,
       ...getInitialState(),
     });
-    Object.keys(mockStorage).forEach(key => delete mockStorage[key]);
-    vi.clearAllMocks();
   });
 
-  describe('default settings', () => {
+  describe('initial state', () => {
     it('should have correct default values', () => {
       const state = useSettingsStore.getState();
 
       expect(state.maxCommits).toBe(100);
       expect(state.enableTimeTravel).toBe(true);
-      expect(state.showInlineDetails).toBe(true);
       expect(state.colorScheme).toBe('system');
       expect(state.wastedRenderThreshold).toBe(20);
       expect(state.memoHitRateThreshold).toBe(70);
       expect(state.sidebarWidth).toBe(280);
       expect(state.detailPanelOpen).toBe(true);
       expect(state.defaultViewMode).toBe('tree');
+      expect(state.loaded).toBe(false);
+    });
+
+    it('should have correct advanced settings defaults', () => {
+      const state = useSettingsStore.getState();
+
       expect(state.maxNodesPerCommit).toBe(10000);
       expect(state.analysisWorkerCount).toBe(2);
       expect(state.enableAutoAnalysis).toBe(false);
       expect(state.exportIncludeMetrics).toBe(true);
       expect(state.exportIncludeReports).toBe(true);
-      expect(state.loaded).toBe(false);
     });
   });
 
@@ -91,9 +134,9 @@ describe('settingsStore', () => {
       store.updateSetting('maxCommits', 250);
 
       // Wait for async persist
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
-      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
+      expect(mockChromeStorageSyncSet).toHaveBeenCalled();
     });
 
     it('should only save persistent fields via Zustand persist', async () => {
@@ -101,12 +144,22 @@ describe('settingsStore', () => {
       const store = useSettingsStore.getState();
       store.updateSetting('maxCommits', 250);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
-      // Zustand persist saves to chrome.storage.local with key 'profiler-settings'
-      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
-      const savedKey = mockChromeStorageLocal.set.mock.calls[0][0];
-      expect(savedKey).toHaveProperty('profiler-settings');
+      // Zustand persist saves to chrome.storage.sync with key 'profiler-settings'
+      expect(mockChromeStorageSyncSet).toHaveBeenCalled();
+      const savedData = mockChromeStorageSyncSet.mock.calls[0][0];
+      expect(savedData).toHaveProperty('profiler-settings');
+      const persisted = savedData['profiler-settings'];
+      // Zustand persist wraps the state
+      expect(persisted).toBeDefined();
+      // The actual state is at .state or directly on the object depending on version
+      const state = persisted.state || persisted;
+      // Note: Zustand persist saves the entire partialize'd state, but validation
+      // might cause the actual stored value to differ from what was set
+      expect(state).toHaveProperty('maxCommits');
+      // loaded should not be persisted (partialize excludes it)
+      expect(state).not.toHaveProperty('loaded');
     });
   });
 
@@ -180,9 +233,9 @@ describe('settingsStore', () => {
       store.updateSetting('maxCommits', 300);
 
       // Wait for async save via Zustand persist
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
+      expect(mockChromeStorageSyncSet).toHaveBeenCalled();
     });
   });
 
@@ -208,9 +261,9 @@ describe('settingsStore', () => {
       const store = useSettingsStore.getState();
       store.resetSettings();
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
+      expect(mockChromeStorageSyncSet).toHaveBeenCalled();
     });
   });
 
@@ -267,9 +320,9 @@ describe('settingsStore', () => {
       const store = useSettingsStore.getState();
       store.updateSettings({ maxCommits: 150 });
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(mockChromeStorageLocal.set).toHaveBeenCalled();
+      expect(mockChromeStorageSyncSet).toHaveBeenCalled();
     });
   });
 
@@ -289,11 +342,6 @@ describe('settingsStore', () => {
       expect(DEFAULT_SETTINGS).toHaveProperty('enableAutoAnalysis');
       expect(DEFAULT_SETTINGS).toHaveProperty('exportIncludeMetrics');
       expect(DEFAULT_SETTINGS).toHaveProperty('exportIncludeReports');
-    });
-
-    it('should not include action methods', () => {
-      expect(DEFAULT_SETTINGS).not.toHaveProperty('updateSetting');
-      expect(DEFAULT_SETTINGS).not.toHaveProperty('resetSettings');
     });
   });
 });

@@ -18,6 +18,7 @@ import type {
 import { checkRSCSupport } from '@/panel/utils/rscVersionDetect';
 import { Badge } from '../Common/Badge/Badge';
 import { Icon } from '../Common/Icon/Icon';
+import { ErrorBoundary } from '../ErrorBoundary';
 import styles from './RSCAnalysis.module.css';
 
 /* ============================================================================
@@ -69,8 +70,9 @@ export const RSCAnalysis: React.FC<RSCAnalysisProps> = ({ analysis, loading, rea
   }
 
   return (
+    <ErrorBoundary context="RSC Analysis" compact>
     <div className={styles['rscAnalysis']}>
-      {/* Summary Header */}
+      {/* Summary Header }*/}
       <div className={styles['summaryHeader']}>
         <div className={styles['summaryTitle']}>
           <h2>
@@ -131,6 +133,7 @@ export const RSCAnalysis: React.FC<RSCAnalysisProps> = ({ analysis, loading, rea
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 };
 

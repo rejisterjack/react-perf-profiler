@@ -286,6 +286,8 @@ export enum PortNameEnum {
   DEVTOOLS_BACKGROUND = 'devtools-background',
   /** Popup to background connection */
   POPUP_BACKGROUND = 'popup-background',
+  /** Panel to background connection */
+  PANEL_BACKGROUND = 'react-perf-profiler-panel',
   /** Background to native host connection */
   BACKGROUND_NATIVE = 'background-native',
 }

@@ -3,10 +3,13 @@
  * @module panel/hooks/useProfiler
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
 import type { CommitData } from '@/shared/types';
+
+/** Delay in ms before auto-running analysis after stopRecording */
+const AUTO_ANALYSIS_DELAY_MS = 500;
 
 /**
  * Return type for the useProfiler hook
@@ -55,10 +58,21 @@ export interface UseProfilerReturn {
  * @returns Object containing profiler state and control functions
  */
 export function useProfiler(): UseProfilerReturn {
-  const { isRecording, commits, startRecording, stopRecording, clearData, exportData, importData } =
-    useProfilerStore();
+  const {
+    isRecording,
+    commits,
+    startRecording,
+    stopRecording,
+    clearData,
+    exportData,
+    importData,
+    runAnalysis,
+  } = useProfilerStore();
 
   const { isConnected } = useConnectionStore();
+
+  // Ref to store the debounce timeout
+  const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Start recording and notify the content script
@@ -83,6 +97,30 @@ export function useProfiler(): UseProfilerReturn {
     useConnectionStore.getState().sendMessage({ type: 'CLEAR_DATA' });
     clearData();
   }, [clearData]);
+
+  /**
+   * Auto-run analysis with debounce when recording stops
+   */
+  useEffect(() => {
+    // Clear any pending analysis
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
+      analysisTimeoutRef.current = null;
+    }
+
+    // If we just stopped recording and have commits, schedule analysis
+    if (!isRecording && commits.length > 0) {
+      analysisTimeoutRef.current = setTimeout(() => {
+        runAnalysis();
+      }, AUTO_ANALYSIS_DELAY_MS);
+    }
+
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, [isRecording, commits.length, runAnalysis]);
 
   return {
     isRecording,

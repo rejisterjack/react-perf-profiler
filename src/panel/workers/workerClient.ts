@@ -395,6 +395,34 @@ class AnalysisWorkerClient {
   }
 
   /**
+   * Generate flamegraph data via worker
+   * @param commit - Commit data to generate flamegraph from
+   * @param threshold - Optional threshold for filtering small nodes
+   * @returns Promise resolving to flamegraph data
+   */
+  async generateFlamegraph(
+    commit: CommitData,
+    threshold?: number
+  ): Promise<{
+    root: {
+      name: string;
+      selfDuration: number;
+      cumulativeDuration: number;
+      originalData: unknown;
+      children: unknown[];
+    };
+    nodeCount: number;
+    maxDepth: number;
+    totalDuration: number;
+  }> {
+    return this.sendRequest(
+      'GENERATE_FLAMEGRAPH',
+      { commit, threshold },
+      'FLAMEGRAPH_READY'
+    );
+  }
+
+  /**
    * Terminate the worker
    */
   terminate(): void {

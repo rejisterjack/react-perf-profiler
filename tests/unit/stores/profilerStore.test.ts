@@ -72,7 +72,11 @@ const getInitialState = () => {
 
 describe('profilerStore', () => {
   beforeEach(() => {
-    // Reset store to initial state while preserving methods
+    // Clear data to reset both store state and circular buffer
+    const store = useProfilerStore.getState();
+    store.clearData();
+    
+    // Reset additional state while preserving methods
     const currentState = useProfilerStore.getState();
     const initialData = getInitialState();
     useProfilerStore.setState({

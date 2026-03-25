@@ -6,6 +6,7 @@
 import type { StoreApi } from 'zustand';
 import { create } from 'zustand';
 import { analysisWorker, rscWorker } from '@/panel/workers/workerClient';
+import { CircularBuffer } from '@/panel/utils/circularBuffer';
 import {
   DEFAULT_DETAIL_PANEL_WIDTH,
   DEFAULT_SIDEBAR_WIDTH,
@@ -450,6 +451,15 @@ class ComponentDataLRUCache {
 /** Maximum commits limit */
 const MAX_COMMITS = 500;
 
+/** Auto-analysis delay after recording stops (ms) */
+const AUTO_ANALYSIS_DELAY_MS = 500;
+
+/** Debounce timer for auto-analysis */
+let autoAnalysisTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Circular buffer for O(1) commit storage (module-level for persistence across renders) */
+const commitsBuffer = new CircularBuffer<CommitData>(MAX_COMMITS);
+
 /** Minimum sidebar width */
 const MIN_SIDEBAR_WIDTH = 180;
 
@@ -495,6 +505,15 @@ const storeImplementation = (
 
   // Actions
   startRecording: () => {
+    // Clear circular buffer for new recording
+    commitsBuffer.clear();
+    
+    // Cancel any pending auto-analysis
+    if (autoAnalysisTimer) {
+      clearTimeout(autoAnalysisTimer);
+      autoAnalysisTimer = null;
+    }
+    
     set({
       isRecording: true,
       recordingStartTime: Date.now(),
@@ -507,12 +526,33 @@ const storeImplementation = (
   },
 
   stopRecording: () => {
-    const { recordingStartTime } = get();
+    const { recordingStartTime, runAnalysis } = get();
     const duration = recordingStartTime ? Date.now() - recordingStartTime : 0;
     set({ isRecording: false, recordingDuration: duration });
+    
+    // Auto-trigger analysis after delay
+    if (autoAnalysisTimer) {
+      clearTimeout(autoAnalysisTimer);
+    }
+    autoAnalysisTimer = setTimeout(() => {
+      // Only run if we have commits and not already analyzing
+      const { commits, isAnalyzing } = get();
+      if (commits.length > 0 && !isAnalyzing) {
+        runAnalysis();
+      }
+    }, AUTO_ANALYSIS_DELAY_MS);
   },
 
   clearData: () => {
+    // Clear circular buffer
+    commitsBuffer.clear();
+    
+    // Clear auto-analysis timer
+    if (autoAnalysisTimer) {
+      clearTimeout(autoAnalysisTimer);
+      autoAnalysisTimer = null;
+    }
+    
     set({
       commits: [],
       analysisResults: null,
@@ -536,27 +576,21 @@ const storeImplementation = (
   },
 
   addCommit: (commit: CommitData) => {
-    const { commits } = get();
-    const newCommits = [...commits, commit];
-
-    // Enforce max commits limit of 500
-    if (newCommits.length > MAX_COMMITS) {
-      newCommits.shift();
-    }
-
-    set({ commits: newCommits });
+    // O(1) append using circular buffer
+    commitsBuffer.push(commit);
+    
+    // Export to array for React state (UI reads from this)
+    set({ commits: commitsBuffer.toArray() });
   },
 
   addCommits: (commitsToAdd: CommitData[]) => {
-    const { commits } = get();
-    const newCommits = [...commits, ...commitsToAdd];
-
-    // Enforce max commits limit of 500, keeping most recent
-    if (newCommits.length > MAX_COMMITS) {
-      newCommits.splice(0, newCommits.length - MAX_COMMITS);
+    // O(n) for n commits, but each is O(1) append
+    for (const commit of commitsToAdd) {
+      commitsBuffer.push(commit);
     }
-
-    set({ commits: newCommits });
+    
+    // Export to array for React state
+    set({ commits: commitsBuffer.toArray() });
   },
 
   setAnalysisResults: (results: AnalysisResult) => {
@@ -676,9 +710,15 @@ const storeImplementation = (
         }
       }
 
+      // Populate circular buffer with imported commits
+      commitsBuffer.clear();
+      for (const commit of profile.data.commits || []) {
+        commitsBuffer.push(commit);
+      }
+      
       // Import the data
       set({
-        commits: profile.data.commits || [],
+        commits: commitsBuffer.toArray(),
         recordingDuration: profile.recordingDuration || 0,
         rscPayloads: profile.data.rscPayloads || [],
         rscAnalysis: profile.data.rscAnalysis || null,

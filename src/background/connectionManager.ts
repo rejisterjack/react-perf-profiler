@@ -408,7 +408,7 @@ export class ConnectionManager {
     this.connections.forEach((connection, tabId) => {
       // Check if connection is stale (no active ports and old)
       const hasActivePorts =
-        connection.contentPort || connection.devtoolsPort || connection.popupPort;
+        connection.contentPort || connection.devtoolsPort || connection.popupPort || connection.panelPort;
 
       const isStale =
         !hasActivePorts &&

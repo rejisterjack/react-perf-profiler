@@ -1,78 +1,56 @@
 import type React from 'react';
-import { useMemo } from 'react';
-import type { WastedRenderReport, MemoEffectivenessReport } from '@/shared/types';
+import { useMemo, useState } from 'react';
+import type { WastedRenderReport, MemoReport } from '@/shared/types';
+import { generateAIOptimizations, type AIOptimizationSuggestion } from '@/panel/utils/aiOptimizationGenerator';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './OptimizationSuggestions.module.css';
 
 interface OptimizationSuggestionsProps {
   wastedReports: WastedRenderReport[];
-  memoReports: MemoEffectivenessReport[];
-}
-
-interface Suggestion {
-  id: string;
-  type: 'critical' | 'warning' | 'info';
-  component: string;
-  title: string;
-  description: string;
-  codeExample?: string;
-  estimatedImpact: string;
+  memoReports: MemoReport[];
 }
 
 export const OptimizationSuggestions: React.FC<OptimizationSuggestionsProps> = ({
   wastedReports,
   memoReports,
 }) => {
+  const [expandedSuggestion, setExpandedSuggestion] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const suggestions = useMemo(() => {
-    const result: Suggestion[] = [];
-
-    // Generate suggestions from wasted render reports
-    wastedReports.forEach((report) => {
-      if (report.severity === 'critical') {
-        result.push({
-          id: `wasted-${report.componentName}`,
-          type: 'critical',
-          component: report.componentName,
-          title: `High wasted render rate in ${report.componentName}`,
-          description: `This component rendered ${report.totalRenders} times but ${report.wastedRenders} renders were unnecessary (${Math.round(report.wastedRenderRate)}%).`,
-          codeExample: getCodeExample(report.recommendedAction),
-          estimatedImpact: `~${report.estimatedSavingsMs.toFixed(1)}ms per interaction`,
-        });
-      }
-    });
-
-    // Generate suggestions from memo effectiveness reports
-    memoReports.forEach((report) => {
-      if (!report.isEffective && report.issues.length > 0) {
-        report.issues.forEach((issue, index) => {
-          result.push({
-            id: `memo-${report.componentName}-${index}`,
-            type: 'warning',
-            component: report.componentName,
-            title: `Memoization issue: ${issue.type}`,
-            description: issue.suggestion,
-            estimatedImpact: `Potential ${Math.round(report.optimalHitRate - report.currentHitRate)}% improvement`,
-          });
-        });
-      }
-    });
-
-    // Sort by severity
-    const severityOrder = { critical: 0, warning: 1, info: 2 };
-    return result.sort((a, b) => severityOrder[a.type] - severityOrder[b.type]);
+    // Use AI optimization generator for comprehensive suggestions
+    // Type cast needed due to interface differences between shared/types and analysis utils
+    return generateAIOptimizations(
+      wastedReports as unknown as Parameters<typeof generateAIOptimizations>[0],
+      memoReports as unknown as Parameters<typeof generateAIOptimizations>[1]
+    );
   }, [wastedReports, memoReports]);
+
+  const handleCopyCode = async (suggestion: AIOptimizationSuggestion) => {
+    try {
+      await navigator.clipboard.writeText(suggestion.suggestedCode);
+      setCopiedId(suggestion.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Ignore copy errors
+    }
+  };
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedSuggestion(expandedSuggestion === id ? null : id);
+  };
 
   if (suggestions.length === 0) {
     return (
-      <div className={styles["suggestions"]}>
-        <div className={styles["header"]}>
+      <div className={styles['suggestions']}>
+        <div className={styles['header']}>
           <h3>
             <Icon name="check" size={16} />
-            Optimization Suggestions
+            AI Optimization Suggestions
           </h3>
         </div>
-        <div className={styles["allGood"]}>
-          <div className={styles["successIcon"]}>
+        <div className={styles['allGood']}>
+          <div className={styles['successIcon']}>
             <Icon name="check" size={24} />
           </div>
           <h4>All Good!</h4>
@@ -85,45 +63,86 @@ export const OptimizationSuggestions: React.FC<OptimizationSuggestionsProps> = (
   }
 
   return (
-    <div className={styles["suggestions"]}>
-      <div className={styles["header"]}>
+    <div className={styles['suggestions']}>
+      <div className={styles['header']}>
         <h3>
           <Icon name="performance" size={16} />
-          Optimization Suggestions
+          AI Optimization Suggestions
         </h3>
-        <span className={styles["count"]}>
+        <span className={styles['count']}>
           {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      <ul className={styles["list"]}>
+      <ul className={styles['list']}>
         {suggestions.map((suggestion) => (
-          <li key={suggestion.id} className={`${styles["suggestion"]} ${styles[suggestion.type]}`}>
-            <div className={styles["suggestionHeader"]}>
-              <div className={styles["iconWrapper"]}>
-                <Icon name={getIconName(suggestion.type)} size={16} />
+          <li
+            key={suggestion.id}
+            className={`${styles['suggestion']} ${styles[suggestion.severity]}`}
+          >
+            <div className={styles['suggestionHeader']}>
+              <div className={styles['iconWrapper']}>
+                <Icon name={getIconName(suggestion.severity)} size={16} />
               </div>
-              <div className={styles["titleWrapper"]}>
-                <h4>{suggestion.title}</h4>
-                <code className={styles["component"]}>{suggestion.component}</code>
+              <div className={styles['titleWrapper']}>
+                <h4>{suggestion.description}</h4>
+                <code className={styles['component']}>{suggestion.componentName}</code>
               </div>
-              <span className={`${styles["badge"]} ${styles[suggestion.type]}`}>
-                {suggestion.type}
+              <span className={`${styles['badge']} ${styles[suggestion.severity]}`}>
+                {suggestion.severity}
               </span>
             </div>
 
-            <p className={styles["description"]}>{suggestion.description}</p>
+            <p className={styles['explanation']}>{suggestion.explanation}</p>
 
-            {suggestion.codeExample && (
-              <pre className={styles["code"]}>
-                <code>{suggestion.codeExample}</code>
-              </pre>
-            )}
-
-            <div className={styles["impact"]}>
+            <div className={styles['impact']}>
               <Icon name="time" size={12} />
-              <span>Estimated impact: {suggestion.estimatedImpact}</span>
+              <span>Estimated improvement: {suggestion.estimatedImprovement}</span>
             </div>
+
+            <button
+              type="button"
+              className={styles['expandButton']}
+              onClick={() => handleToggleExpand(suggestion.id)}
+            >
+              {expandedSuggestion === suggestion.id ? 'Hide Code' : 'View Code Fix'}
+              <Icon
+                name={expandedSuggestion === suggestion.id ? 'chevron-up' : 'chevron-down'}
+                size={12}
+              />
+            </button>
+
+            {expandedSuggestion === suggestion.id && (
+              <div className={styles['codeSection']}>
+                <div className={styles['codeBlock']}>
+                  <div className={styles['codeHeader']}>
+                    <span>Current Code</span>
+                  </div>
+                  <pre className={styles['code']}>
+                    <code>{suggestion.currentCode}</code>
+                  </pre>
+                </div>
+
+                <div className={styles['codeArrow']}>↓</div>
+
+                <div className={styles['codeBlock']}>
+                  <div className={styles['codeHeader']}>
+                    <span>Suggested Fix</span>
+                    <button
+                      type="button"
+                      className={styles['copyButton']}
+                      onClick={() => handleCopyCode(suggestion)}
+                    >
+                      <Icon name={copiedId === suggestion.id ? 'check' : 'copy'} size={12} />
+                      {copiedId === suggestion.id ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className={`${styles['code']} ${styles['suggested']}`}>
+                    <code>{suggestion.suggestedCode}</code>
+                  </pre>
+                </div>
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -141,25 +160,6 @@ function getIconName(type: 'critical' | 'warning' | 'info'): 'error' | 'warning'
       return 'info';
     default:
       return 'info';
-  }
-}
-
-function getCodeExample(action: string): string | undefined {
-  switch (action) {
-    case 'memo':
-      return `const MyComponent = React.memo(function MyComponent(props) {
-  // Component logic
-});`;
-    case 'useCallback':
-      return `const handleClick = useCallback(() => {
-  // Handler logic
-}, [/* deps */]);`;
-    case 'useMemo':
-      return `const computed = useMemo(() => {
-  return expensiveCalculation(props.data);
-}, [props.data]);`;
-    default:
-      return undefined;
   }
 }
 

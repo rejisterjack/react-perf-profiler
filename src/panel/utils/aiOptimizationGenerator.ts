@@ -282,20 +282,28 @@ export function generateAIOptimizations(
   for (const report of wastedRenderReports) {
     if (report.wastedRenderRate < 0.2) continue; // Skip low-impact issues
 
-    for (const reason of report.reasons) {
-      const suggestion = mapWastedRenderReasonToSuggestion(report, reason);
-      if (suggestion && !seenIds.has(suggestion.id)) {
-        seenIds.add(suggestion.id);
-        suggestions.push(suggestion);
+    // Handle reports with reasons array (from wastedRenderAnalysis)
+    const reasons = (report as unknown as { reasons?: unknown[] }).reasons;
+    if (reasons && Array.isArray(reasons)) {
+      for (const reason of reasons) {
+        const suggestion = mapWastedRenderReasonToSuggestion(
+          report as unknown as import('./wastedRenderAnalysis').WastedRenderReport,
+          reason as import('./wastedRenderAnalysis').WastedRenderReason
+        );
+        if (suggestion && !seenIds.has(suggestion.id)) {
+          seenIds.add(suggestion.id);
+          suggestions.push(suggestion);
+        }
       }
     }
 
     // Generate memo suggestion for high wasted render rates
-    if (report.wastedRenderRate > 0.4 && !report.recommendations?.some(r => r.includes('memo'))) {
+    const recommendations = (report as unknown as { recommendations?: string[] }).recommendations;
+    const hasMemoRecommendation = recommendations?.some((r: string) => r.includes('memo'));
+    if (report.wastedRenderRate > 0.4 && !hasMemoRecommendation) {
       const context: SuggestionContext = {
         componentName: report.componentName,
-        reason: report.reasons[0],
-        report,
+        report: report as unknown as import('./wastedRenderAnalysis').WastedRenderReport,
       };
       const memoSuggestion = generateMemoSuggestion(context);
       if (!seenIds.has(memoSuggestion.id)) {

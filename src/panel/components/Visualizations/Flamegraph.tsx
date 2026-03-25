@@ -17,7 +17,11 @@ import { analysisWorker } from '@/panel/workers/workerClient';
 import { FiberTag } from '@/shared/types';
 import { panelLogger } from '@/shared/logger';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { VirtualizedFlamegraph } from './VirtualizedFlamegraph';
 import styles from './Flamegraph.module.css';
+
+/** Node count threshold for using virtualized rendering */
+const VIRTUALIZATION_THRESHOLD = 500;
 
 interface TooltipState {
   visible: boolean;
@@ -269,6 +273,12 @@ export const Flamegraph: React.FC = () => {
         <p>Generating flamegraph...</p>
       </div>
     );
+  }
+
+  // Use virtualized rendering for large trees (>500 nodes)
+  const nodeCount = flamegraphData?.nodeCount ?? 0;
+  if (nodeCount > VIRTUALIZATION_THRESHOLD) {
+    return <VirtualizedFlamegraph />;
   }
 
   return (

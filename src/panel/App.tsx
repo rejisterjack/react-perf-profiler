@@ -8,6 +8,7 @@ import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { useSessionPersistence } from './hooks/useSessionPersistence';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
+import { NotificationContainer } from './components/Notifications/NotificationContainer';
 
 /**
  * Connection error display component
@@ -222,6 +223,7 @@ export const App: React.FC = () => {
             <Toolbar />
           </ErrorBoundary>
           <WelcomeScreen />
+          <NotificationContainer />
         </div>
       </ErrorBoundary>
     );
@@ -244,6 +246,7 @@ export const App: React.FC = () => {
         <ErrorBoundary context="panel layout">
           <PanelLayout />
         </ErrorBoundary>
+        <NotificationContainer />
       </div>
     </ErrorBoundary>
   );

@@ -7,6 +7,7 @@ import type { StoreApi } from 'zustand';
 import { create } from 'zustand';
 import { analysisWorker, rscWorker } from '@/panel/workers/workerClient';
 import { CircularBuffer } from '@/panel/utils/circularBuffer';
+import { notifications } from '@/panel/stores/notificationStore';
 import {
   DEFAULT_DETAIL_PANEL_WIDTH,
   DEFAULT_SIDEBAR_WIDTH,
@@ -912,11 +913,18 @@ const storeImplementation = (
         memoReports: memoReports,
         analysisResults: analysisResult,
       });
+      
+      // Show success notification
+      notifications.analysisComplete(clampedScore);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
       set({
         isAnalyzing: false,
-        analysisError: error instanceof Error ? error.message : 'Analysis failed',
+        analysisError: errorMessage,
       });
+      
+      // Show error notification
+      notifications.error('Analysis Failed', errorMessage);
     }
   },
 

@@ -373,6 +373,7 @@ export const STORAGE_LIMITS = {
 
 /**
  * Human-readable names for fiber tags
+ * Matches React 18 fiber tag constants
  */
 export const FIBER_TAG_NAMES: Record<number, string> = {
   0: 'FunctionComponent',
@@ -387,12 +388,19 @@ export const FIBER_TAG_NAMES: Record<number, string> = {
   9: 'ContextConsumer',
   10: 'ContextProvider',
   11: 'ForwardRef',
-  12: 'SimpleMemoComponent',
-  13: 'LazyComponent',
-  14: 'IncompleteClassComponent',
-  15: 'SuspenseComponent',
-  16: 'SuspenseListComponent',
-  21: 'MemoComponent',
+  12: 'Profiler',
+  13: 'SuspenseComponent',
+  14: 'MemoComponent',
+  15: 'SimpleMemoComponent',
+  16: 'LazyComponent',
+  17: 'IncompleteClassComponent',
+  18: 'DehydratedFragment',
+  19: 'SuspenseListComponent',
+  21: 'ScopeComponent',
+  22: 'OffscreenComponent',
+  23: 'LegacyHiddenComponent',
+  24: 'CacheComponent',
+  25: 'TracingMarkerComponent',
 };
 
 // ============================================================================

@@ -4,7 +4,8 @@
  */
 
 /**
- * React Fiber tag constants (matching React internals)
+ * React Fiber tag constants (matching React 18 internals)
+ * Source: https://github.com/facebook/react/blob/main/packages/react-reconciler/src/ReactWorkTags.js
  */
 export enum FiberTag {
   FunctionComponent = 0,
@@ -19,9 +20,19 @@ export enum FiberTag {
   ContextConsumer = 9,
   ContextProvider = 10,
   ForwardRef = 11,
-  SimpleMemoComponent = 12,
-  LazyComponent = 13,
-  MemoComponent = 21,
+  Profiler = 12,
+  SuspenseComponent = 13,
+  MemoComponent = 14,
+  SimpleMemoComponent = 15,
+  LazyComponent = 16,
+  IncompleteClassComponent = 17,
+  DehydratedFragment = 18,
+  SuspenseListComponent = 19,
+  ScopeComponent = 21,
+  OffscreenComponent = 22,
+  LegacyHiddenComponent = 23,
+  CacheComponent = 24,
+  TracingMarkerComponent = 25,
 }
 
 /**

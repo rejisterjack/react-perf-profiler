@@ -14,12 +14,16 @@ import {
 
 describe('Shared Types', () => {
   describe('FiberTag enum', () => {
-    it('should have all fiber tags defined', () => {
+    it('should have all fiber tags defined with React 18 values', () => {
       expect(FiberTag.FunctionComponent).toBe(0);
       expect(FiberTag.ClassComponent).toBe(1);
       expect(FiberTag.HostComponent).toBe(5);
-      expect(FiberTag.SimpleMemoComponent).toBe(12);
-      expect(FiberTag.MemoComponent).toBe(21);
+      expect(FiberTag.Profiler).toBe(12);
+      expect(FiberTag.SuspenseComponent).toBe(13);
+      expect(FiberTag.MemoComponent).toBe(14);
+      expect(FiberTag.SimpleMemoComponent).toBe(15);
+      expect(FiberTag.LazyComponent).toBe(16);
+      expect(FiberTag.ScopeComponent).toBe(21);
     });
 
     it('should have memo tag for memoized components', () => {

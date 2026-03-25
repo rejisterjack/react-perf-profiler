@@ -377,7 +377,7 @@ export class ConnectionManager {
     if (!connection) return;
 
     const hasActivePorts =
-      connection.contentPort || connection.devtoolsPort || connection.popupPort;
+      connection.contentPort || connection.devtoolsPort || connection.popupPort || connection.panelPort;
 
     if (!hasActivePorts && !connection.isProfiling) {
       this.connections.delete(tabId);

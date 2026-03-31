@@ -250,7 +250,7 @@ export function scoreMemoization(reports: MemoEffectivenessReport[]): number {
  * @param threshold - Threshold for slow render in ms (default: 16ms for 60fps)
  * @returns Score from 0-100
  */
-export function scoreRenderTime(commits: CommitData[], threshold: number = 16): number {
+export function scoreRenderTime(commits: CommitData[], threshold = 16): number {
   if (!commits || commits.length === 0) {
     return 100;
   }
@@ -305,7 +305,7 @@ export function scoreRenderTime(commits: CommitData[], threshold: number = 16): 
  * @param threshold - Threshold for too many components (default: 500)
  * @returns Score from 0-100
  */
-export function scoreComponentCount(commits: CommitData[], threshold: number = 500): number {
+export function scoreComponentCount(commits: CommitData[], threshold = 500): number {
   if (!commits || commits.length === 0) {
     return 100;
   }
@@ -390,7 +390,7 @@ function extractMemoIssues(reports: MemoEffectivenessReport[]): PerformanceIssue
  */
 function extractRenderTimeIssues(
   commits: CommitData[],
-  threshold: number = 16
+  threshold = 16
 ): PerformanceIssue[] {
   const issues: PerformanceIssue[] = [];
   const slowComponents = new Map<string, { count: number; maxDuration: number }>();
@@ -440,7 +440,7 @@ function extractRenderTimeIssues(
  */
 function extractComponentCountIssues(
   commits: CommitData[],
-  threshold: number = 500
+  threshold = 500
 ): PerformanceIssue[] {
   const issues: PerformanceIssue[] = [];
 

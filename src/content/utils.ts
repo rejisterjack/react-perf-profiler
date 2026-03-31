@@ -272,7 +272,7 @@ export function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
@@ -457,7 +457,7 @@ export class MemoryTracker {
   private samples: { timestamp: number; used: number }[] = [];
   private readonly maxSamples: number;
 
-  constructor(maxSamples: number = 100) {
+  constructor(maxSamples = 100) {
     this.maxSamples = maxSamples;
   }
 

@@ -1,4 +1,5 @@
-import React, { useState, createContext, useContext, type ReactNode } from 'react';
+import type React from 'react';
+import { useState, createContext, useContext, type ReactNode } from 'react';
 import styles from './Tabs.module.css';
 
 interface TabsContextType {

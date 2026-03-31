@@ -4,7 +4,8 @@
  * @module panel/components/Analysis
  */
 
-import React, { useMemo } from 'react';
+import type React from 'react';
+import { useMemo } from 'react';
 import type { CommitData } from '@/shared/types';
 import { analyzeRenderCause, aggregateRenderCauses, type RenderCause } from '@/panel/utils/renderCauseAnalysis';
 import styles from './RenderCauseBadge.module.css';

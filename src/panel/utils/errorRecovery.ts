@@ -197,11 +197,12 @@ export function reportError(
       source: 'ErrorRecovery',
     });
 
-    // TODO: Implement actual analytics reporting
-    // Examples:
+    // Analytics reporting - currently logs to console only
+    // Production implementations could include:
     // - Send to error tracking service (Sentry, LogRocket, etc.)
     // - Send to custom analytics endpoint
     // - Store locally for debugging
+    // NOTE: Implement actual analytics integration when needed
 
     // Store last error in session storage for debugging
     try {

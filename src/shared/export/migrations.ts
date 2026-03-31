@@ -442,7 +442,7 @@ function executeMigrationPath(
 export function migrateProfileWithLogging(
   profile: unknown,
   fromVersion: string | number | undefined,
-  toVersion: string = '1.0'
+  toVersion = '1.0'
 ): MigrationResult {
   const log: MigrationLogEntry[] = [];
 
@@ -537,7 +537,7 @@ export function migrateProfileWithLogging(
 export function migrateProfile(
   profile: unknown,
   fromVersion: string | number | undefined,
-  toVersion: string = '1.0'
+  toVersion = '1.0'
 ): ExportedProfile {
   const result = migrateProfileWithLogging(profile, fromVersion, toVersion);
   return result.profile;

@@ -73,6 +73,8 @@ export interface PluginMetric {
   pluginId?: string;
   /** Plugin name that contributed this metric */
   pluginName?: string;
+  /** Severity level for metrics that indicate issues */
+  severity?: 'info' | 'warning' | 'error' | 'critical';
 }
 
 // =============================================================================

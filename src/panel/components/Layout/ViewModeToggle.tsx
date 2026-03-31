@@ -12,7 +12,7 @@ import styles from './ViewModeToggle.module.css';
 // Types
 // =============================================================================
 
-type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis' | 'compare';
+type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis' | 'compare' | 'cloud' | 'collab' | 'ai' | 'marketplace' | 'dashboard' | '3d';
 
 interface ViewModeOption {
   mode: ViewMode;
@@ -31,6 +31,12 @@ const VIEW_MODES: ViewModeOption[] = [
   { mode: 'timeline', label: 'Timeline', icon: 'timeline', shortcut: '3' },
   { mode: 'analysis', label: 'Analysis', icon: 'analysis', shortcut: '4' },
   { mode: 'compare', label: 'Compare', icon: 'diff', shortcut: '5' },
+  { mode: '3d', label: '3D', icon: 'box', shortcut: '6' },
+  { mode: 'dashboard', label: 'Dashboard', icon: 'bar-chart', shortcut: '7' },
+  { mode: 'ai', label: 'AI', icon: 'sparkles', shortcut: '8' },
+  { mode: 'cloud', label: 'Cloud', icon: 'cloud', shortcut: '9' },
+  { mode: 'collab', label: 'Team', icon: 'users', shortcut: '0' },
+  { mode: 'marketplace', label: 'Store', icon: 'shopping-bag', shortcut: '-' },
 ];
 
 // =============================================================================

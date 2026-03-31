@@ -4,7 +4,8 @@
  * @module panel/demo/DemoProvider
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { notifications } from '@/panel/stores/notificationStore';
 import { sampleProfile } from './sampleProfile';

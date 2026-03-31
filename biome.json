@@ -17,12 +17,7 @@
     "lineWidth": 100
   },
   "assists": {
-    "enabled": true,
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
+    "enabled": true
   },
   "linter": {
     "enabled": true,
@@ -43,8 +38,7 @@
       "style": {
         "noNonNullAssertion": "off",
         "useConst": "error",
-        "useTemplate": "error",
-        
+        "useTemplate": "error"
       },
       "complexity": {
         "noForEach": "off",
@@ -54,12 +48,11 @@
         "useHtmlLang": "error",
         "useButtonType": "error",
         "noSvgWithoutTitle": "error",
-        "noStaticElementInteractions": "error",
+
         "useKeyWithClickEvents": "error",
         "useFocusableInteractive": "error",
         "useSemanticElements": "error",
-        "useAriaPropsForRole": "error",
-        "useAriaPropsSupportedByRole": "error"
+        "useAriaPropsForRole": "error"
       }
     }
   },

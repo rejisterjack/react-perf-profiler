@@ -87,7 +87,7 @@ export default ${componentName};`,
  */
 function generateUseCallbackSuggestion(
   context: SuggestionContext,
-  functionName: string = 'handleClick'
+  functionName = 'handleClick'
 ): AIOptimizationSuggestion {
   const { componentName } = context;
 
@@ -128,7 +128,7 @@ function ${componentName}() {
  */
 function generateUseMemoSuggestion(
   context: SuggestionContext,
-  valueName: string = 'config'
+  valueName = 'config'
 ): AIOptimizationSuggestion {
   const { componentName } = context;
 
@@ -398,7 +398,7 @@ export function groupSuggestionsByComponent(
  */
 export function getTopSuggestions(
   suggestions: AIOptimizationSuggestion[],
-  limit: number = 5
+  limit = 5
 ): AIOptimizationSuggestion[] {
   const severityOrder = { critical: 0, warning: 1, info: 2 };
 

@@ -538,11 +538,11 @@ export function validateStopProfilingPayload(payload: unknown): ValidationResult
   const validations: ValidationResult[] = [];
 
   if (p["totalCommits"] !== undefined) {
-    validations.push(validateNumberInRange(p["totalCommits"], 'totalCommits', 0, Infinity));
+    validations.push(validateNumberInRange(p["totalCommits"], 'totalCommits', 0, Number.POSITIVE_INFINITY));
   }
 
   if (p["totalDuration"] !== undefined) {
-    validations.push(validateNumberInRange(p["totalDuration"], 'totalDuration', 0, Infinity));
+    validations.push(validateNumberInRange(p["totalDuration"], 'totalDuration', 0, Number.POSITIVE_INFINITY));
   }
 
   if (p["timestamp"] !== undefined) {

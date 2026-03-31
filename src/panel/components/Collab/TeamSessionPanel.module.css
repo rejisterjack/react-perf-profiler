@@ -1,0 +1,680 @@
+/**
+ * Team Session Panel Styles
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.liveIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-success);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-secondary);
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.activeTab {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background: var(--color-background);
+}
+
+/* Content */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* Initial View */
+.initialView {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.userNameSection {
+  background: var(--color-background-secondary);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.userNameSection label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.userNameInput {
+  display: flex;
+  gap: 8px;
+}
+
+.userNameInput input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.userNameInput input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.smallButton {
+  padding: 8px 12px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.smallButton:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary);
+}
+
+.actionSection {
+  text-align: center;
+  padding: 24px;
+}
+
+.actionSection h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.actionSection p {
+  margin: 0 0 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.joinInput {
+  display: flex;
+  gap: 12px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.codeInput {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.codeInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* Buttons */
+.primaryButton,
+.dangerButton,
+.copyButton {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+}
+
+.primaryButton {
+  background: var(--color-primary);
+  color: white;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--color-primary-alpha);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dangerButton {
+  background: var(--color-danger);
+  color: white;
+}
+
+.dangerButton:hover {
+  background: var(--color-danger-hover);
+}
+
+.copyButton {
+  padding: 8px 12px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.copyButton:hover {
+  background: var(--color-hover);
+}
+
+/* Session View */
+.sessionView {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sessionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+}
+
+.sessionCode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.codeLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.codeValue {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.codeValue strong {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 2px;
+}
+
+.codeHint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.sessionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.connectedBadge {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.sessionCodeDisplay {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* Error */
+.error {
+  padding: 12px 16px;
+  background: var(--color-danger-alpha);
+  color: var(--color-danger);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* Participants */
+.participantsSection {
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.participantsSection h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.participantsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.participantItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-background);
+  border-radius: 8px;
+  border-left: 3px solid;
+}
+
+.participantAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.participantInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.participantName {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hostBadge {
+  padding: 2px 6px;
+  background: var(--color-primary-alpha);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.participantStatus {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Chat */
+.chatSection {
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+}
+
+.chatSection h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: var(--color-background);
+  border-radius: 6px;
+  min-height: 100px;
+}
+
+.emptyChat {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 20px;
+}
+
+.chatMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  background: var(--color-background-secondary);
+  border-radius: 6px;
+}
+
+.chatSender {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.chatText {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.chatTime {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  align-self: flex-end;
+}
+
+.chatInput {
+  display: flex;
+  gap: 8px;
+}
+
+.chatInput input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.chatInput input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.chatInput button {
+  padding: 10px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chatInput button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.chatInput button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Signaling Mode */
+.signalingMode {
+  background: var(--color-background-secondary);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.signalingMode label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 0;
+}
+
+.radioLabel input[type="radio"] {
+  margin: 0;
+}
+
+.signalingHint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--color-primary-alpha);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* Signaling Box */
+.signalingBox {
+  background: var(--color-background-secondary);
+  border: 2px solid var(--color-primary-alpha);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.signalingBox h5 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.signalingBox p {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.signalingTextarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: monospace;
+  font-size: 11px;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.signalingTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.signalingDivider {
+  text-align: center;
+  margin: 16px 0;
+  position: relative;
+}
+
+.signalingDivider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.signalingDivider span {
+  position: relative;
+  background: var(--color-background-secondary);
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.secondaryButton {
+  padding: 10px 16px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary);
+}
+
+/* Features Info */
+.featuresInfo {
+  margin-top: auto;
+  padding: 16px;
+  background: var(--color-background-secondary);
+  border-top: 1px solid var(--color-border);
+}
+
+.featuresInfo h5 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.featuresInfo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.featuresInfo li {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* CSS Variables (fallbacks) */
+:root {
+  --color-background: #ffffff;
+  --color-background-secondary: #f5f5f5;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
+  --color-border: #e0e0e0;
+  --color-primary: #0066cc;
+  --color-primary-hover: #0052a3;
+  --color-primary-alpha: rgba(0, 102, 204, 0.1);
+  --color-success: #28a745;
+  --color-danger: #dc3545;
+  --color-danger-hover: #c82333;
+  --color-danger-alpha: rgba(220, 53, 69, 0.1);
+  --color-hover: rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #1e1e1e;
+    --color-background-secondary: #252526;
+    --color-text: #cccccc;
+    --color-text-secondary: #a0a0a0;
+    --color-text-muted: #6e6e6e;
+    --color-border: #3e3e42;
+    --color-primary: #4da6ff;
+    --color-primary-hover: #66b3ff;
+    --color-primary-alpha: rgba(77, 166, 255, 0.15);
+    --color-success: #4ec9b0;
+    --color-danger: #f48771;
+    --color-danger-hover: #f5a08e;
+    --color-danger-alpha: rgba(244, 135, 113, 0.15);
+    --color-hover: rgba(255, 255, 255, 0.05);
+  }
+}

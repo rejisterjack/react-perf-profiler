@@ -120,9 +120,9 @@ export function useComponentData(componentName: string): UseComponentDataReturn 
     let wastedRenderCount = 0;
     let totalRenderTime = 0;
     let maxRenderTime = 0;
-    let minRenderTime = Infinity;
+    let minRenderTime = Number.POSITIVE_INFINITY;
     let isMemoized = false;
-    let firstSeen = Infinity;
+    let firstSeen = Number.POSITIVE_INFINITY;
     let lastSeen = 0;
 
     componentCommits.forEach((commit) => {
@@ -152,7 +152,7 @@ export function useComponentData(componentName: string): UseComponentDataReturn 
       totalRenderTime,
       averageRenderTime: renderCount > 0 ? totalRenderTime / renderCount : 0,
       maxRenderTime: maxRenderTime === 0 ? 0 : maxRenderTime,
-      minRenderTime: minRenderTime === Infinity ? 0 : minRenderTime,
+      minRenderTime: minRenderTime === Number.POSITIVE_INFINITY ? 0 : minRenderTime,
       isMemoized,
       firstSeen,
       lastSeen,

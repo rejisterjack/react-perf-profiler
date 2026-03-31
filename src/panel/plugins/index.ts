@@ -119,6 +119,15 @@ export type {
   ProviderAnalysisResult,
 } from './built-in/ContextProviderTracker';
 
+// State Manager Plugins
+export {
+  ZustandTracker,
+  TanStackQueryTracker,
+  JotaiTracker,
+  RecoilTracker,
+  ValtioTracker,
+} from './built-in/state-managers';
+
 // =============================================================================
 // Built-in Plugin Registration
 // =============================================================================
@@ -127,6 +136,13 @@ import type { PluginManager } from './PluginManager';
 import { reduxActionTracker } from './built-in/ReduxActionTracker';
 import { contextChangeLogger } from './built-in/ContextChangeLogger';
 import { contextProviderTracker } from './built-in/ContextProviderTracker';
+import {
+  ZustandTracker,
+  TanStackQueryTracker,
+  JotaiTracker,
+  RecoilTracker,
+  ValtioTracker,
+} from './built-in/state-managers';
 
 /**
  * Array of all built-in plugins
@@ -135,6 +151,12 @@ export const builtInPlugins = [
   reduxActionTracker,
   contextChangeLogger,
   contextProviderTracker,
+  // State manager plugins
+  ZustandTracker,
+  TanStackQueryTracker,
+  JotaiTracker,
+  RecoilTracker,
+  ValtioTracker,
 ];
 
 /**

@@ -49,7 +49,14 @@ export type IconName =
   | 'bookmark'
   | 'diff'
   | 'skipBack'
-  | 'skipForward';
+  | 'skipForward'
+  // Beast Mode icons
+  | 'cloud'
+  | 'users'
+  | 'sparkles'
+  | 'shopping-bag'
+  | 'bar-chart'
+  | 'box';
 
 interface IconProps {
   name: IconName;
@@ -143,6 +150,14 @@ const iconPaths: Record<IconName, string> = {
   diff: 'M6 3h12v2H6zm0 16h12v2H6zm0-8h12v2H6zM3 7h2v10H3zM19 7h2v10h-2z',
   skipBack: 'M6 6h2v12H6zm3.5 6 8.5 6V6z',
   skipForward: 'M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z',
+  
+  // Beast Mode icons
+  cloud: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z',
+  users: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+  sparkles: 'M7 2v11h3v9l7-12h-4l4-8z',
+  'shopping-bag': 'M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 10c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z',
+  'bar-chart': 'M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z',
+  box: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 2h2v2h-2V5zm0 14h-2v-2h2v2zm7-7h-2v-2h2v2zM5 12H3v-2h2v2z',
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 16, className, color, ariaLabel }) => {

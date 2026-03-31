@@ -124,7 +124,7 @@ export interface TreeNode {
 /**
  * View mode for the profiler
  */
-export type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis' | 'compare';
+export type ViewMode = 'tree' | 'flamegraph' | 'timeline' | 'analysis' | 'compare' | 'cloud' | 'collab' | 'ai' | 'marketplace' | 'dashboard' | '3d';
 
 /**
  * State interface for the profiler store
@@ -304,7 +304,7 @@ class ComponentDataLRUCache {
   private cache: Map<string, ComponentData>;
   private maxSize: number;
 
-  constructor(maxSize: number = 1000) {
+  constructor(maxSize = 1000) {
     this.cache = new Map();
     this.maxSize = maxSize;
   }

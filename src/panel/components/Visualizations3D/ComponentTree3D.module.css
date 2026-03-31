@@ -1,0 +1,83 @@
+/**
+ * 3D Component Tree Styles
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #a0a0a0;
+}
+
+.hovered {
+  color: #4da6ff;
+  font-weight: 600;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.controls button {
+  padding: 6px 12px;
+  background: #3e3e42;
+  border: none;
+  border-radius: 6px;
+  color: #cccccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.controls button:hover {
+  background: #4da6ff;
+  color: white;
+}
+
+.canvas {
+  cursor: grab;
+}
+
+.canvas:active {
+  cursor: grabbing;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #252526;
+  border-top: 1px solid #3e3e42;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #a0a0a0;
+}
+
+.colorBox {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}

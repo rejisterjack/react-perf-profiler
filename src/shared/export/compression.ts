@@ -171,7 +171,7 @@ export async function decompressData(compressed: CompressedExport): Promise<Deco
 export async function compressExportIfNeeded(
   profile: string,
   threshold: number = 1024 * 1024, // 1MB default
-  version: string = '1.0'
+  version = '1.0'
 ): Promise<CompressedExport | object> {
   const size = new Blob([profile]).size;
 
@@ -245,7 +245,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /**

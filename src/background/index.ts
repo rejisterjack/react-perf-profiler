@@ -215,7 +215,7 @@ function getTabIdFromPort(port: chrome.runtime.Port): number | null {
   // Format: devtools-background-{tabId}
   const parts = port.name.split('-');
   const lastPart = parts[parts.length - 1]!;
-  const parsedTabId = parseInt(lastPart, 10);
+  const parsedTabId = Number.parseInt(lastPart, 10);
 
   if (!Number.isNaN(parsedTabId)) {
     return parsedTabId;

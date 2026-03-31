@@ -31,3 +31,12 @@ export { contextChangeLogger } from './ContextChangeLogger';
 
 // Context Provider Tracker
 export { contextProviderTracker } from './ContextProviderTracker';
+
+// State Manager Plugins
+export {
+  ZustandTracker,
+  TanStackQueryTracker,
+  JotaiTracker,
+  RecoilTracker,
+  ValtioTracker,
+} from './state-managers';

@@ -101,7 +101,7 @@ export function walkFiberTree(rootFiber: unknown, callback: (fiber: unknown) => 
  * Extract commit data from fiber root
  * Called when React commits a fiber root
  */
-export function parseFiberRoot(rootFiber: unknown, priorityLevel: number = 0): CommitData {
+export function parseFiberRoot(rootFiber: unknown, priorityLevel = 0): CommitData {
   const fibers: FiberData[] = [];
   const fiberMap = new Map<string, FiberData>();
   let rootFiberData: FiberData | null = null;

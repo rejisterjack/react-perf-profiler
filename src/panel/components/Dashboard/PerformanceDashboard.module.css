@@ -1,0 +1,152 @@
+/**
+ * Performance Dashboard Styles
+ */
+
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.timeRange {
+  display: flex;
+  gap: 8px;
+}
+
+.timeRange button {
+  padding: 8px 16px;
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeRange button:hover {
+  background: var(--color-hover);
+}
+
+.timeRange button.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  padding: 20px;
+  background: var(--color-background-secondary);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.trend {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.trend.up {
+  color: var(--color-success);
+}
+
+.trend.down {
+  color: var(--color-danger);
+}
+
+/* Charts */
+.chartsSection {
+  margin-bottom: 32px;
+}
+
+.chartsSection h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.chart {
+  padding: 20px;
+  background: var(--color-background-secondary);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.lineChart {
+  width: 100%;
+  height: 200px;
+}
+
+/* Regressions */
+.regressionsSection {
+  background: var(--color-background-secondary);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.regressionsSection h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.noIssues {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.regressionsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.regressionsTable th,
+.regressionsTable td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.regressionsTable th {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.negative {
+  color: var(--color-danger);
+  font-weight: 500;
+}

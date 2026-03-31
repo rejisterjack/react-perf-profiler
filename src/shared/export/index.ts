@@ -85,7 +85,7 @@ export async function exportProfileToFile(
 export function downloadExport(
   data: Blob | string,
   filename: string,
-  mimeType: string = 'application/json'
+  mimeType = 'application/json'
 ): void {
   if (typeof window === 'undefined') return;
 

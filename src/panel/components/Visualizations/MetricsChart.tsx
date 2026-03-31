@@ -198,7 +198,7 @@ export const MetricsChart: React.FC = () => {
         d3
           .axisBottom(xScale)
           .tickFormat((d) => {
-            const timestamp = parseInt(d as string, 10);
+            const timestamp = Number.parseInt(d as string, 10);
             const firstTimestamp = chartData[0]?.timestamp || timestamp;
             return `${((timestamp - firstTimestamp) / 1000).toFixed(1)}s`;
           })

@@ -38,7 +38,7 @@ export function parseReactVersion(raw: string): ParsedReactVersion | null {
   const clean = raw.split('-')[0] ?? '';
   const parts = clean.split('.').map(Number);
 
-  const [major = NaN, minor = NaN, patch = NaN] = parts;
+  const [major = Number.NaN, minor = Number.NaN, patch = Number.NaN] = parts;
   if (Number.isNaN(major) || Number.isNaN(minor)) return null;
 
   return { major, minor, patch: Number.isNaN(patch) ? 0 : patch, raw };

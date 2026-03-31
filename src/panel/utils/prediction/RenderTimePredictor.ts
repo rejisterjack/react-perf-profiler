@@ -1,6 +1,5 @@
 
 import type { Tensor } from '@tensorflow/tfjs';
-import * as tf from '@tensorflow/tfjs';
 import type { AnalysisContext, PerformancePrediction } from '@/panel/utils/llm/types';
 import { logger } from '@/shared/logger';
 

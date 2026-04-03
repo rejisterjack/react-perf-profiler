@@ -526,7 +526,7 @@ jobs:
       
       - name: Check performance budgets
         run: |
-          node dist/cli/perf-check.js \
+          node scripts/perf-check-run.mjs \
             --config perf-budget.json \
             --format json \
             --fail-on-warning \

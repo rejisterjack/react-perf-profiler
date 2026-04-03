@@ -7,6 +7,7 @@
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { getCloudSyncManager } from '@/shared/cloud/CloudSyncManager';
+import { isGoogleDriveCloudSyncEnabled } from '@/shared/cloud/experimentalFlags';
 import type { CloudSyncConfig, CloudSyncState, CloudProfileInfo } from '@/shared/cloud/types';
 import { logger } from '@/shared/logger';
 import styles from './CloudSyncPanel.module.css';
@@ -42,6 +43,7 @@ export const CloudSyncPanel: React.FC = () => {
   const [autoSyncInterval, setAutoSyncInterval] = useState(60);
 
   const cloudManager = getCloudSyncManager();
+  const googleDriveAvailable = isGoogleDriveCloudSyncEnabled();
 
   // Subscribe to state changes
   useEffect(() => {
@@ -214,14 +216,25 @@ export const CloudSyncPanel: React.FC = () => {
           />
           <span>Dropbox</span>
         </label>
-        <label className={styles.radioLabel}>
+        <label
+          className={styles.radioLabel}
+          title={
+            googleDriveAvailable
+              ? undefined
+              : 'Experimental: set VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE=true at build time (or use a dev build).'
+          }
+        >
           <input
             type="radio"
             value="google-drive"
             checked={provider === 'google-drive'}
             onChange={() => setProvider('google-drive')}
+            disabled={!googleDriveAvailable}
           />
-          <span>Google Drive</span>
+          <span>
+            Google Drive
+            {!googleDriveAvailable ? ' (experimental — off in this build)' : ''}
+          </span>
         </label>
       </div>
 
@@ -300,7 +313,7 @@ export const CloudSyncPanel: React.FC = () => {
         </div>
       )}
 
-      {provider === 'google-drive' && (
+      {provider === 'google-drive' && googleDriveAvailable && (
         <div className={styles.providerConfig}>
           <h4>Google Drive Configuration</h4>
           <div className={styles.formGroup}>

@@ -206,6 +206,17 @@
   color: var(--text-tertiary);
 }
 
+.setupHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-3);
+  line-height: 1.45;
+}
+
+.setupHint a {
+  color: var(--accent-primary, #61dafb);
+}
+
 .setupActions {
   display: flex;
   gap: var(--spacing-3);

@@ -105,6 +105,18 @@ pnpm run build
    - React 16.5+ required for Profiler API
    - Some features require React 18+
 
+### Profiling heuristics (Strict Mode, Fast Refresh, concurrent React)
+
+**Strict Mode (development):** React may intentionally double-invoke renders. Render counts and “wasted render” hints can look higher than in production. Compare profiles on the same mode (dev vs dev, prod vs prod).
+
+**Fast Refresh:** Hot reload resets components and fiber identity. For stable comparisons, capture a short recording after a full navigation, not mid-edit.
+
+**Concurrent features:** Scheduling can change commit grouping. Use the timeline and multiple short recordings rather than a single long session when diagnosing edge cases.
+
+**False positives:** Heuristics infer wasted work from props/state snapshots. Treat suggestions as starting points—verify with your app’s actual update patterns.
+
+More context: [docs/COMPATIBILITY.md](./COMPATIBILITY.md).
+
 ## Performance Issues
 
 ### Profiler UI is Slow

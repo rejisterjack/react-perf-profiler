@@ -42,7 +42,27 @@ export default defineConfig(({ mode }) => ({
         // Entry points are handled by @crxjs/vite-plugin
       },
       output: {
-        manualChunks: undefined,
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) {
+            return;
+          }
+          if (id.includes('d3')) {
+            return 'vendor-d3';
+          }
+          if (id.includes('three') || id.includes('@react-three')) {
+            return 'vendor-three';
+          }
+          if (id.includes('@tensorflow') || id.includes('tfjs')) {
+            return 'vendor-tfjs';
+          }
+          if (id.includes('node_modules/react-dom')) {
+            return 'vendor-react-dom';
+          }
+          if (id.includes('node_modules/react/')) {
+            return 'vendor-react';
+          }
+          return 'vendor';
+        },
       },
     },
     // Exclude test files from build

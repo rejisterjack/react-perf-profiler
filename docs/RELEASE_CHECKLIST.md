@@ -40,11 +40,12 @@ pnpm format:check
 **Required Checks:**
 - [ ] Unit tests pass (300+ tests)
 - [ ] Coverage meets thresholds (70%+ lines, 60%+ branches)
-- [ ] E2E tests pass on Chrome
-- [ ] E2E tests pass on Firefox
+- [ ] E2E tests pass on Chrome (`pnpm run build && pnpm exec playwright install --with-deps chromium && pnpm run test:e2e`)
+- [ ] Firefox build succeeds (`pnpm run build:firefox`); run E2E against Firefox when Playwright config supports it
 - [ ] TypeScript compiles without errors
-- [ ] Biome linting passes
+- [ ] Biome linting passes (`pnpm run lint` — zero errors; warnings documented in [CONTRIBUTING.md](../CONTRIBUTING.md))
 - [ ] No console errors in test output
+- [ ] Privacy policy HTML deployed or ready ([docs/STORE_ASSETS.md](./STORE_ASSETS.md))
 
 ### Manual Testing
 

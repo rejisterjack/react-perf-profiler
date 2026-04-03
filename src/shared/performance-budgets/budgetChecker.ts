@@ -516,7 +516,7 @@ function extractMetrics(profile: ProfileData): ExtractedMetrics {
 
       // Track memoization
       if (fiber.tag === FiberTag.SimpleMemoComponent || fiber.tag === FiberTag.MemoComponent) {
-        // SimpleMemoComponent (12) or MemoComponent (21)
+        // MemoComponent (14) / SimpleMemoComponent (15) per React work tags
         isMemoized.set(name, true);
       }
     }

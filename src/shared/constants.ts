@@ -790,16 +790,15 @@ export const RANDOM_VARIATION = {
  * GitHub repository URL for issue reporting
  * Can be overridden via environment variable VITE_GITHUB_REPO_URL
  */
-export const GITHUB_REPO_URL = 
-  import.meta.env?.['VITE_GITHUB_REPO_URL'] || 
-  'https://github.com/react-perf-profiler/react-perf-profiler';
+export const GITHUB_REPO_URL =
+  import.meta.env?.['VITE_GITHUB_REPO_URL'] ||
+  'https://github.com/rejisterjack/react-perf-profiler';
 
 /**
  * Generic issue reporting URL (fallback when GitHub is unavailable)
  */
 export const GENERIC_ISSUE_REPORT_URL =
-  import.meta.env?.['VITE_ISSUE_REPORT_URL'] ||
-  'https://react-perf-profiler.github.io/support';
+  import.meta.env?.['VITE_ISSUE_REPORT_URL'] || GITHUB_REPO_URL;
 
 // ============================================================================
 // UI Layout Constants

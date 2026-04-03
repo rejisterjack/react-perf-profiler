@@ -3,8 +3,8 @@
   "name": "React Perf Profiler",
   "version": "1.0.0",
   "description": "Firefox DevTools extension for profiling React performance",
-  "author": "React Perf Profiler Team",
-  "homepage_url": "https://github.com/react-perf-profiler/react-perf-profiler",
+  "author": "rejisterjack",
+  "homepage_url": "https://github.com/rejisterjack/react-perf-profiler",
   "permissions": ["activeTab", "tabs", "<all_urls>"],
   "optional_permissions": ["clipboardWrite"],
   "background": {

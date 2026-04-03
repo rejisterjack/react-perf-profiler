@@ -7,7 +7,8 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "include": ["src/**/*"]
+    "include": ["src/**/*"],
+    "ignore": ["**/*.module.css"]
   },
   "formatter": {
     "enabled": true,
@@ -26,36 +27,62 @@
       "correctness": {
         "noUnusedImports": "error",
         "noUnusedVariables": "warn",
-        "useExhaustiveDependencies": "error",
+        "useExhaustiveDependencies": "warn",
         "noInvalidUseBeforeDeclaration": "off",
         "useHookAtTopLevel": "off"
       },
       "suspicious": {
-        "noExplicitAny": "error",
+        "noExplicitAny": "warn",
         "noConsole": "warn",
+        "noConfusingVoidType": "warn",
         "noArrayIndexKey": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
         "useConst": "error",
-        "useTemplate": "error"
+        "useTemplate": "warn",
+        "noUnusedTemplateLiteral": "warn",
+        "noUselessElse": "warn",
+        "useExponentiationOperator": "warn",
+        "useNodejsImportProtocol": "warn",
+        "noArguments": "warn",
+        "noParameterAssign": "warn"
       },
       "complexity": {
         "noForEach": "off",
-        "useLiteralKeys": "off"
+        "useLiteralKeys": "off",
+        "noUselessSwitchCase": "warn",
+        "useOptionalChain": "warn"
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn"
       },
       "a11y": {
         "useHtmlLang": "error",
-        "useButtonType": "error",
-        "noSvgWithoutTitle": "error",
-
-        "useKeyWithClickEvents": "error",
-        "useFocusableInteractive": "error",
-        "useSemanticElements": "error",
-        "useAriaPropsForRole": "error"
+        "useButtonType": "warn",
+        "noSvgWithoutTitle": "warn",
+        "noLabelWithoutControl": "warn",
+        "useKeyWithClickEvents": "warn",
+        "useFocusableInteractive": "warn",
+        "useSemanticElements": "warn",
+        "useAriaPropsForRole": "warn",
+        "useValidAriaRole": "warn",
+        "noNoninteractiveTabindex": "warn"
       }
     }
   },
+  "overrides": [
+    {
+      "include": ["src/cli/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "single",

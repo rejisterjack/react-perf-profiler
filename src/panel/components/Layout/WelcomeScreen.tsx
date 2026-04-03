@@ -356,6 +356,17 @@ const SetupInstructions: React.FC<SetupInstructionsProps> = ({ state, onDetect, 
             This page does not appear to be using React, or it is using a production build which
             does not expose the React DevTools hook.
           </p>
+          <p className={styles['setupHint']}>
+            Tip: Strict Mode, Fast Refresh, and concurrent rendering can affect render counts—see{' '}
+            <a
+              href="https://github.com/rejisterjack/react-perf-profiler/blob/main/docs/TROUBLESHOOTING.md#profiling-heuristics-strict-mode-fast-refresh-concurrent-react"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              profiling heuristics
+            </a>
+            .
+          </p>
           <h4>To use React Perf Profiler:</h4>
           <ol>
             <li>Navigate to a page that uses React</li>

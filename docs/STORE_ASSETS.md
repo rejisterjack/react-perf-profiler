@@ -8,6 +8,7 @@ Assets and metadata for Chrome Web Store and Firefox Add-ons publication.
 - [Promotional Images](#promotional-images)
 - [Store Listings](#store-listings)
 - [Privacy Policy](#privacy-policy)
+- [Permission justification](./store-assets/PERMISSION_JUSTIFICATION.md) (copy for reviewers)
 - [Asset Generation Guide](#asset-generation-guide)
 
 ---
@@ -47,17 +48,17 @@ Screenshots should showcase the extension's key features and UI.
 
 ### Screenshot List
 
+Placeholders (replace with real UI): [docs/store-assets/screenshots/](store-assets/screenshots/) — see [PLACEHOLDERS.md](store-assets/screenshots/PLACEHOLDERS.md).
+
 ```
-docs/store-assets/
-├── screenshots/
-│   ├── screenshot-1-flamegraph-1280x800.png
-│   ├── screenshot-2-wasted-renders-1280x800.png
-│   ├── screenshot-3-memo-analysis-1280x800.png
-│   ├── screenshot-4-rsc-support-1280x800.png
-│   ├── screenshot-5-component-tree-1280x800.png
-│   ├── screenshot-1-640x400.png
-│   ├── screenshot-2-640x400.png
-│   └── ...
+docs/store-assets/screenshots/
+├── screenshot-1-flamegraph-1280x800.png
+├── screenshot-2-wasted-renders-1280x800.png
+├── screenshot-3-memo-analysis-1280x800.png
+├── screenshot-4-rsc-support-1280x800.png
+├── screenshot-5-component-tree-1280x800.png
+├── …-640x400.png (thumbnails)
+└── README.md
 ```
 
 ---
@@ -242,71 +243,22 @@ docs/store-assets/
 
 ## Privacy Policy
 
-### Chrome Web Store Privacy Policy
+### Canonical URL for store listings (HTTPS)
 
-```
-Privacy Policy for React Perf Profiler
+After you enable **GitHub Pages** (Settings → Pages → Source: **GitHub Actions**), the workflow [.github/workflows/pages.yml](../.github/workflows/pages.yml) publishes:
 
-Last Updated: March 22, 2026
+- **Live policy:** `https://<github-username>.github.io/<repository>/`
 
-DATA COLLECTION
+The deployed site is built from [docs/store-assets/privacy/index.html](store-assets/privacy/index.html).
 
-React Perf Profiler does not collect, transmit, or store any personal data or user information.
+**Source of truth (markdown, for edits):**
 
-All data processed by this extension:
-• Remains entirely on your local machine
-• Never leaves your browser
-• Is not transmitted to any external servers
-• Is not shared with third parties
+- [docs/store-assets/privacy/chrome-privacy-policy.md](store-assets/privacy/chrome-privacy-policy.md)
+- [docs/store-assets/privacy/firefox-privacy-policy.md](store-assets/privacy/firefox-privacy-policy.md)
 
-DATA STORED LOCALLY
+Use the **same HTTPS URL** on both Chrome Web Store and Firefox Add-ons. Keep `index.html` in sync when you change policy text.
 
-The extension stores the following information locally in your browser:
-• Performance profile data (component render times, commit data)
-• User preferences (settings, UI state)
-• Extension configuration
-
-This data can be:
-• Exported by you to a local file
-• Deleted at any time by clearing extension data
-• Viewed only within the DevTools panel
-
-PERMISSIONS
-
-The extension requires these permissions:
-• "activeTab": To access the current page for React detection
-• "scripting": To inject the React DevTools bridge
-• "storage": To save user preferences locally
-• "devtools": To create the DevTools panel
-
-These permissions are used solely to provide the profiling functionality and do not enable data collection.
-
-CHANGES TO THIS POLICY
-
-We may update this privacy policy from time to time. Changes will be posted with a new "Last Updated" date.
-
-CONTACT
-
-For questions about this privacy policy, please open an issue on our GitHub repository:
-https://github.com/rejisterjack/react-perf-profiler
-
-OPEN SOURCE
-
-This extension is open source. You can review the complete source code at:
-https://github.com/rejisterjack/react-perf-profiler
-```
-
-### Firefox Add-ons Privacy Policy
-
-```
-Privacy Policy for React Perf Profiler
-
-This add-on does not collect any personal information.
-
-All data is processed locally within your browser and is never transmitted to external servers. Profile data and user preferences are stored locally using browser storage APIs.
-
-Source code is available at https://github.com/rejisterjack/react-perf-profiler
-```
+**Important:** The policy must describe **optional** cloud sync, collaboration, and cloud LLM features accurately. Do not claim that all data never leaves the device if those features exist.
 
 ---
 

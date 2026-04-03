@@ -437,7 +437,8 @@ Respond as JSON: { currentRenderTime, predictedRenderTime, improvementPercentage
   private async saveConfig(): Promise<void> {
     if (typeof chrome === 'undefined' || !chrome.storage) return;
     
-    // Don't save API keys in plain text - use chrome.storage.local which is encrypted
+    // Persist non-secret settings. API keys use extension storage (chrome.storage.local),
+    // which is private to the extension profile — not OS keychain encryption.
     await chrome.storage.local.set({
       llm_config: {
         provider: this.config.provider,
@@ -446,7 +447,6 @@ Respond as JSON: { currentRenderTime, predictedRenderTime, improvementPercentage
         temperature: this.config.temperature,
         maxTokens: this.config.maxTokens,
         model: this.config.model,
-        // API key is stored separately with encryption
       },
     });
 

@@ -29,8 +29,7 @@ export class GoogleDriveProvider implements CloudSyncProvider {
 
   // OAuth and API configuration
   private readonly OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-  // TODO: Use for token refresh implementation
-  // private readonly TOKEN_URL = 'https://oauth2.googleapis.com/token';
+  // Token refresh: use https://oauth2.googleapis.com/token with auth code (see experimentalFlags).
   private readonly API_URL = 'https://www.googleapis.com/drive/v3';
   private readonly UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3';
   private readonly SCOPES = ['https://www.googleapis.com/auth/drive.file'];

@@ -1,1 +1,1 @@
-Profile React performance: detect wasted renders, analyze memoization, visualize flamegraphs. For Chrome DevTools.
+Profile React in DevTools (local by default). Optional cloud/AI if you enable them. Wasted renders, flamegraph, memo analysis.

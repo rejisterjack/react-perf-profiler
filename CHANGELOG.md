@@ -9,18 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- React Server Components (RSC) analysis support
-- Firefox DevTools extension support
-- Cross-browser compatibility layer for unified API across Chrome and Firefox
-- Plugin system for custom analysis extensions
-- Performance budget checking for CI/CD integration
-- Profile export/import with migration support
-- Keyboard shortcuts support
+- GitHub Pages workflow for canonical privacy policy HTML ([.github/workflows/pages.yml](.github/workflows/pages.yml))
+- Store submission pack: [docs/store-assets/PERMISSION_JUSTIFICATION.md](docs/store-assets/PERMISSION_JUSTIFICATION.md), [AMO_SUBMISSION_NOTES.md](docs/store-assets/AMO_SUBMISSION_NOTES.md), placeholder PNG screenshots and promos under [docs/store-assets/](docs/store-assets/)
+- Maintainer docs: [docs/PUBLISHING_SECRETS.md](docs/PUBLISHING_SECRETS.md), [docs/STORE_RELEASE.md](docs/STORE_RELEASE.md)
 
 ### Changed
 
-- Improved analysis worker performance
-- Enhanced error recovery mechanisms
+- Store privacy markdown and listing drafts now disclose optional cloud sync, collaboration, and cloud LLM data flows
+- Biome: CSS module files ignored; several rules relaxed to `warn` for incremental cleanup; CLI allows `console` ([CONTRIBUTING.md](CONTRIBUTING.md))
 
 ## [1.0.0] - 2026-03-22
 

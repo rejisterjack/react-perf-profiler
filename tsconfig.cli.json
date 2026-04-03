@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -14,7 +16,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["node", "vite/client", "chrome", "react"]
   },
   "include": ["src/cli/**/*"],
   "exclude": ["node_modules", "dist"]

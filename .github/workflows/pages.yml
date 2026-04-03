@@ -1,0 +1,44 @@
+# Publishes docs/store-assets/privacy/ (index.html) to GitHub Pages.
+# Repo settings: Settings → Pages → Build and deployment → Source: GitHub Actions.
+# Public URL: https://<owner>.github.io/<repository>/
+
+name: Deploy privacy policy (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/store-assets/privacy/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/store-assets/privacy
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

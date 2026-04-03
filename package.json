@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@8.14.0",
   "bin": {
-    "perf-check": "./dist/cli/perf-check.js"
+    "perf-check": "./scripts/perf-check-run.mjs"
   },
   "scripts": {
     "dev": "vite",

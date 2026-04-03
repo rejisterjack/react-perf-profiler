@@ -1,3 +1,8 @@
+/**
+ * Render-time ML uses TensorFlow.js loaded only when {@link RenderTimePredictor.initialize}
+ * runs (`import('@tensorflow/tfjs')`). It is not loaded on panel startup by default.
+ * If TFJS fails to load or train, callers should treat predictions as unavailable (see logs).
+ */
 
 import type { Tensor } from '@tensorflow/tfjs';
 import type { AnalysisContext, PerformancePrediction } from '@/panel/utils/llm/types';

@@ -3,6 +3,9 @@
  * Validates bundle size checking, test coverage, and performance budget violations
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import {
   checkPerformanceBudget,
@@ -19,6 +22,22 @@ import type {
 import { DEFAULT_BUDGET_CONFIG, DEFAULT_BUNDLE_BUDGETS, DEFAULT_COVERAGE_THRESHOLDS } from '@/shared/performance-budgets/types';
 
 describe('Budget Checker', () => {
+  describe('golden CI fixture', () => {
+    it('passes default budgets with failOnWarning', () => {
+      const dir = path.dirname(fileURLToPath(import.meta.url));
+      const fixturePath = path.join(dir, '../../fixtures/perf-profile-passing.json');
+      const raw = readFileSync(fixturePath, 'utf-8');
+      const profile = JSON.parse(raw) as ProfileData;
+      const result = checkPerformanceBudget(profile, {
+        ...DEFAULT_BUDGET_CONFIG,
+        failOnWarning: true,
+      });
+      expect(result.passed).toBe(true);
+      expect(result.errorCount).toBe(0);
+      expect(result.warningCount).toBe(0);
+    });
+  });
+
   describe('checkPerformanceBudget', () => {
     const mockProfile: ProfileData = {
       version: 1,

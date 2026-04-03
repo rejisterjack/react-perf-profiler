@@ -1,17 +1,31 @@
 # React Perf Profiler ⚡
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](./CHANGELOG.md)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/rejisterjack/react-perf-profiler/actions)
-[![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen.svg)](./docs/API_REFERENCE.md)
+[![CI](https://github.com/rejisterjack/react-perf-profiler/actions/workflows/ci.yml/badge.svg)](https://github.com/rejisterjack/react-perf-profiler/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-enforced%20≥75%25-4c1)](./vitest.config.ts)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18+-61DAFB.svg)](https://reactjs.org/)
-[![Chrome](https://img.shields.io/badge/Chrome-Web%20Store-4285F4.svg)](https://chrome.google.com/webstore)
-[![Firefox](https://img.shields.io/badge/Firefox-Add--ons-FF7139.svg)](https://addons.mozilla.org)
+[![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4.svg)](./README.md)
+[![Firefox MV2](https://img.shields.io/badge/Firefox-Manifest%20V2-FF7139.svg)](./README.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
 A high-performance Chrome DevTools extension for profiling React component render behavior. Hooks into the React DevTools Profiler API to deliver actionable insights on render counts, wasted renders, and memoization effectiveness.
 
 **Built for developers who care about performance at scale.** This tool directly addresses the challenges Meta engineers face when optimizing React applications serving billions of interactions.
+
+### Security, privacy, and permissions
+
+- **Where code runs:** The DevTools panel and service worker run in extension contexts. A **content script** runs in an isolated world on pages you open; it injects a **bridge** into the page so the extension can read `__REACT_DEVTOOLS_GLOBAL_HOOK__`. Web pages cannot access your stored API keys or profile database.
+- **Broad host access:** The manifest uses `host_permissions: ["<all_urls>"]` and content scripts on `<all_urls>` (with `all_frames`) so the bridge can attach on whatever origin you are debugging. The extension is intended for **developer machines**; it does not upload page content unless you enable cloud sync, collaboration, or cloud LLM features.
+- **Optional cloud and AI:** Export/sync (S3, Dropbox, Google Drive), team sessions, and OpenAI/Anthropic calls send data **only when you configure them**. Google Drive sync is **experimental** in production builds unless you set `VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE=true` at build time.
+- **LLM API keys:** Keys are stored in `chrome.storage.local` (extension storage). That is **not** the same as OS keychain encryption. For keys that never leave your machine, use **Ollama (local)** in the AI panel.
+- **Reporting issues safely:** See [SECURITY.md](./SECURITY.md) and [docs/MESSAGE_SECURITY.md](./docs/MESSAGE_SECURITY.md).
+
+**Canonical privacy policy (for store listings):** `https://rejisterjack.github.io/react-perf-profiler/` after you enable GitHub Pages (GitHub Actions) on this repo—see [docs/STORE_ASSETS.md](./docs/STORE_ASSETS.md). Sources: [docs/store-assets/privacy/index.html](./docs/store-assets/privacy/index.html), [chrome-privacy-policy.md](./docs/store-assets/privacy/chrome-privacy-policy.md), [firefox-privacy-policy.md](./docs/store-assets/privacy/firefox-privacy-policy.md).
+
+### Machine learning note
+
+Optional render-time prediction loads **TensorFlow.js** only when that feature initializes (`dynamic import`). It is not part of the cold path for opening the panel.
 
 ---
 
@@ -708,8 +722,12 @@ console.log(report);
 - **[API Reference](./docs/API_REFERENCE.md)** - Store APIs, hooks, and utilities
 - **[Release Checklist](./docs/RELEASE_CHECKLIST.md)** - Publishing new versions
 - **[Store Assets](./docs/STORE_ASSETS.md)** - Chrome Web Store & Firefox Add-ons assets
+- **[Store release](./docs/STORE_RELEASE.md)** - Tag, build zips, submit checklist
+- **[Publishing secrets](./docs/PUBLISHING_SECRETS.md)** - Optional CI upload to stores
 - **[Architecture](./docs/ARCHITECTURE.md)** - System design and data flow
+- **[Compatibility](./docs/COMPATIBILITY.md)** - React / DevTools / RSC expectations
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Roadmap](./ROADMAP.md)** - Planned direction
 
 ## 🤝 Contributing
 

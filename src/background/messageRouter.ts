@@ -14,6 +14,14 @@ import { LogLevel, type LogEntry } from './types';
 /**
  * Type guard to check if a message is a valid ExtensionMessage
  */
+/**
+ * Chrome tab IDs are non-negative integers. Reject NaN, non-integers, and negatives
+ * so synthetic or corrupted port metadata cannot drive session state.
+ */
+function isValidChromeTabId(tabId: number): boolean {
+  return Number.isInteger(tabId) && tabId >= 0;
+}
+
 function isValidExtensionMessage(message: unknown): message is ExtensionMessage {
   if (typeof message !== 'object' || message === null) {
     return false;
@@ -75,6 +83,11 @@ export class MessageRouter {
   handleContentMessage(tabId: number, message: ExtensionMessage | unknown): void {
     this.log(LogLevel.DEBUG, 'Received content message', { tabId, message });
 
+    if (!isValidChromeTabId(tabId)) {
+      this.log(LogLevel.WARN, 'Invalid tab ID for content message', { tabId });
+      return;
+    }
+
     if (!isValidExtensionMessage(message)) {
       this.log(LogLevel.WARN, 'Invalid message from content script', {
         tabId,
@@ -94,6 +107,11 @@ export class MessageRouter {
   handleDevtoolsMessage(tabId: number, message: ExtensionMessage | unknown): void {
     this.log(LogLevel.DEBUG, 'Received devtools message', { tabId, message });
 
+    if (!isValidChromeTabId(tabId)) {
+      this.log(LogLevel.WARN, 'Invalid tab ID for devtools message', { tabId });
+      return;
+    }
+
     if (!isValidExtensionMessage(message)) {
       this.log(LogLevel.WARN, 'Invalid message from devtools', {
         tabId,
@@ -112,6 +130,11 @@ export class MessageRouter {
    */
   handlePopupMessage(tabId: number, message: ExtensionMessage | unknown): void {
     this.log(LogLevel.DEBUG, 'Received popup message', { tabId, message });
+
+    if (!isValidChromeTabId(tabId)) {
+      this.log(LogLevel.WARN, 'Invalid tab ID for popup message', { tabId });
+      return;
+    }
 
     if (!isValidExtensionMessage(message)) {
       this.log(LogLevel.WARN, 'Invalid message from popup', { tabId, message });

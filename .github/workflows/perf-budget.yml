@@ -54,111 +54,54 @@ jobs:
       - name: Build project
         run: pnpm run build
 
-      - name: Run performance tests and generate profile
-        run: |
-          # Run performance tests that generate a profile file
-          # This example assumes you have a test script that generates a profile
-          # Adjust this to match your actual test setup
-          
-          # Option 1: Run Playwright E2E tests with profiling
-          # pnpm run test:e2e --reporter=json > e2e-results.json
-          
-          # Option 2: Run a specific performance test
-          # pnpm run test:perf
-          
-          # Option 3: Generate a sample profile for demonstration
-          echo "Generating sample profile for demonstration..."
-          node -e "
-            const fs = require('fs');
-            const profile = {
-              version: 1,
-              recordingDuration: 5000,
-              commits: Array.from({ length: 20 }, (_, i) => ({
-                id: 'commit-' + i,
-                timestamp: Date.now() + i * 100,
-                priorityLevel: 'Normal',
-                duration: 10 + Math.random() * 20,
-                fibers: [
-                  {
-                    id: 'fiber-' + i,
-                    displayName: 'TestComponent',
-                    actualDuration: 10 + Math.random() * 20,
-                    selfBaseDuration: 5 + Math.random() * 10,
-                    memoizedProps: {},
-                    memoizedState: null,
-                    tag: 0,
-                    key: null,
-                    child: null,
-                    sibling: null,
-                    return: null,
-                    type: 'div',
-                    elementType: 'div',
-                    actualStartTime: 0,
-                    treeBaseDuration: 0,
-                    index: 0,
-                    mode: 0,
-                  }
-                ]
-              })),
-              rscPayloads: [],
-              rscAnalysis: null
-            };
-            fs.writeFileSync('perf-profile.json', JSON.stringify(profile, null, 2));
-          "
-        continue-on-error: true
+      - name: Verify perf-check CLI compiles
+        run: pnpm run build:cli
 
-      - name: Check performance budgets
+      - name: Check performance budgets (golden profile fixture)
         id: budget_check
+        env:
+          PROFILE_FIXTURE: tests/fixtures/perf-profile-passing.json
         run: |
-          # Check if profile exists (from previous step or pre-existing)
-          if [ ! -f "perf-profile.json" ]; then
-            echo "No performance profile found. Skipping budget check."
-            echo "skipped=true" >> $GITHUB_OUTPUT
-            exit 0
+          set -euo pipefail
+          if [ ! -f "$PROFILE_FIXTURE" ]; then
+            echo "Fixture missing: $PROFILE_FIXTURE"
+            exit 1
           fi
-          
-          # Run the budget check CLI
-          node dist/cli/perf-check.js \
+
+          node scripts/perf-check-run.mjs \
             --config perf-budget.json \
             --format json \
             --output budget-result.json \
             --fail-on-warning \
-            perf-profile.json
-          
-          # Store exit code
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          
-          # Display human-readable output
-          node dist/cli/perf-check.js \
+            "$PROFILE_FIXTURE"
+
+          node scripts/perf-check-run.mjs \
             --config perf-budget.json \
             --format human \
-            perf-profile.json || true
-          
-          exit $EXIT_CODE
-        continue-on-error: true
+            "$PROFILE_FIXTURE" || true
 
       - name: Upload budget results
-        if: steps.budget_check.outputs.skipped != 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: performance-budget-results
           path: |
             budget-result.json
-            perf-profile.json
+            tests/fixtures/perf-profile-passing.json
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Parse budget results
-        if: steps.budget_check.outputs.skipped != 'true'
+        if: always()
         id: parse_results
         run: |
           if [ -f "budget-result.json" ]; then
-            # Extract key metrics for PR comment
-            PASSED=$(node -e "console.log(require('./budget-result.json').passed ? 'true' : 'false')")
-            TOTAL_VIOLATIONS=$(node -e "console.log(require('./budget-result.json').totalViolations)")
-            ERROR_COUNT=$(node -e "console.log(require('./budget-result.json').errorCount)")
-            WARNING_COUNT=$(node -e "console.log(require('./budget-result.json').warningCount)")
-            PERF_SCORE=$(node -e "console.log(require('./budget-result.json').summary.performanceScore)")
+            # perf-check JSON wraps profile checks under profileResult
+            PASSED=$(node -e "const r=require('./budget-result.json'); console.log(r.passed ? 'true' : 'false')")
+            TOTAL_VIOLATIONS=$(node -e "const r=require('./budget-result.json'); console.log(r.profileResult?.totalViolations ?? 0)")
+            ERROR_COUNT=$(node -e "const r=require('./budget-result.json'); console.log(r.profileResult?.errorCount ?? 0)")
+            WARNING_COUNT=$(node -e "const r=require('./budget-result.json'); console.log(r.profileResult?.warningCount ?? 0)")
+            PERF_SCORE=$(node -e "const r=require('./budget-result.json'); console.log(r.profileResult?.summary?.performanceScore ?? 0)")
             
             echo "passed=$PASSED" >> $GITHUB_OUTPUT
             echo "total_violations=$TOTAL_VIOLATIONS" >> $GITHUB_OUTPUT
@@ -192,7 +135,8 @@ jobs:
               
               node -e "
                 const result = require('./budget-result.json');
-                result.violations.forEach(v => {
+                const violations = result.profileResult?.violations || [];
+                violations.forEach(v => {
                   const icon = v.severity === 'error' ? '🔴' : v.severity === 'warning' ? '🟡' : '🔵';
                   console.log('- ' + icon + ' **' + v.budgetName + '**: ' + v.message);
                 });
@@ -201,7 +145,7 @@ jobs:
           fi
 
       - name: Comment PR
-        if: github.event_name == 'pull_request' && steps.budget_check.outputs.skipped != 'true'
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -216,26 +160,33 @@ jobs:
               return;
             }
             
+            const profile = result.profileResult;
+            if (!profile) {
+              console.log('No profileResult in budget output');
+              return;
+            }
+            
             // Determine status
             const status = result.passed ? '✅ PASSED' : '❌ FAILED';
-            const score = Math.round(result.summary.performanceScore);
+            const score = Math.round(profile.summary?.performanceScore ?? 0);
             
             // Create comment body
             let body = `## 📊 Performance Budget Check: ${status}\n\n`;
             body += `**Overall Score:** ${score}/100\n\n`;
             
             // Add violations table
-            if (result.violations.length > 0) {
+            const violations = profile.violations || [];
+            if (violations.length > 0) {
               body += '| Severity | Budget | Message |\n';
               body += '|----------|--------|---------|\n';
               
-              result.violations.slice(0, 10).forEach(v => {
+              violations.slice(0, 10).forEach(v => {
                 const severity = v.severity === 'error' ? '🔴 Error' : v.severity === 'warning' ? '🟡 Warning' : '🔵 Info';
                 body += `| ${severity} | ${v.budgetName} | ${v.message} |\n`;
               });
               
-              if (result.violations.length > 10) {
-                body += `\n*...and ${result.violations.length - 10} more violations*\n`;
+              if (violations.length > 10) {
+                body += `\n*...and ${violations.length - 10} more violations*\n`;
               }
             } else {
               body += '🎉 No budget violations detected!\n';
@@ -272,9 +223,3 @@ jobs:
                 body
               });
             }
-
-      - name: Fail on violations
-        if: steps.budget_check.outputs.skipped != 'true' && steps.parse_results.outputs.passed == 'false'
-        run: |
-          echo "::error::Performance budget check failed with ${ERROR_COUNT} errors and ${WARNING_COUNT} warnings"
-          exit 1

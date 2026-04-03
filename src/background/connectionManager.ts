@@ -460,7 +460,7 @@ export class ConnectionManager {
         timestamp: Date.now(),
       });
     } catch (error) {
-      this.log(LogLevel.WARN, `Failed to send status to port`, { error });
+      this.log(LogLevel.WARN, 'Failed to send status to port', { error });
     }
   }
 

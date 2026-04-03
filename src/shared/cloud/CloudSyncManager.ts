@@ -20,6 +20,7 @@ import { DropboxProvider } from './providers/DropboxProvider';
 import { GoogleDriveProvider } from './providers/GoogleDriveProvider';
 import { LocalStorageProvider } from '../export/cloudSync';
 import { logger } from '@/shared/logger';
+import { isGoogleDriveCloudSyncEnabled } from './experimentalFlags';
 
 /**
  * Cloud Sync Manager
@@ -57,6 +58,18 @@ export class CloudSyncManager {
     if (!config.enabled) {
       this.provider = null;
       return true;
+    }
+
+    if (config.provider === 'google-drive' && !isGoogleDriveCloudSyncEnabled()) {
+      logger.warn('Google Drive sync is disabled in this build (experimental; no refresh-token flow)', {
+        source: 'CloudSyncManager',
+      });
+      this.setState({
+        lastError:
+          'Google Drive is experimental. Build with VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE=true or use development mode, or pick another provider.',
+      });
+      this.provider = null;
+      return false;
     }
 
     // Create provider
@@ -393,7 +406,20 @@ export class CloudSyncManager {
       const result = await chrome.storage.local.get('cloud_sync_config');
       if (result.cloud_sync_config) {
         this.config = result.cloud_sync_config;
-        
+
+        if (
+          this.config?.enabled &&
+          this.config.provider === 'google-drive' &&
+          !isGoogleDriveCloudSyncEnabled()
+        ) {
+          this.config = { ...this.config, enabled: false };
+          await chrome.storage.local.set({ cloud_sync_config: this.config });
+          this.setState({
+            lastError:
+              'Google Drive sync was turned off: this build does not enable experimental Google Drive.',
+          });
+        }
+
         // Re-initialize provider
         if (this.config?.enabled) {
           this.provider = this.createProvider(this.config.provider, this.config.settings);

@@ -1,35 +1,17 @@
-React Perf Profiler is a powerful Chrome DevTools extension for analyzing React component performance.
+React Perf Profiler is a DevTools extension for analyzing React component performance: wasted renders, memoization, flamegraphs, timelines, and optional RSC-oriented views.
 
-KEY FEATURES:
+DEFAULT PRIVACY: Profiling runs locally in your browser. Data is stored in extension storage unless you export it yourself.
 
-🎯 Wasted Render Detection
-Identify components that re-render without changes. Get specific recommendations for React.memo, useMemo, and useCallback.
+OPTIONAL FEATURES (user-configured only): Cloud sync (S3, Dropbox, Google Drive, etc.), team/collaboration, and cloud AI providers (OpenAI, Anthropic) can send data to third parties you choose. Local Ollama keeps AI on your machine. See the privacy policy linked from the store listing.
 
-📊 Interactive Flamegraph
-Visualize render hierarchy and timing with color-coded components. Zoom, pan, and explore your component tree.
+KEY CAPABILITIES:
+- Wasted render detection and suggestions (memo, useMemo, useCallback)
+- Interactive flamegraph and component tree
+- Memo effectiveness analysis
+- RSC-oriented analysis where applicable
+- Web Worker-backed analysis for large sessions
+- Export/import of profiles and optional CI budget tooling (perf-check CLI in repo)
 
-🧠 Memo Effectiveness Analysis
-Analyze how well your memoization strategy works. Detect unstable props and callbacks breaking memoization.
+FOR: React developers optimizing render cost, debugging re-renders, and learning render behavior.
 
-🌊 React Server Components Support
-Profile RSC payloads, cache hit rates, and boundary crossings. Optimize your Next.js App Router applications.
-
-⚡ Performance at Scale
-Built for large applications. Web Worker-based analysis, virtualized lists, and memory-efficient storage.
-
-🔄 Time-Travel Debugging
-Step through commits to understand how your app state evolves over time.
-
-📈 CI/CD Integration
-Export profiles, set performance budgets, and enforce standards in your pipeline.
-
-🔌 Plugin System
-Extend with custom analysis plugins. Build your own metrics and visualizations.
-
-PERFECT FOR:
-• Optimizing React applications
-• Finding performance bottlenecks
-• Learning React rendering behavior
-• Code reviews and performance audits
-
-Open source and free. Built with ❤️ for the React community.
+Open source: https://github.com/rejisterjack/react-perf-profiler

@@ -1,53 +1,47 @@
-# Contributing to React Perf Profiler
+# Contributing
 
-## Development Setup
+Thanks for helping improve React Perf Profiler.
+
+## Prerequisites
+
+- Node.js 18+
+- [pnpm](https://pnpm.io/) 8.x (see `packageManager` in [package.json](./package.json))
+
+## Setup
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Start development server with HMR
-pnpm dev
-
-# Load extension in Chrome:
-# 1. Open chrome://extensions/
-# 2. Enable Developer mode
-# 3. Click "Load unpacked"
-# 4. Select the dist/ folder
+pnpm run dev
 ```
 
-## Project Structure
+Load `dist-chrome/` as an unpacked extension (see the main [README](./README.md)).
 
-```
-src/
-├── background/     # Service worker
-├── content/        # Content script & bridge
-├── devtools/       # DevTools panel registration
-├── panel/          # Main profiler UI (React)
-│   ├── components/ # UI components
-│   ├── hooks/      # Custom hooks
-│   ├── stores/     # Zustand stores
-│   ├── utils/      # Analysis algorithms
-│   └── workers/    # Web Workers
-└── shared/         # Shared types & constants
-```
+## Biome / lint
 
-## Testing
+- `pnpm run lint` exits cleanly on **errors**; many a11y and style rules are set to **warn** so CI stays green while you iterate. `**/*.module.css` is ignored because Biome’s CSS parser does not support `:local` / `:global` (Vite CSS modules).
+- `src/cli/**/*.ts` disables `noConsole` (CLI is meant to write to stdout).
+- Tighten rules back toward `error` over time as warnings are fixed.
 
-```bash
-# Unit tests
-pnpm test
+## Commands
 
-# E2E tests
-pnpm test:e2e
+| Command | Purpose |
+|--------|---------|
+| `pnpm run lint` / `pnpm run format:check` | Style (Biome) |
+| `pnpm run typecheck` | TypeScript |
+| `pnpm test` | Unit tests (Vitest) |
+| `pnpm run test:e2e` | Playwright (requires build + browsers) |
+| `pnpm run build` | Chrome extension output |
+| `pnpm run build:firefox` | Firefox extension output |
+| `pnpm run build:cli` | Compile perf-check sources (sanity check) |
+| `node scripts/perf-check-run.mjs` | Run perf budget CLI with path-alias resolution |
 
-# With coverage
-pnpm test -- --coverage
-```
+## Pull requests
 
-## Code Style
+1. Keep changes focused on one concern when possible.
+2. Run `pnpm run lint`, `pnpm run typecheck`, and `pnpm test` before pushing.
+3. If you change user-visible behavior, update relevant docs or in-app copy.
+4. For experimental cloud features, see `VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE` in the README.
 
-- TypeScript strict mode enabled
-- ESLint + Prettier for formatting
-- CSS Modules for styling
-- Write tests for new features
+## Security
+
+Do not open public issues for security vulnerabilities. See [SECURITY.md](./SECURITY.md).

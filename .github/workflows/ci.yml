@@ -131,7 +131,6 @@ jobs:
 
       - name: Check bundle sizes
         run: pnpm run perf:check:bundles
-        continue-on-error: true
 
       - name: Upload Chrome build artifact
         uses: actions/upload-artifact@v4

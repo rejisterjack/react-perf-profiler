@@ -79,6 +79,12 @@ describe('MessageRouter – isValidExtensionMessage guard', () => {
     router.handleContentMessage(1, { type: 'TOTALLY_UNKNOWN_TYPE' });
     expect(connectionManager.broadcastToPort).not.toHaveBeenCalled();
   });
+
+  it('ignores content messages when tab id is invalid', () => {
+    router.handleContentMessage(-1, { type: MessageTypeEnum.START_PROFILING });
+    router.handleContentMessage(Number.NaN, { type: MessageTypeEnum.START_PROFILING });
+    expect(connectionManager.broadcastToPort).not.toHaveBeenCalled();
+  });
 });
 
 describe('MessageRouter – START_PROFILING routing', () => {

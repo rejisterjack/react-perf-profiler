@@ -234,7 +234,10 @@ export const AISuggestionsPanel: React.FC = () => {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={`Enter your ${config.provider} API key`}
             />
-            <small>Stored securely in browser</small>
+            <small>
+              Stored in extension storage (chrome.storage.local), not on web pages. For maximum
+              privacy, use Ollama (local) so keys never leave your machine.
+            </small>
           </div>
         </div>
       )}

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Store privacy markdown and listing drafts now disclose optional cloud sync, collaboration, and cloud LLM data flows
 - Biome: CSS module files ignored; several rules relaxed to `warn` for incremental cleanup; CLI allows `console` ([CONTRIBUTING.md](CONTRIBUTING.md))
+- Documentation: accurate store-asset layout and icon location; cross-links for release docs, API docs, and doc vs store screenshots; removed redundant `docs/store-assets/screenshots/PLACEHOLDERS.md`; E2E README uses `pnpm` and correct `profiling.spec.ts` description
 
 ## [1.0.0] - 2026-03-22
 

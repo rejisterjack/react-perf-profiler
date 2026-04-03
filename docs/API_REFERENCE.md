@@ -1,6 +1,6 @@
 # API Reference
 
-Complete API reference for React Perf Profiler's stores, hooks, and utilities.
+Complete API reference for React Perf Profiler's stores, hooks, and utilities. For analysis helpers and CI-style APIs, see [API Documentation](./API.md).
 
 ## Table of Contents
 

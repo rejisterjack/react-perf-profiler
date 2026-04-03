@@ -2,54 +2,46 @@
 
 Welcome to the React Perf Profiler documentation. This directory contains comprehensive guides, API references, and resources for using and extending the profiler.
 
-## 📖 Documentation Index
+## Documentation index
 
-### Getting Started
+### Getting started
 
 | Document | Description |
 |----------|-------------|
 | [Plugin Development Guide](./PLUGIN_DEVELOPMENT.md) | Create custom analysis plugins |
 | [Performance Budgets Guide](./PERFORMANCE_BUDGETS.md) | CI/CD integration and budget configuration |
-| [API Reference](./API_REFERENCE.md) | Complete API documentation for stores, hooks, and utilities |
+| [API Reference (stores & hooks)](./API_REFERENCE.md) | Panel stores, hooks, and utilities |
+| [Programmatic API](./API.md) | Analysis utilities, plugins, and CI-oriented APIs |
 
-### Release & Publishing
+### Release and publishing
 
 | Document | Description |
 |----------|-------------|
-| [Release Checklist](./RELEASE_CHECKLIST.md) | Step-by-step release process |
-| [Store Assets](./STORE_ASSETS.md) | Chrome Web Store & Firefox Add-ons assets |
+| [Release Checklist](./RELEASE_CHECKLIST.md) | Full QA, versioning, and release process |
+| [Store release](./STORE_RELEASE.md) | Tag, GitHub Release zips, store consoles |
+| [Store Assets](./STORE_ASSETS.md) | Listings, screenshots, promos, privacy copy |
 
-### Technical Reference
+### Technical reference
 
 | Document | Description |
 |----------|-------------|
 | [Architecture](./ARCHITECTURE.md) | System design and data flow |
-| [API Reference](./API.md) | Core API documentation |
 | [Error Handling](./ERROR_HANDLING.md) | Error management strategies |
 | [RSC Analysis](./RSC_ANALYSIS.md) | React Server Components support |
 | [Troubleshooting](./TROUBLESHOOTING.md) | Common issues and solutions |
-| [Performance Budget CI](./PERF_BUDGET_CI.md) | CI/CD performance budget setup |
+| [Performance Budget CI](./PERF_BUDGET_CI.md) | CI performance budget setup |
 
-## 🚀 Quick Links
+## Quick links
 
 - **Main README**: [../README.md](../README.md)
 - **Contributing**: [../CONTRIBUTING.md](../CONTRIBUTING.md)
 - **Changelog**: [../CHANGELOG.md](../CHANGELOG.md)
 
-## 📦 Store Assets
+## Store assets layout
 
-Promotional images, screenshots, and store listing content:
+Listing copy, privacy sources, promos, and store-sized screenshots live under [store-assets/](store-assets/). Extension icons shipped in the build are in [../public/icons/](../public/icons/) (SVG).
 
-```
-store-assets/
-├── screenshots/        # Extension screenshots
-├── promotional/        # Store promotional images
-├── listing/           # Store listing text
-├── privacy/           # Privacy policies
-└── icons/             # Extension icons
-```
-
-## 🛠️ Plugin Development
+## Plugin development
 
 Get started with plugin development:
 
@@ -72,7 +64,7 @@ const myPlugin: AnalysisPlugin = {
 
 See [Plugin Development Guide](./PLUGIN_DEVELOPMENT.md) for the complete guide.
 
-## 📊 Performance Budgets
+## Performance budgets
 
 Configure `perf-budget.json`:
 
@@ -97,7 +89,7 @@ Configure `perf-budget.json`:
 
 See [Performance Budgets Guide](./PERFORMANCE_BUDGETS.md) for details.
 
-## 🔗 External Resources
+## External resources
 
 - [React DevTools](https://github.com/facebook/react/tree/main/packages/react-devtools)
 - [React Profiler API](https://react.dev/reference/react/Profiler)

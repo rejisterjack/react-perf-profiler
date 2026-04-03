@@ -14,7 +14,7 @@ tests/e2e/
 ├── analysisFlow.spec.ts          # Analysis features tests
 ├── exportImport.spec.ts          # Data persistence tests
 ├── keyboardNavigation.spec.ts    # Keyboard shortcuts tests
-├── profiling.spec.ts             # Legacy/placeholder tests
+├── profiling.spec.ts             # Supplementary integration tests (see file comment)
 ├── global-setup.ts               # Global test setup
 ├── global-teardown.ts            # Global test teardown
 └── README.md                     # This file
@@ -134,12 +134,12 @@ A comprehensive React test application that includes:
 
 ### Run all E2E tests:
 ```bash
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 ### Run with UI mode (for debugging):
 ```bash
-npm run test:e2e:ui
+pnpm run test:e2e:ui
 ```
 
 ### Run specific test file:
@@ -215,7 +215,7 @@ await panel.waitForPanelLoad(); // For panel initialization
 ### Tests failing with "Extension not found"
 Make sure to build the extension first:
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Tests timing out

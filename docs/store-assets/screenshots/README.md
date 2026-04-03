@@ -1,6 +1,6 @@
 # Store listing screenshots (placeholders)
 
-Solid-color PNGs at the sizes store consoles expect. **Replace with real DevTools captures** before a marketing push or when reviewers ask for representative UI.
+Solid-color PNGs at the sizes store consoles expect. **Replace with real DevTools captures** before a marketing push or when reviewers ask for representative UI. Documentation-only screenshots live under [docs/screenshots/](../../screenshots/).
 
 | File pattern | Size | Suggested real content |
 |--------------|------|-------------------------|
@@ -18,5 +18,3 @@ Solid-color PNGs at the sizes store consoles expect. **Replace with real DevTool
 2. Open a real React app, DevTools → Perf Profiler tab.
 3. Record a short session; capture each mode at **1280×800** minimum.
 4. Export PNGs; replace files here keeping names or update [docs/STORE_ASSETS.md](../STORE_ASSETS.md).
-
-See [PLACEHOLDERS.md](./PLACEHOLDERS.md).

@@ -1,6 +1,6 @@
 # API Documentation
 
-Programmatic API for React Perf Profiler.
+Programmatic API for React Perf Profiler. For panel stores, hooks, and UI utilities, see [API Reference](./API_REFERENCE.md).
 
 ## Overview
 

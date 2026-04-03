@@ -1,8 +1,8 @@
 # Screenshots
 
-This directory contains screenshots for the React Perf Profiler documentation.
+This directory is for **documentation** images (README, guides). **Store listing** captures belong in [../store-assets/screenshots/](../store-assets/screenshots/).
 
-## Required Screenshots
+## Required screenshots
 
 | Screenshot | Description | Status |
 |------------|-------------|--------|
@@ -16,7 +16,7 @@ This directory contains screenshots for the React Perf Profiler documentation.
 ## How to Capture
 
 1. Build the extension: `pnpm run build`
-2. Load extension in Chrome (chrome://extensions/ → Developer mode → Load unpacked → select `dist/`)
+2. Load extension in Chrome (chrome://extensions/ → Developer mode → Load unpacked → select `dist-chrome/`)
 3. Open React DevTools → Perf Profiler tab
 4. Record a profile session on a React app
 5. Take screenshots of each view mode

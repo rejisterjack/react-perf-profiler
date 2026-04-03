@@ -48,7 +48,7 @@ Screenshots should showcase the extension's key features and UI.
 
 ### Screenshot List
 
-Placeholders (replace with real UI): [docs/store-assets/screenshots/](store-assets/screenshots/) — see [PLACEHOLDERS.md](store-assets/screenshots/PLACEHOLDERS.md).
+Placeholders (replace with real UI): [store-assets/screenshots/](store-assets/screenshots/) — see [README](store-assets/screenshots/README.md) there.
 
 ```
 docs/store-assets/screenshots/
@@ -409,29 +409,12 @@ Firefox Add-ons:
 
 ---
 
-## Asset Storage Structure
+## Asset storage structure
 
 ```
 docs/store-assets/
-├── README.md                    # This file
-├── screenshots/
-│   ├── 1280x800/
-│   │   ├── 01-flamegraph.png
-│   │   ├── 02-wasted-renders.png
-│   │   ├── 03-memo-analysis.png
-│   │   ├── 04-rsc-support.png
-│   │   └── 05-component-tree.png
-│   └── 640x400/
-│       ├── 01-flamegraph.png
-│       ├── 02-wasted-renders.png
-│       └── ...
-├── promotional/
-│   ├── promo-small-440x280.png
-│   ├── promo-small-440x280.svg   # Source file
-│   ├── promo-large-920x680.png
-│   ├── promo-large-920x680.svg
-│   ├── marquee-1400x560.png
-│   └── marquee-1400x560.svg
+├── AMO_SUBMISSION_NOTES.md
+├── PERMISSION_JUSTIFICATION.md
 ├── listing/
 │   ├── chrome-short.txt
 │   ├── chrome-full.txt
@@ -439,18 +422,18 @@ docs/store-assets/
 │   ├── firefox-full.txt
 │   └── keywords.txt
 ├── privacy/
+│   ├── index.html                 # GitHub Pages entry (built policy)
 │   ├── chrome-privacy-policy.md
 │   └── firefox-privacy-policy.md
-└── icons/
-    ├── icon-16.png
-    ├── icon-32.png
-    ├── icon-48.png
-    ├── icon-128.png
-    └── icon-512.png
+├── promotional/
+│   ├── marquee-1400x560.svg
+│   ├── promo-large-920x680.svg
+│   └── promo-small-440x280.svg
+└── screenshots/
+    ├── README.md
+    └── screenshot-*.png         # Replace placeholders with real UI
 ```
 
----
+Extension icons used in builds: `public/icons/` (SVG).
 
-For design source files, see:
-- Figma: [Design System](https://figma.com/...)
-- Brand assets: `/docs/assets/brand/`
+Promotional SVGs can be exported to PNG when a store requires raster tiles.

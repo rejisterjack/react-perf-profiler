@@ -1,5 +1,7 @@
 # Store release checklist (operator)
 
+Use [Release Checklist](./RELEASE_CHECKLIST.md) for full pre-release QA, coverage, and monitoring. This page is only the minimal tag → zip → store steps.
+
 ## Before tagging
 
 1. `pnpm install --frozen-lockfile`

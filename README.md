@@ -720,9 +720,10 @@ console.log(report);
 - **[Plugin Development Guide](./docs/PLUGIN_DEVELOPMENT.md)** - Create custom analysis plugins
 - **[Performance Budgets Guide](./docs/PERFORMANCE_BUDGETS.md)** - CI/CD integration and budgets
 - **[API Reference](./docs/API_REFERENCE.md)** - Store APIs, hooks, and utilities
-- **[Release Checklist](./docs/RELEASE_CHECKLIST.md)** - Publishing new versions
+- **[Programmatic API](./docs/API.md)** - Analysis utilities and CI-oriented APIs
+- **[Release Checklist](./docs/RELEASE_CHECKLIST.md)** - Full release QA and process
 - **[Store Assets](./docs/STORE_ASSETS.md)** - Chrome Web Store & Firefox Add-ons assets
-- **[Store release](./docs/STORE_RELEASE.md)** - Tag, build zips, submit checklist
+- **[Store release](./docs/STORE_RELEASE.md)** - Tag, build zips, store checklist
 - **[Publishing secrets](./docs/PUBLISHING_SECRETS.md)** - Optional CI upload to stores
 - **[Architecture](./docs/ARCHITECTURE.md)** - System design and data flow
 - **[Compatibility](./docs/COMPATIBILITY.md)** - React / DevTools / RSC expectations

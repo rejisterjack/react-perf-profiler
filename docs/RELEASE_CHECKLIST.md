@@ -2,6 +2,8 @@
 
 A comprehensive checklist for releasing React Perf Profiler updates.
 
+For the short operator path (tag, release assets, store upload only), use [Store release](./STORE_RELEASE.md) instead.
+
 ## Table of Contents
 
 - [Pre-Release Testing](#pre-release-testing)

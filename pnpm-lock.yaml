@@ -24,8 +24,8 @@ dependencies:
     specifier: ^12.0.0
     version: 12.0.0(@types/react-dom@18.3.7)(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)
   immer:
-    specifier: ^10.0.3
-    version: 10.2.0
+    specifier: ^11.1.4
+    version: 11.1.4
   react:
     specifier: ^18.2.0
     version: 18.3.1
@@ -40,7 +40,7 @@ dependencies:
     version: 0.158.0
   zustand:
     specifier: ^4.4.7
-    version: 4.5.7(@types/react@18.3.28)(immer@10.2.0)(react@18.3.1)
+    version: 4.5.7(@types/react@18.3.28)(immer@11.1.4)(react@18.3.1)
 
 devDependencies:
   '@axe-core/react':
@@ -3027,8 +3027,8 @@ packages:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
     dev: false
 
-  /immer@10.2.0:
-    resolution: {integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==}
+  /immer@11.1.4:
+    resolution: {integrity: sha512-XREFCPo6ksxVzP4E0ekD5aMdf8WMwmdNaz6vuvxgI40UaEiu6q3p8X52aU6GdyvLY3XXX/8R7JOTXStz/nBbRw==}
     dev: false
 
   /indent-string@4.0.0:
@@ -4611,7 +4611,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /zustand@4.5.7(@types/react@18.3.28)(immer@10.2.0)(react@18.3.1):
+  /zustand@4.5.7(@types/react@18.3.28)(immer@11.1.4)(react@18.3.1):
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
     engines: {node: '>=12.7.0'}
     peerDependencies:
@@ -4627,7 +4627,7 @@ packages:
         optional: true
     dependencies:
       '@types/react': 18.3.28
-      immer: 10.2.0
+      immer: 11.1.4
       react: 18.3.1
       use-sync-external-store: 1.6.0(react@18.3.1)
     dev: false

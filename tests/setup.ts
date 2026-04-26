@@ -1,6 +1,24 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Node can expose a broken `localStorage` when experimental flags are set; ensure a usable Storage.
+if (typeof globalThis.localStorage?.setItem !== 'function') {
+  const map = new Map<string, string>();
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      get length() {
+        return map.size;
+      },
+      clear: () => map.clear(),
+      getItem: (key: string) => (map.has(key) ? map.get(key)! : null),
+      key: (index: number) => [...map.keys()][index] ?? null,
+      removeItem: (key: string) => void map.delete(key),
+      setItem: (key: string, value: string) => void map.set(key, value),
+    },
+  });
+}
+
 // Mock chrome API
 global.chrome = {
   runtime: {

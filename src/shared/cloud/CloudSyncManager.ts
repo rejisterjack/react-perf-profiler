@@ -61,12 +61,12 @@ export class CloudSyncManager {
     }
 
     if (config.provider === 'google-drive' && !isGoogleDriveCloudSyncEnabled()) {
-      logger.warn('Google Drive sync is disabled in this build (experimental; no refresh-token flow)', {
+      logger.warn('Google Drive sync is disabled in this build (VITE_DISABLE_GOOGLE_DRIVE_SYNC)', {
         source: 'CloudSyncManager',
       });
       this.setState({
         lastError:
-          'Google Drive is experimental. Build with VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE=true or use development mode, or pick another provider.',
+          'Google Drive is disabled in this build. Remove VITE_DISABLE_GOOGLE_DRIVE_SYNC or pick another provider.',
       });
       this.provider = null;
       return false;
@@ -416,7 +416,7 @@ export class CloudSyncManager {
           await chrome.storage.local.set({ cloud_sync_config: this.config });
           this.setState({
             lastError:
-              'Google Drive sync was turned off: this build does not enable experimental Google Drive.',
+              'Google Drive sync was turned off: this build has VITE_DISABLE_GOOGLE_DRIVE_SYNC set.',
           });
         }
 

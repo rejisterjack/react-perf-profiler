@@ -1,18 +1,18 @@
 /**
- * Feature flags for cloud providers that are not yet production-complete.
+ * Feature flags for cloud providers.
  */
 
 /**
- * Google Drive OAuth in this repo does not yet implement refresh-token exchange
- * (implicit flow only). Enable explicitly for development or experiments.
+ * Google Drive uses PKCE + refresh tokens in production builds.
+ * Set `VITE_DISABLE_GOOGLE_DRIVE_SYNC=true` to hide the provider (e.g. fork CI or enterprise builds).
  */
 export function isGoogleDriveCloudSyncEnabled(): boolean {
   try {
-    return (
-      import.meta.env?.VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE === 'true' ||
-      import.meta.env?.DEV === true
-    );
+    if (import.meta.env?.VITE_DISABLE_GOOGLE_DRIVE_SYNC === 'true') {
+      return false;
+    }
+    return true;
   } catch {
-    return false;
+    return true;
   }
 }

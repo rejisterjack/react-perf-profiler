@@ -93,9 +93,36 @@ jobs:
           flags: unittests
           name: codecov-umbrella
 
+  test-react19:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Align extension UI with React 19
+        run: |
+          pnpm add react@^19.0.0 react-dom@^19.0.0 -D
+          pnpm add @types/react@^19.0.0 @types/react-dom@^19.0.0 -D
+
+      - name: Run unit tests (React 19)
+        run: pnpm test
+
   build:
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, test]
+    needs: [lint-and-typecheck, test, test-react19]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

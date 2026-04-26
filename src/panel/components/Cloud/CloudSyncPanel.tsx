@@ -221,7 +221,7 @@ export const CloudSyncPanel: React.FC = () => {
           title={
             googleDriveAvailable
               ? undefined
-              : 'Experimental: set VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE=true at build time (or use a dev build).'
+              : 'Disabled: set VITE_DISABLE_GOOGLE_DRIVE_SYNC off (omit the variable) to enable Google Drive in this build.'
           }
         >
           <input
@@ -233,7 +233,7 @@ export const CloudSyncPanel: React.FC = () => {
           />
           <span>
             Google Drive
-            {!googleDriveAvailable ? ' (experimental — off in this build)' : ''}
+            {!googleDriveAvailable ? ' (off in this build)' : ''}
           </span>
         </label>
       </div>
@@ -324,6 +324,11 @@ export const CloudSyncPanel: React.FC = () => {
               onChange={(e) => setGdriveConfig({ ...gdriveConfig, clientId: e.target.value })}
               placeholder="your-client-id.apps.googleusercontent.com"
             />
+            <small>
+              Use a Google Cloud <strong>Web application</strong> OAuth client. Add your extension&apos;s{' '}
+              <code>chrome.identity.getRedirectURL()</code> as an authorized redirect URI (PKCE; no client secret in
+              the extension).
+            </small>
           </div>
         </div>
       )}

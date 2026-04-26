@@ -56,7 +56,7 @@ export const App: React.FC = () => {
 
       <footer style={styles["footer"]}>
         <a
-          href="https://github.com/yourusername/react-perf-profiler"
+          href="https://github.com/rejisterjack/react-perf-profiler"
           target="_blank"
           rel="noopener noreferrer"
           style={styles["link"]}

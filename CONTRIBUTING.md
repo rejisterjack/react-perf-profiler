@@ -40,7 +40,7 @@ Load `dist-chrome/` as an unpacked extension (see the main [README](./README.md)
 1. Keep changes focused on one concern when possible.
 2. Run `pnpm run lint`, `pnpm run typecheck`, and `pnpm test` before pushing.
 3. If you change user-visible behavior, update relevant docs or in-app copy.
-4. For experimental cloud features, see `VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE` in the README.
+4. Google Drive can be omitted from a build with `VITE_DISABLE_GOOGLE_DRIVE_SYNC=true` (see README).
 
 ## Security
 

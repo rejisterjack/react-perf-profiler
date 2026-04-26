@@ -26,7 +26,11 @@ If you use `optional_permissions` (e.g. clipboard): justify each in the AMO form
 
 ## Data disclosure (pair with privacy policy)
 
-Link reviewers to the **canonical HTTPS privacy policy** (GitHub Pages URL from [STORE_ASSETS.md](../STORE_ASSETS.md)). State clearly:
+Link reviewers to the **canonical HTTPS privacy policy**:
+
+**https://rejisterjack.github.io/react-perf-profiler/**
+
+(See [listing/README.md](listing/README.md) and [STORE_ASSETS.md](../STORE_ASSETS.md) if the repo or GitHub username changes.) State clearly:
 
 - Default: local processing.
 - Optional: user-configured cloud sync and cloud LLM APIs.

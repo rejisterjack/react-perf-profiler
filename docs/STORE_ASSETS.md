@@ -229,14 +229,16 @@ Learn more: https://github.com/rejisterjack/react-perf-profiler
 
 ### Store Listing Assets
 
+Ready-to-paste files live in [store-assets/listing/](store-assets/listing/) (see [listing/README.md](store-assets/listing/README.md) for the canonical privacy URL and file index).
+
 ```
-docs/store-assets/
-├── listing/
-│   ├── chrome-short-description.txt
-│   ├── chrome-full-description.txt
-│   ├── firefox-short-description.txt
-│   ├── firefox-full-description.txt
-│   └── keywords.txt
+docs/store-assets/listing/
+├── README.md
+├── chrome-short-description.txt
+├── chrome-full-description.txt
+├── firefox-short-description.txt
+├── firefox-full-description.txt
+└── keywords.txt
 ```
 
 ---
@@ -247,7 +249,8 @@ docs/store-assets/
 
 After you enable **GitHub Pages** (Settings → Pages → Source: **GitHub Actions**), the workflow [.github/workflows/pages.yml](../.github/workflows/pages.yml) publishes:
 
-- **Live policy:** `https://<github-username>.github.io/<repository>/`
+- **Live policy (this repo):** `https://rejisterjack.github.io/react-perf-profiler/`
+- **Pattern (forks):** `https://<github-username>.github.io/<repository>/`
 
 The deployed site is built from [docs/store-assets/privacy/index.html](store-assets/privacy/index.html).
 

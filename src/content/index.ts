@@ -8,6 +8,12 @@ import type { BackgroundMessage, BridgeMessage } from './types';
 // Bridge script URL (must match web_accessible_resources in manifest)
 const BRIDGE_SCRIPT_URL = chrome.runtime.getURL('bridge.js');
 
+// Popup CHECK_REACT: bridge runs in page context; isolated content script cannot read __REACT_DEVTOOLS_GLOBAL_HOOK__.
+let checkReactPopup: {
+  timer: ReturnType<typeof setTimeout>;
+  respond: (result: { hasReact: boolean }) => void;
+} | null = null;
+
 // State
 let port: chrome.runtime.Port | null = null;
 let isBridgeInjected = false;
@@ -222,12 +228,23 @@ function handleBridgeMessage(event: MessageEvent): void {
       });
       break;
 
-    case 'DETECT_RESULT':
+    case 'DETECT_RESULT': {
+      if (checkReactPopup) {
+        const { timer, respond } = checkReactPopup;
+        checkReactPopup = null;
+        clearTimeout(timer);
+        respond({ hasReact: message.payload.reactDetected ?? false });
+      }
       sendToBackground({
         type: 'REACT_DETECT_RESULT',
-        payload: data,
+        payload: {
+          reactDetected: message.payload.reactDetected,
+          devtoolsDetected: message.payload.devtoolsDetected,
+          isInitialized: message.payload.isInitialized,
+        },
       });
       break;
+    }
 
     case 'ERROR':
       // Already handled above
@@ -445,6 +462,8 @@ function cleanup(): void {
 
 /**
  * Check if React is available on the page
+ * @deprecated Unreliable from an isolated content script — page globals are not visible here.
+ * Use the injected bridge (DETECT_REACT / DETECT_RESULT) or scripting.executeScript in MAIN world.
  */
 function checkReactAvailability(): boolean {
   return !!(
@@ -465,6 +484,39 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!message || message.type !== 'CHECK_REACT') {
+    return false;
+  }
+
+  if (checkReactPopup) {
+    clearTimeout(checkReactPopup.timer);
+    checkReactPopup.respond({ hasReact: false });
+  }
+
+  let settled = false;
+  const timer = setTimeout(() => {
+    checkReactPopup = null;
+    if (!settled) {
+      settled = true;
+      sendResponse({ hasReact: false });
+    }
+  }, 3000);
+
+  const respond = (result: { hasReact: boolean }) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    checkReactPopup = null;
+    sendResponse(result);
+  };
+
+  checkReactPopup = { timer, respond };
+
+  sendToBridge({ type: 'DETECT_REACT' });
+  return true;
+});
 
 // Export for testing
 export {

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "recordingDuration": 100,
+  "commits": [
+    {
+      "id": "commit-golden-slow",
+      "timestamp": 1700000001000,
+      "priorityLevel": "Normal",
+      "duration": 120,
+      "fibers": [
+        {
+          "id": "fiber-slow",
+          "displayName": "SlowApp",
+          "key": null,
+          "child": null,
+          "sibling": null,
+          "return": null,
+          "type": "div",
+          "elementType": "div",
+          "memoizedProps": {},
+          "memoizedState": null,
+          "actualDuration": 80,
+          "actualStartTime": 0,
+          "selfBaseDuration": 80,
+          "treeBaseDuration": 80,
+          "tag": 0,
+          "index": 0,
+          "mode": 0
+        }
+      ]
+    }
+  ],
+  "rscPayloads": [],
+  "rscAnalysis": null
+}

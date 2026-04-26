@@ -1,0 +1,35 @@
+React Perf Profiler is a powerful Chrome DevTools extension for analyzing React component performance.
+
+KEY FEATURES:
+
+🎯 Wasted Render Detection
+Identify components that re-render without changes. Get specific recommendations for React.memo, useMemo, and useCallback.
+
+📊 Interactive Flamegraph
+Visualize render hierarchy and timing with color-coded components. Zoom, pan, and explore your component tree.
+
+🧠 Memo Effectiveness Analysis
+Analyze how well your memoization strategy works. Detect unstable props and callbacks breaking memoization.
+
+🌊 React Server Components Support
+Profile RSC payloads, cache hit rates, and boundary crossings. Optimize your Next.js App Router applications.
+
+⚡ Performance at Scale
+Built for large applications. Web Worker-based analysis, virtualized lists, and memory-efficient storage.
+
+🔄 Time-Travel Debugging
+Step through commits to understand how your app state evolves over time.
+
+📈 CI/CD Integration
+Export profiles, set performance budgets, and enforce standards in your pipeline.
+
+🔌 Plugin System
+Extend with custom analysis plugins. Build your own metrics and visualizations.
+
+PERFECT FOR:
+• Optimizing React applications
+• Finding performance bottlenecks
+• Learning React rendering behavior
+• Code reviews and performance audits
+
+Open source and free. Built with ❤️ for the React community.

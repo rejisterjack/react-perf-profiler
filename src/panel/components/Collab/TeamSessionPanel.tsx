@@ -10,6 +10,7 @@ import { getCollabManager } from '@/shared/collab/CollabManager';
 import { SignalingService } from '@/shared/collab/SignalingService';
 import type { CollabState, CollabParticipant, ChatMessage } from '@/shared/collab/types';
 import { formatSessionCode, copyToClipboard } from '@/shared/collab/utils';
+import { getCollabRelayWsUrl } from '@/shared/collab/relayEnv';
 import { useProfilerStore } from '@/panel/stores';
 import styles from './TeamSessionPanel.module.css';
 
@@ -33,6 +34,7 @@ export const TeamSessionPanel: React.FC = () => {
   const [pendingAnswer, setPendingAnswer] = useState<string>('');
   const [signalingStep, setSignalingStep] = useState<'idle' | 'offer-created' | 'answer-created' | 'connected'>('idle');
   const signalingServiceRef = useRef<SignalingService | null>(null);
+  const collabRelayUrl = getCollabRelayWsUrl();
 
   const collabManager = getCollabManager();
   const profile = useProfilerStore((s) => s.analysisResults);
@@ -58,9 +60,9 @@ export const TeamSessionPanel: React.FC = () => {
 
   // Initialize signaling service
   useEffect(() => {
-    const service = new SignalingService({ 
+    const service = new SignalingService({
       mode: signalingMode === 'manual' ? 'manual' : 'relay',
-      relayUrl: signalingMode === 'auto' ? 'ws://localhost:8080' : undefined,
+      relayUrl: signalingMode === 'auto' && collabRelayUrl ? collabRelayUrl : undefined,
     });
     
     service.setCallbacks({
@@ -101,7 +103,7 @@ export const TeamSessionPanel: React.FC = () => {
       service.dispose();
       window.removeEventListener('signaling-message', handleManualMessage as EventListener);
     };
-  }, [signalingMode, state?.isHost, signalingStep]);
+  }, [signalingMode, state?.isHost, signalingStep, collabRelayUrl]);
 
   const handleCreateSession = async () => {
     setIsLoading(true);
@@ -392,6 +394,11 @@ export const TeamSessionPanel: React.FC = () => {
                 You'll exchange SDP offers/answers via copy-paste.
               </p>
             )}
+            {signalingMode === 'auto' && !collabRelayUrl && (
+              <p className={styles.signalingHint}>
+                Auto mode needs a WebSocket signaling URL. Set <code>VITE_COLLAB_RELAY_URL</code> at build time, or use Manual. See docs/TEAM_SESSIONS.md.
+              </p>
+            )}
           </div>
 
           <div className={styles.actionSection}>
@@ -593,6 +600,11 @@ export const TeamSessionPanel: React.FC = () => {
               Manual (Copy-paste SDP)
             </label>
           </div>
+          {signalingMode === 'auto' && !collabRelayUrl && (
+            <p className={styles.signalingHint}>
+              Auto mode needs <code>VITE_COLLAB_RELAY_URL</code> at build time, or use Manual. See docs/TEAM_SESSIONS.md.
+            </p>
+          )}
         </div>
 
         <div className={styles.actionSection}>

@@ -1,0 +1,1 @@
+React performance profiler for Firefox DevTools. Detect wasted renders, analyze memoization, visualize component hierarchy.

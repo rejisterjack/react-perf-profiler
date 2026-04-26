@@ -36,6 +36,19 @@ describe('Budget Checker', () => {
       expect(result.errorCount).toBe(0);
       expect(result.warningCount).toBe(0);
     });
+
+    it('fails default budgets on violation fixture with stable budget ids', () => {
+      const dir = path.dirname(fileURLToPath(import.meta.url));
+      const fixturePath = path.join(dir, '../../fixtures/perf-profile-violations.json');
+      const raw = readFileSync(fixturePath, 'utf-8');
+      const profile = JSON.parse(raw) as ProfileData;
+      const result = checkPerformanceBudget(profile, DEFAULT_BUDGET_CONFIG);
+      expect(result.passed).toBe(false);
+      expect(result.errorCount).toBeGreaterThan(0);
+      const budgetIds = [...new Set(result.violations.map((v) => v.budgetId))].sort();
+      expect(budgetIds).toContain('max-render-time');
+      expect(budgetIds).toContain('slow-render-percentage');
+    });
   });
 
   describe('checkPerformanceBudget', () => {

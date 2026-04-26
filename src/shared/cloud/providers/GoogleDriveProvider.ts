@@ -13,6 +13,13 @@ import type {
 } from '../types';
 import type { ExportedProfileV1 } from '@/shared/types/export';
 import { logger } from '@/shared/logger';
+import { generateCodeChallenge, generateCodeVerifier } from '@/shared/cloud/googlePkce';
+
+interface GDriveStoredToken {
+  accessToken: string;
+  expiresAt: number;
+  refreshToken?: string;
+}
 
 /**
  * Google Drive Cloud Provider Implementation
@@ -29,7 +36,7 @@ export class GoogleDriveProvider implements CloudSyncProvider {
 
   // OAuth and API configuration
   private readonly OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-  // Token refresh: use https://oauth2.googleapis.com/token with auth code (see experimentalFlags).
+  private readonly TOKEN_URL = 'https://oauth2.googleapis.com/token';
   private readonly API_URL = 'https://www.googleapis.com/drive/v3';
   private readonly UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3';
   private readonly SCOPES = ['https://www.googleapis.com/auth/drive.file'];
@@ -48,22 +55,28 @@ export class GoogleDriveProvider implements CloudSyncProvider {
    */
   async authenticate(): Promise<boolean> {
     try {
-      // Check for stored token
       const stored = await this.getStoredToken();
-      if (stored && stored.expiresAt > Date.now()) {
+      const skewMs = 120_000;
+
+      if (stored?.refreshToken && stored.expiresAt <= Date.now() + skewMs) {
+        const refreshed = await this.refreshAccessToken(stored.refreshToken);
+        if (refreshed) {
+          return true;
+        }
+        await this.clearStoredToken();
+      }
+
+      if (stored && stored.expiresAt > Date.now() + skewMs) {
         this.accessToken = stored.accessToken;
         this._isAuthenticated = true;
-        
-        // Ensure folder exists
         if (!this.folderId) {
           await this.ensureFolder();
         }
         return true;
       }
 
-      // Need to authenticate
       if (typeof chrome !== 'undefined' && chrome.identity) {
-        return this.authenticateWithChrome();
+        return this.authenticateWithChromePkce();
       }
 
       return false;
@@ -76,45 +89,128 @@ export class GoogleDriveProvider implements CloudSyncProvider {
     }
   }
 
-  private async authenticateWithChrome(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const redirectUrl = chrome.identity.getRedirectURL();
-      const authUrl = `${this.OAUTH_URL}?` + new URLSearchParams({
+  private async refreshAccessToken(refreshToken: string): Promise<boolean> {
+    try {
+      const body = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
         client_id: this.config.clientId,
-        response_type: 'token',
-        redirect_uri: redirectUrl,
-        scope: this.SCOPES.join(' '),
-        include_granted_scopes: 'true',
-        state: 'react-perf-profiler',
       });
 
+      const tokenRes = await fetch(this.TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+
+      if (!tokenRes.ok) {
+        return false;
+      }
+
+      const tokens = (await tokenRes.json()) as {
+        access_token: string;
+        expires_in?: string | number;
+        refresh_token?: string;
+      };
+
+      const accessToken = tokens.access_token;
+      const expiresIn = Number.parseInt(String(tokens.expires_in ?? '3600'), 10);
+      const expiresAt = Date.now() + expiresIn * 1000;
+      const nextRefresh = tokens.refresh_token ?? refreshToken;
+
+      this.accessToken = accessToken;
+      this._isAuthenticated = true;
+
+      await this.storeToken({
+        accessToken,
+        refreshToken: nextRefresh,
+        expiresAt,
+      });
+
+      if (!this.folderId) {
+        await this.ensureFolder();
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async authenticateWithChromePkce(): Promise<boolean> {
+    const redirectUrl = chrome.identity.getRedirectURL();
+    const verifier = generateCodeVerifier();
+    const challenge = await generateCodeChallenge(verifier);
+
+    const authUrl = new URL(this.OAUTH_URL);
+    authUrl.searchParams.set('client_id', this.config.clientId);
+    authUrl.searchParams.set('redirect_uri', redirectUrl);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', this.SCOPES.join(' '));
+    authUrl.searchParams.set('code_challenge', challenge);
+    authUrl.searchParams.set('code_challenge_method', 'S256');
+    authUrl.searchParams.set('access_type', 'offline');
+    authUrl.searchParams.set('prompt', 'consent');
+
+    return new Promise((resolve) => {
       chrome.identity.launchWebAuthFlow(
-        { url: authUrl, interactive: true },
+        { url: authUrl.toString(), interactive: true },
         async (redirectUri) => {
           if (chrome.runtime.lastError || !redirectUri) {
             resolve(false);
             return;
           }
 
-          const hash = new URL(redirectUri).hash.slice(1);
-          const params = new URLSearchParams(hash);
-          const accessToken = params.get('access_token');
-          const expiresIn = params.get('expires_in');
+          try {
+            const url = new URL(redirectUri);
+            const code = url.searchParams.get('code');
+            const oauthError = url.searchParams.get('error');
+            if (oauthError || !code) {
+              resolve(false);
+              return;
+            }
 
-          if (accessToken) {
-            this.accessToken = accessToken;
-            this._isAuthenticated = true;
-            
-            await this.storeToken({
-              accessToken,
-              expiresAt: Date.now() + (Number.parseInt(expiresIn || '3600', 10) * 1000),
+            const body = new URLSearchParams({
+              grant_type: 'authorization_code',
+              code,
+              client_id: this.config.clientId,
+              redirect_uri: redirectUrl,
+              code_verifier: verifier,
             });
 
-            // Ensure folder exists
+            const tokenRes = await fetch(this.TOKEN_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body,
+            });
+
+            if (!tokenRes.ok) {
+              resolve(false);
+              return;
+            }
+
+            const tokens = (await tokenRes.json()) as {
+              access_token: string;
+              expires_in?: string | number;
+              refresh_token?: string;
+            };
+
+            const accessToken = tokens.access_token;
+            const expiresIn = Number.parseInt(String(tokens.expires_in ?? '3600'), 10);
+            const refreshToken = tokens.refresh_token;
+
+            this.accessToken = accessToken;
+            this._isAuthenticated = true;
+
+            await this.storeToken({
+              accessToken,
+              refreshToken,
+              expiresAt: Date.now() + expiresIn * 1000,
+            });
+
             await this.ensureFolder();
-            
             resolve(true);
-          } else {
+          } catch {
             resolve(false);
           }
         }
@@ -495,16 +591,18 @@ export class GoogleDriveProvider implements CloudSyncProvider {
     return undefined;
   }
 
-  private async getStoredToken(): Promise<{ accessToken: string; expiresAt: number } | null> {
+  private async getStoredToken(): Promise<GDriveStoredToken | null> {
     if (typeof chrome === 'undefined' || !chrome.storage) return null;
-    
+
     const result = await chrome.storage.local.get('gdrive_token');
-    return result.gdrive_token || null;
+    const raw = result.gdrive_token as GDriveStoredToken | undefined;
+    if (!raw?.accessToken || typeof raw.expiresAt !== 'number') return null;
+    return raw;
   }
 
-  private async storeToken(token: { accessToken: string; expiresAt: number }): Promise<void> {
+  private async storeToken(token: GDriveStoredToken): Promise<void> {
     if (typeof chrome === 'undefined' || !chrome.storage) return;
-    
+
     await chrome.storage.local.set({ gdrive_token: token });
   }
 

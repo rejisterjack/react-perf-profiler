@@ -17,11 +17,11 @@ A high-performance Chrome DevTools extension for profiling React component rende
 
 - **Where code runs:** The DevTools panel and service worker run in extension contexts. A **content script** runs in an isolated world on pages you open; it injects a **bridge** into the page so the extension can read `__REACT_DEVTOOLS_GLOBAL_HOOK__`. Web pages cannot access your stored API keys or profile database.
 - **Broad host access:** The manifest uses `host_permissions: ["<all_urls>"]` and content scripts on `<all_urls>` (with `all_frames`) so the bridge can attach on whatever origin you are debugging. The extension is intended for **developer machines**; it does not upload page content unless you enable cloud sync, collaboration, or cloud LLM features.
-- **Optional cloud and AI:** Export/sync (S3, Dropbox, Google Drive), team sessions, and OpenAI/Anthropic calls send data **only when you configure them**. Google Drive sync is **experimental** in production builds unless you set `VITE_ENABLE_EXPERIMENTAL_GOOGLE_DRIVE=true` at build time.
+- **Optional cloud and AI:** Export/sync (S3, Dropbox, Google Drive), team sessions, and OpenAI/Anthropic calls send data **only when you configure them**. Google Drive uses OAuth PKCE with refresh tokens; set `VITE_DISABLE_GOOGLE_DRIVE_SYNC=true` at build time only if you need to strip the provider from a custom build.
 - **LLM API keys:** Keys are stored in `chrome.storage.local` (extension storage). That is **not** the same as OS keychain encryption. For keys that never leave your machine, use **Ollama (local)** in the AI panel.
 - **Reporting issues safely:** See [SECURITY.md](./SECURITY.md) and [docs/MESSAGE_SECURITY.md](./docs/MESSAGE_SECURITY.md).
 
-**Canonical privacy policy (for store listings):** `https://rejisterjack.github.io/react-perf-profiler/` after you enable GitHub Pages (GitHub Actions) on this repo—see [docs/STORE_ASSETS.md](./docs/STORE_ASSETS.md). Sources: [docs/store-assets/privacy/index.html](./docs/store-assets/privacy/index.html), [chrome-privacy-policy.md](./docs/store-assets/privacy/chrome-privacy-policy.md), [firefox-privacy-policy.md](./docs/store-assets/privacy/firefox-privacy-policy.md).
+**Canonical privacy policy (for store listings):** [https://rejisterjack.github.io/react-perf-profiler/](https://rejisterjack.github.io/react-perf-profiler/) — enable GitHub Pages (GitHub Actions) on this repo if not already live; see [docs/store-assets/listing/README.md](./docs/store-assets/listing/README.md) and [docs/STORE_ASSETS.md](./docs/STORE_ASSETS.md). Sources: [docs/store-assets/privacy/index.html](./docs/store-assets/privacy/index.html), [chrome-privacy-policy.md](./docs/store-assets/privacy/chrome-privacy-policy.md), [firefox-privacy-policy.md](./docs/store-assets/privacy/firefox-privacy-policy.md).
 
 ### Machine learning note
 
@@ -723,12 +723,15 @@ console.log(report);
 - **[Programmatic API](./docs/API.md)** - Analysis utilities and CI-oriented APIs
 - **[Release Checklist](./docs/RELEASE_CHECKLIST.md)** - Full release QA and process
 - **[Store Assets](./docs/STORE_ASSETS.md)** - Chrome Web Store & Firefox Add-ons assets
+- **[Store listing copy & privacy URL](./docs/store-assets/listing/README.md)** - Paste-ready descriptions and canonical policy link
 - **[Store release](./docs/STORE_RELEASE.md)** - Tag, build zips, store checklist
 - **[Publishing secrets](./docs/PUBLISHING_SECRETS.md)** - Optional CI upload to stores
 - **[Architecture](./docs/ARCHITECTURE.md)** - System design and data flow
 - **[Compatibility](./docs/COMPATIBILITY.md)** - React / DevTools / RSC expectations
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Roadmap](./ROADMAP.md)** - Planned direction
+- **[Permissions spike (narrow host access)](./docs/PERMISSIONS_SPIKE.md)** - Tradeoffs for `<all_urls>` vs narrower modes
+- **[Team sessions / WebRTC relay](./docs/TEAM_SESSIONS.md)** - `VITE_COLLAB_RELAY_URL` and signaling modes
 
 ## 🤝 Contributing
 

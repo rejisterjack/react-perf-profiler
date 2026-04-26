@@ -4,8 +4,8 @@ High-level direction aligned with the project goals (trust, correctness, distrib
 
 ## Near term
 
-- Optional narrowing of `host_permissions` (spike: active-tab-only mode tradeoffs for DevTools workflows).
-- Google Drive: authorization-code flow with refresh tokens (behind the same experimental flag until stable).
+- Optional narrowing of `host_permissions` (spike: active-tab-only mode tradeoffs for DevTools workflows). See [docs/PERMISSIONS_SPIKE.md](docs/PERMISSIONS_SPIKE.md).
+- Google Drive: PKCE + refresh token flow is implemented; keep OAuth client redirect URIs in sync with `chrome.identity.getRedirectURL()`.
 - Expand golden fixtures for analysis workers and snapshot stability of `checkPerformanceBudget` outputs.
 
 ## Medium term

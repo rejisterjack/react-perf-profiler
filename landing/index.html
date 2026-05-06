@@ -3,20 +3,80 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="React Perf Profiler — A high-performance Chrome DevTools extension for profiling React component render behavior. Find wasted renders, analyze memoization, and optimize your React apps at scale." />
-    <meta name="keywords" content="React, performance, profiler, DevTools, Chrome extension, optimization, memoization, wasted renders" />
+
+    <!-- Primary meta -->
+    <title>React Perf Profiler — Stop Guessing. Start Profiling.</title>
+    <meta name="description" content="React Perf Profiler is a free Chrome & Firefox DevTools extension that detects wasted renders, scores memoization effectiveness, analyzes RSC payloads, and enforces CI/CD performance budgets. No signup required." />
+    <meta name="keywords" content="React performance, profiler, DevTools extension, wasted renders, memoization, React Server Components, Next.js, Chrome extension, Firefox extension, CI/CD performance budgets, flamegraph, useCallback, useMemo, React.memo" />
     <meta name="author" content="rejisterjack" />
-    <meta property="og:title" content="React Perf Profiler — Stop Guessing. Start Profiling." />
-    <meta property="og:description" content="The React performance profiler that finds your wasted renders and tells you exactly what to fix." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://rejisterjack.github.io/react-perf-profiler/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="React Perf Profiler" />
+    <meta property="og:title" content="React Perf Profiler — Stop Guessing. Start Profiling." />
+    <meta property="og:description" content="Free Chrome & Firefox DevTools extension. Detect wasted renders, score memoization, analyze RSC payloads, and enforce CI/CD performance budgets. No signup, MIT licensed." />
     <meta property="og:url" content="https://rejisterjack.github.io/react-perf-profiler/" />
+    <meta property="og:image" content="https://rejisterjack.github.io/react-perf-profiler/mockup.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="React Perf Profiler DevTools panel showing flamegraph and wasted render analysis" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="React Perf Profiler — Stop Guessing. Start Profiling." />
+    <meta name="twitter:description" content="Free DevTools extension for React. Detect wasted renders, score memoization, AI-powered fix suggestions. Chrome & Firefox. MIT licensed." />
+    <meta name="twitter:image" content="https://rejisterjack.github.io/react-perf-profiler/mockup.png" />
+    <meta name="twitter:image:alt" content="React Perf Profiler dashboard" />
+
+    <!-- Theme / PWA -->
     <meta name="theme-color" content="#0A0F1C" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="./icons/icon128.svg" />
+    <link rel="apple-touch-icon" href="./icons/icon128.svg" />
+
+    <!-- Privacy-preserving analytics (Plausible) -->
+    <!-- Set VITE_PLAUSIBLE_DOMAIN in landing/.env to enable, e.g. rejisterjack.github.io -->
+    <!-- <script defer data-domain="rejisterjack.github.io" src="https://plausible.io/js/script.js"></script> -->
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <title>React Perf Profiler — Stop Guessing. Start Profiling.</title>
+
+    <!-- Structured data: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "React Perf Profiler",
+      "operatingSystem": "Chrome, Firefox",
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "Browser Extension",
+      "description": "A free Chrome and Firefox DevTools extension for profiling React component render behavior. Detects wasted renders, scores memoization effectiveness, analyzes React Server Component payloads, and enforces CI/CD performance budgets.",
+      "url": "https://rejisterjack.github.io/react-perf-profiler/",
+      "downloadUrl": "https://rejisterjack.github.io/react-perf-profiler/downloads/react-perf-profiler-chrome.zip",
+      "softwareVersion": "1.0.0",
+      "releaseNotes": "https://github.com/rejisterjack/react-perf-profiler/blob/main/CHANGELOG.md",
+      "license": "https://github.com/rejisterjack/react-perf-profiler/blob/main/LICENSE",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "rejisterjack",
+        "url": "https://github.com/rejisterjack"
+      },
+      "codeRepository": "https://github.com/rejisterjack/react-perf-profiler",
+      "keywords": "React, performance, profiler, DevTools, Chrome extension, Firefox extension, wasted renders, memoization, RSC"
+    }
+    </script>
   </head>
   <body class="bg-surface-900 text-white antialiased selection:bg-brand-blue/30 selection:text-white">
     <div id="root"></div>

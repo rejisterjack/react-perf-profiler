@@ -5,9 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Testimonials', href: '#testimonials' },
+  { label: 'All Features', href: '#all-features' },
+  { label: 'How It Works', href: '#demo' },
+  { label: 'Compare', href: '#comparison' },
+  { label: 'Pricing', href: '#pricing' },
   { label: 'FAQ', href: '#faq' },
+  {
+    label: 'Docs',
+    href: 'https://github.com/rejisterjack/react-perf-profiler#readme',
+    external: true,
+  },
 ];
 
 export function Navigation() {
@@ -35,7 +42,7 @@ export function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo */}
-            <a href="/react-perf-profiler/" className="flex items-center gap-2.5 group">
+            <a href="/react-perf-profiler/" className="flex items-center gap-2.5 group shrink-0">
               <div className="w-8 h-8 rounded-lg bg-brand-react flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Zap className="w-5 h-5 text-surface-900" />
               </div>
@@ -45,12 +52,14 @@ export function Navigation() {
             </a>
 
             {/* Desktop Nav */}
-            <div className="hidden lg:flex items-center gap-8">
+            <div className="hidden lg:flex items-center gap-6">
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-surface-300 hover:text-white transition-colors relative group"
+                  target={link.external ? '_blank' : undefined}
+                  rel={link.external ? 'noopener noreferrer' : undefined}
+                  className="text-sm text-surface-300 hover:text-white transition-colors relative group whitespace-nowrap"
                 >
                   {link.label}
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-react group-hover:w-full transition-all duration-300" />
@@ -59,7 +68,7 @@ export function Navigation() {
             </div>
 
             {/* Desktop CTA */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3 shrink-0">
               <a href="https://github.com/rejisterjack/react-perf-profiler" target="_blank" rel="noopener noreferrer">
                 <Button variant="ghost" size="sm">
                   GitHub
@@ -73,7 +82,8 @@ export function Navigation() {
             </div>
 
             {/* Mobile Menu Button */}
-            <button type='button'
+            <button
+              type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
               className="lg:hidden p-2 text-white hover:bg-white/5 rounded-lg transition-colors"
             >
@@ -90,27 +100,49 @@ export function Navigation() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-x-0 top-16 z-40 lg:hidden bg-surface-900/95 backdrop-blur-xl border-b border-white/5"
+            className="fixed inset-x-0 top-16 z-40 lg:hidden bg-surface-900/95 backdrop-blur-xl border-b border-white/5 max-h-[80vh] overflow-y-auto"
           >
-            <div className="px-4 py-6 space-y-4">
-              {NAV_LINKS.map((link) => (
-                <button type='button'
-                  key={link.href}
-                  onClick={() => {
-                    setMobileOpen(false);
-                    window.location.href = link.href;
-                  }}
-                  className="block w-full text-left text-lg text-surface-200 hover:text-white py-2"
-                >
-                  {link.label}
-                </button>
-              ))}
+            <div className="px-4 py-6 space-y-3">
+              {NAV_LINKS.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileOpen(false)}
+                    className="block w-full text-left text-base text-surface-200 hover:text-white py-2"
+                  >
+                    {link.label} ↗
+                  </a>
+                ) : (
+                  <button
+                    key={link.href}
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      window.location.href = link.href;
+                    }}
+                    className="block w-full text-left text-base text-surface-200 hover:text-white py-2"
+                  >
+                    {link.label}
+                  </button>
+                )
+              )}
               <div className="pt-4 border-t border-white/10 space-y-3">
-                <a href="https://github.com/rejisterjack/react-perf-profiler" target="_blank" rel="noopener noreferrer">
-                  <Button variant="ghost" className="w-full justify-center">GitHub</Button>
+                <a
+                  href="https://github.com/rejisterjack/react-perf-profiler"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="ghost" className="w-full justify-center">
+                    GitHub
+                  </Button>
                 </a>
                 <a href="#download">
-                  <Button variant="primary" className="w-full justify-center">Download Extension</Button>
+                  <Button variant="primary" className="w-full justify-center">
+                    Download Extension
+                  </Button>
                 </a>
               </div>
             </div>

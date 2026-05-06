@@ -1,6 +1,6 @@
 {
   "name": "react-perf-profiler",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Chrome DevTools extension for profiling React performance",
   "type": "module",
   "packageManager": "pnpm@8.14.0",

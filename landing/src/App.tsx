@@ -6,17 +6,18 @@ import { TrustBar } from './components/TrustBar';
 import { FAQ } from './components/FAQ';
 import { CTASection } from './components/CTASection';
 import { Footer } from './components/Footer';
+import { SocialProof } from './components/SocialProof';
 
 import { Hero } from './sections/Hero';
 import { ProblemSolution } from './sections/ProblemSolution';
+import { WhoIsItFor } from './sections/WhoIsItFor';
 import { FeatureBento } from './sections/FeatureBento';
 import { AllFeatures } from './sections/AllFeatures';
 import { RSCShowcase } from './sections/RSCShowcase';
+import { CICDShowcase } from './sections/CICDShowcase';
 import { DemoSection } from './sections/DemoSection';
-import { Workflow } from './sections/Workflow';
 import { Comparison } from './sections/Comparison';
 import { Pricing } from './sections/Pricing';
-import { Testimonials } from './components/Testimonials';
 
 function App() {
   useEffect(() => {
@@ -46,43 +47,46 @@ function App() {
     <div className="min-h-screen bg-surface-900 text-white selection:bg-brand-cyan/30 selection:text-white">
       <Navigation />
       <main>
-        {/* 1. Hero — headline, direct download CTAs, mockup */}
+        {/* 1. Hero — headline, dual install CTAs, live panel mockup */}
         <Hero />
 
-        {/* 2. Trust bar — verifiable quality signals */}
+        {/* 2. Trust bar — quality signals: test coverage, browser support, privacy, compatibility */}
         <TrustBar />
 
-        {/* 3. Problem/Solution — emotional hook */}
+        {/* 3. Problem/Solution — emotional hook: React is fast until it isn't */}
         <ProblemSolution />
 
-        {/* 4. Feature highlights (bento) — core 6 features at a glance */}
-        <FeatureBento />
+        {/* 4. Who is it for — 3 personas: solo dev, eng team, tech lead/devops */}
+        <WhoIsItFor />
 
-        {/* 5. All features — complete feature matrix grouped by category */}
-        <AllFeatures />
-
-        {/* 6. RSC showcase — differentiated Next.js / App Router support */}
-        <RSCShowcase />
-
-        {/* 7. Demo — step-by-step walkthrough + quick-start terminal */}
+        {/* 5. How it works — 5-step guided flow: record → analyse → fix → AI → validate */}
         <DemoSection />
 
-        {/* 8. How it works — simplified 3-step flow */}
-        <Workflow />
+        {/* 6. Feature highlights (bento) — 6 core features with real UI mockups */}
+        <FeatureBento />
 
-        {/* 9. Comparison table — vs React DevTools & commercial tools */}
+        {/* 7. All features — complete feature matrix grouped by category */}
+        <AllFeatures />
+
+        {/* 8. RSC showcase — differentiated Next.js / App Router support */}
+        <RSCShowcase />
+
+        {/* 9. CI/CD showcase — perf budgets that fail the build */}
+        <CICDShowcase />
+
+        {/* 10. Comparison table — vs React DevTools & commercial tools */}
         <Comparison />
 
-        {/* 10. Benchmarks — real-world performance results */}
-        <Testimonials />
+        {/* 11. Social proof — testimonials + benchmarks + extension perf stats */}
+        <SocialProof />
 
-        {/* 11. Pricing — free forever with self-hosting notes */}
+        {/* 12. Pricing — free forever with self-hosting notes */}
         <Pricing />
 
-        {/* 12. FAQ */}
+        {/* 13. FAQ — 12 questions covering setup, compatibility, privacy, AI, CI */}
         <FAQ />
 
-        {/* 13. Final CTA + email capture */}
+        {/* 14. Final CTA + email capture */}
         <CTASection />
       </main>
       <Footer />

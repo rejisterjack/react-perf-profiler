@@ -1,88 +1,227 @@
-import { BentoGrid, BentoGridItem } from '../components/ui/BentoGrid';
 import { motion } from 'framer-motion';
-import { Cpu, Zap, ShieldAlert, BarChart3, Database } from 'lucide-react';
+import { containerVariants, fadeUp } from '../lib/motion';
+import { ShieldAlert, Zap, Database, BarChart3, GitCompare, Cpu, Check, X, ArrowRight } from 'lucide-react';
 
-export const FeatureBento = () => {
-  return (
-    <section id="features" className="py-24 section-padding bg-surface-900 relative">
-      <div className="max-w-7xl mx-auto mb-16 text-center">
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-          Everything you need to ship <span className="gradient-text">faster</span>.
-        </h2>
-        <p className="text-xl text-surface-400 max-w-2xl mx-auto">
-          Deep dive into your application's architecture with surgical precision. 
-          Identify leaks, bottlenecks, and re-renders in real-time.
-        </p>
+/* ─── Mini UI mockups for each feature card ─── */
+
+const WastedRenderMockup = () => (
+  <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-900/60 border border-white/5 text-[10px] font-mono">
+    {[
+      { name: 'Feed', renders: 45, wasted: 0, ok: true },
+      { name: 'PostList', renders: 45, wasted: 0, ok: true },
+      { name: 'Post', renders: 120, wasted: 89, ok: false },
+      { name: 'Actions', renders: 120, wasted: 120, ok: false },
+      { name: 'LikeButton', renders: 120, wasted: 120, ok: false },
+    ].map((row, i) => (
+      <div key={i} className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          {row.ok ? (
+            <Check className="w-3 h-3 text-brand-green shrink-0" />
+          ) : (
+            <ShieldAlert className="w-3 h-3 text-red-400 shrink-0" />
+          )}
+          <span className={row.ok ? 'text-surface-400' : 'text-red-300'}>{row.name}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-surface-500">{row.renders}r</span>
+          {!row.ok && (
+            <span className="text-red-400 font-bold">{row.wasted}w ⚠</span>
+          )}
+        </div>
       </div>
-      <BentoGrid>
-        {features.map((feature, i) => (
-          <BentoGridItem
-            key={i}
-            title={feature.title}
-            description={feature.description}
-            header={feature.header}
-            icon={feature.icon}
-            className={i === 0 || i === 3 ? "md:col-span-2" : ""}
-          />
-        ))}
-      </BentoGrid>
-    </section>
-  );
-};
+    ))}
+    <div className="mt-1 pt-1.5 border-t border-white/5 text-brand-cyan">
+      ↳ Fix: wrap onLike with useCallback
+    </div>
+  </div>
+);
 
-const Skeleton = ({ className }: { className?: string }) => (
-  <div className={`flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-surface-800 to-surface-900 border border-white/5 relative overflow-hidden ${className}`}>
-    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-20" />
-    <div className="absolute inset-0 bg-gradient-to-tr from-brand-blue/5 via-transparent to-brand-purple/5" />
-    <motion.div 
-      animate={{ 
-        x: ['-100%', '200%'],
-      }}
-      transition={{ 
-        duration: 2, 
-        repeat: Infinity, 
-        ease: "linear" 
-      }}
-      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent w-1/2 -skew-x-12"
-    />
+const MemoScoreMockup = () => (
+  <div className="p-3 rounded-xl bg-surface-900/60 border border-white/5 text-[10px] font-mono space-y-2">
+    <div className="flex justify-between text-surface-400">
+      <span>PostActions</span>
+      <span className="text-red-400 font-bold">23% hit rate ⚠</span>
+    </div>
+    <div className="w-full h-1.5 bg-surface-700 rounded-full">
+      <div className="h-full bg-red-500 rounded-full" style={{ width: '23%' }} />
+    </div>
+    <div className="space-y-1 text-surface-500">
+      <div className="flex items-center gap-1"><X className="w-2.5 h-2.5 text-red-400" /> onLike recreated each render</div>
+      <div className="flex items-center gap-1"><X className="w-2.5 h-2.5 text-red-400" /> style object recreated each render</div>
+    </div>
+    <div className="text-brand-green">Expected after fix: 94% hit rate ✓</div>
+  </div>
+);
+
+const CICDMockup = () => (
+  <div className="p-3 rounded-xl bg-surface-900/60 border border-white/5 text-[10px] font-mono space-y-1.5">
+    <div className="text-surface-500">perf-budget.json</div>
+    <div className="space-y-1 text-brand-cyan">
+      <div>&#123;</div>
+      <div className="ml-3"><span className="text-brand-purple">"wastedRenderThreshold"</span>: <span className="text-brand-green">0.1</span>,</div>
+      <div className="ml-3"><span className="text-brand-purple">"memoHitRateThreshold"</span>: <span className="text-brand-green">0.8</span>,</div>
+      <div className="ml-3"><span className="text-brand-purple">"maxRenderTimeMs"</span>: <span className="text-brand-green">16</span></div>
+      <div>&#125;</div>
+    </div>
+    <div className="mt-1.5 pt-1.5 border-t border-white/5 flex items-center gap-1.5">
+      <div className="w-2 h-2 rounded-full bg-brand-green animate-pulse" />
+      <span className="text-brand-green">CI: All budgets passed ✓</span>
+    </div>
+  </div>
+);
+
+const FlamegraphMockup = () => (
+  <div className="p-3 rounded-xl bg-surface-900/60 border border-white/5 space-y-1.5">
+    {[
+      { name: 'App', ms: 45, width: '100%', color: 'bg-brand-cyan/30 border-brand-cyan/40', text: 'text-brand-cyan' },
+      { name: 'Feed', ms: 32, width: '85%', color: 'bg-brand-blue/30 border-brand-blue/40', text: 'text-brand-blue' },
+      { name: 'Post ⚠', ms: 28, width: '72%', color: 'bg-red-500/30 border-red-500/40', text: 'text-red-300' },
+      { name: 'Actions ⚠', ms: 18, width: '55%', color: 'bg-red-500/50 border-red-500/60', text: 'text-red-200' },
+    ].map((bar, i) => (
+      <div
+        key={i}
+        className={`h-5 rounded border flex items-center px-2 text-[9px] font-mono ${bar.color} ${bar.text}`}
+        style={{ width: bar.width, marginLeft: `${i * 8}px` }}
+      >
+        {bar.name} — {bar.ms}ms
+      </div>
+    ))}
+  </div>
+);
+
+const ExportMockup = () => (
+  <div className="p-3 rounded-xl bg-surface-900/60 border border-white/5 text-[10px] font-mono space-y-2">
+    <div className="text-surface-500">profile-2024-01-15.json</div>
+    <div className="flex gap-2">
+      {['S3', 'Dropbox', 'Drive'].map((s) => (
+        <div key={s} className="px-2 py-0.5 rounded bg-brand-blue/15 border border-brand-blue/20 text-brand-blue text-[9px]">
+          {s}
+        </div>
+      ))}
+    </div>
+    <div className="text-surface-400">
+      <span className="text-brand-green">↑ Uploaded</span> profile to S3
+    </div>
+    <div className="flex items-center gap-1.5 text-brand-cyan">
+      <ArrowRight className="w-3 h-3" />
+      Share link copied to clipboard
+    </div>
+  </div>
+);
+
+const PluginMockup = () => (
+  <div className="p-3 rounded-xl bg-surface-900/60 border border-white/5 text-[10px] font-mono space-y-1.5">
+    <div className="text-surface-500">Plugin Registry</div>
+    {[
+      { name: 'next-bundle-analyzer', badge: 'Official', color: 'text-brand-cyan' },
+      { name: 'zustand-store-tracker', badge: 'Community', color: 'text-brand-purple' },
+      { name: 'a11y-render-audit', badge: 'Community', color: 'text-brand-purple' },
+    ].map((p, i) => (
+      <div key={i} className="flex items-center justify-between">
+        <span className="text-surface-300">{p.name}</span>
+        <span className={`text-[9px] ${p.color}`}>{p.badge}</span>
+      </div>
+    ))}
   </div>
 );
 
 const features = [
   {
-    title: "Wasted Render Detection",
-    description: "Identify components that re-render without any prop or state changes. Save precious milliseconds by eliminating redundant cycles.",
-    header: <Skeleton className="bg-brand-red/5" />,
-    icon: <ShieldAlert className="w-5 h-5 text-brand-red" />,
+    title: 'Wasted Render Detection',
+    description:
+      'Classify every re-render as wasted or necessary. Get the exact prop that triggered the cycle, plus the specific code fix.',
+    mockup: <WastedRenderMockup />,
+    icon: <ShieldAlert className="w-5 h-5 text-red-400" />,
+    span: 'md:col-span-2',
   },
   {
-    title: "Memoization Scorer",
-    description: "Our proprietary algorithm scores the effectiveness of your useMemo and useCallback hooks, pinpointing exactly why they fail.",
-    header: <Skeleton className="bg-brand-purple/5" />,
+    title: 'Memoization Scorer',
+    description:
+      'Proprietary algorithm scores React.memo, useMemo, and useCallback effectiveness. Pinpoints why your memoization fails.',
+    mockup: <MemoScoreMockup />,
     icon: <Zap className="w-5 h-5 text-brand-purple" />,
+    span: '',
   },
   {
-    title: "CI/CD Perf Budgets",
-    description: "Enforce performance standards in your pipeline. Automatically fail builds that exceed render time or payload size budgets.",
-    header: <Skeleton className="bg-brand-green/5" />,
+    title: 'CI/CD Perf Budgets',
+    description:
+      'Define thresholds in perf-budget.json and automatically fail builds that exceed render time or wasted render budgets.',
+    mockup: <CICDMockup />,
     icon: <Database className="w-5 h-5 text-brand-green" />,
+    span: '',
   },
   {
-    title: "Interactive Flamegraphs",
-    description: "Visualize the entire render hierarchy with millisecond precision. Zoom, pan, and filter to find the deepest bottlenecks.",
-    header: <Skeleton className="bg-brand-cyan/5" />,
+    title: 'Interactive Flamegraph',
+    description:
+      'Visualize the entire render hierarchy with millisecond precision. Color-coded by duration, filterable by component name.',
+    mockup: <FlamegraphMockup />,
     icon: <BarChart3 className="w-5 h-5 text-brand-cyan" />,
+    span: 'md:col-span-2',
   },
   {
-    title: "Export/Import Sessions",
-    description: "Share performance profiles with your team. Export as JSON and load them back in for collaborative debugging sessions.",
-    header: <Skeleton className="bg-brand-blue/5" />,
-    icon: <Database className="w-5 h-5 text-brand-blue" />,
+    title: 'Cloud Export & Sync',
+    description:
+      'Export profiles to S3, Dropbox, or Google Drive. Share with teammates via a link — no screen sharing required.',
+    mockup: <ExportMockup />,
+    icon: <GitCompare className="w-5 h-5 text-brand-blue" />,
+    span: '',
   },
   {
-    title: "Extensible Plugin System",
-    description: "Build custom analysis plugins to track domain-specific metrics. Fully compatible with our core engine.",
-    header: <Skeleton className="bg-surface-700/5" />,
+    title: 'Extensible Plugin System',
+    description:
+      'Build custom analysis plugins or install community ones. Add domain-specific metrics to the core analysis engine.',
+    mockup: <PluginMockup />,
     icon: <Cpu className="w-5 h-5 text-surface-400" />,
+    span: '',
   },
 ];
+
+export const FeatureBento = () => {
+  return (
+    <section id="features" className="py-24 section-padding bg-surface-900 relative">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={containerVariants}
+          className="mb-16 text-center"
+        >
+          <motion.p variants={fadeUp} className="text-xs font-semibold uppercase tracking-widest text-brand-cyan mb-4">
+            Core capabilities
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Everything you need to ship{' '}
+            <span className="gradient-text">faster</span>.
+          </motion.h2>
+          <motion.p variants={fadeUp} className="text-xl text-surface-400 max-w-2xl mx-auto">
+            Deep dive into your application's render behavior with surgical precision.
+            Identify bottlenecks, score memoization, and enforce budgets in CI.
+          </motion.p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {features.map((feature, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className={`${feature.span} rounded-2xl border border-white/8 bg-surface-800/40 p-6 hover:border-white/15 hover:bg-surface-800/60 transition-all duration-300 group`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/8 transition-colors">
+                  {feature.icon}
+                </div>
+                <h3 className="text-base font-bold text-white">{feature.title}</h3>
+              </div>
+              <p className="text-sm text-surface-400 leading-relaxed mb-4">{feature.description}</p>
+              {feature.mockup}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};

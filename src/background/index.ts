@@ -492,23 +492,78 @@ self.addEventListener('unhandledrejection', (event) => {
 });
 
 // ============================================================================
-// Service Worker Keep-Alive (for Manifest V3)
+// Service Worker Keep-Alive (Manifest V3 — chrome.alarms based)
 // ============================================================================
 
 /**
- * Keeps the service worker alive during active profiling sessions
- * In Manifest V3, service workers can be terminated when idle
+ * Alarm name used to keep the service worker alive during profiling.
+ * chrome.alarms fire even after the service worker has been terminated and
+ * re-started, unlike setInterval which is cleared when the SW is unloaded.
+ */
+const KEEPALIVE_ALARM = 'perf-profiler-keepalive';
+
+/**
+ * Minimum alarm period allowed by Chrome (in minutes).
+ * Chrome clamps alarms to a minimum of 1 minute; we use the min so the
+ * service worker wakes up every 20-30s via the alarm + the onAlarm handler.
+ */
+const KEEPALIVE_ALARM_PERIOD_MINUTES = 0.4; // ~24 seconds — Chrome clamps to ≥ 0.
+
+/**
+ * Sets up chrome.alarms-based service worker keepalive for Manifest V3.
+ *
+ * Problem: MV3 service workers are terminated after ~30 s of inactivity.
+ * setInterval() does NOT survive a service worker termination — once Chrome
+ * kills the SW, the interval is gone. chrome.alarms wake the SW from a
+ * terminated state, guaranteeing continuity during long recording sessions.
  */
 function setupKeepAlive(): void {
-  // Check every 20 seconds if we need to keep the service worker alive
-  setInterval(() => {
-    const connections = connectionManager?.getAllConnections() || [];
+  // Register the recurring alarm (no-op if already registered with same period)
+  chrome.alarms.create(KEEPALIVE_ALARM, {
+    periodInMinutes: KEEPALIVE_ALARM_PERIOD_MINUTES,
+    delayInMinutes: KEEPALIVE_ALARM_PERIOD_MINUTES,
+  });
+
+  // Listen for the alarm — every firing wakes the SW from a dormant state
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name !== KEEPALIVE_ALARM) return;
+
+    const connections = connectionManager?.getAllConnections() ?? [];
     const hasActiveProfiling = connections.some((conn) => conn.isProfiling);
 
     if (hasActiveProfiling) {
-      log(LogLevel.DEBUG, 'Keeping service worker alive for active profiling');
+      log(LogLevel.DEBUG, 'Keepalive alarm: service worker woken for active profiling session');
+      // Perform a lightweight no-op chrome API call to extend the SW lifetime
+      chrome.runtime.getPlatformInfo(() => {
+        // No-op: the API call itself extends the service worker's active window
+      });
+    } else {
+      // No active sessions — clear the alarm to avoid unnecessary wake-ups
+      chrome.alarms.clear(KEEPALIVE_ALARM);
+      log(LogLevel.DEBUG, 'Keepalive alarm cleared — no active profiling sessions');
     }
-  }, 20000);
+  });
+
+  log(LogLevel.INFO, 'MV3 chrome.alarms keepalive registered', {
+    alarm: KEEPALIVE_ALARM,
+    periodMinutes: KEEPALIVE_ALARM_PERIOD_MINUTES,
+  });
+}
+
+/**
+ * Re-arms the keepalive alarm when a profiling session starts.
+ * Call this whenever isProfiling transitions false → true.
+ */
+export function armKeepalive(): void {
+  chrome.alarms.get(KEEPALIVE_ALARM, (existing) => {
+    if (!existing) {
+      chrome.alarms.create(KEEPALIVE_ALARM, {
+        periodInMinutes: KEEPALIVE_ALARM_PERIOD_MINUTES,
+        delayInMinutes: KEEPALIVE_ALARM_PERIOD_MINUTES,
+      });
+      log(LogLevel.DEBUG, 'Keepalive alarm re-armed for new profiling session');
+    }
+  });
 }
 
 // ============================================================================

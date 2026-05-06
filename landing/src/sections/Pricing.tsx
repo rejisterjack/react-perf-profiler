@@ -22,16 +22,16 @@ const INCLUDED = [
 const SELF_HOSTING = [
   {
     icon: Server,
-    title: 'Team session relay',
+    title: 'Team session relay (optional)',
     description:
-      'Live collaboration uses a WebRTC signaling server. Run the included Node.js relay script on any server — or use a free platform like Railway or Fly.io.',
+      'Live collaboration uses WebRTC. A one-command Node.js relay is included — deploy free on Railway or Fly.io in under 5 minutes. Not needed for solo use.',
     code: 'node scripts/signaling-server.js',
   },
   {
     icon: BookOpen,
-    title: 'Cloud sync credentials',
+    title: 'Cloud sync (optional)',
     description:
-      'S3, Dropbox, and Google Drive sync use your own API credentials stored locally in extension storage. No third-party service fees.',
+      'S3, Dropbox, and Google Drive sync use your own credentials — no third-party fees. Profile export/import via JSON works offline with zero setup.',
   },
 ];
 
@@ -61,7 +61,7 @@ export const Pricing = () => {
             Simple pricing: <span className="gradient-text">free forever</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="text-lg text-surface-400 max-w-2xl mx-auto">
-            No tiers, no seats, no credit card. Every feature is available to every developer from day one.
+            No tiers, no seats, no credit card. Every single feature — AI suggestions, team sessions, CI/CD budgets, RSC analysis — is available to every developer from day one.
           </motion.p>
         </motion.div>
 
@@ -137,9 +137,9 @@ export const Pricing = () => {
             className="rounded-2xl border border-white/8 bg-surface-800/30 p-6 space-y-6"
           >
             <div>
-              <h3 className="text-sm font-bold text-white mb-1">Optional self-hosting</h3>
+              <h3 className="text-sm font-bold text-white mb-1">Power-user options</h3>
               <p className="text-xs text-surface-500 leading-relaxed">
-                Some advanced features require a small server you run yourself. No fees — just infra you control.
+                Two advanced features have optional server requirements. Both are one-command deploys on free platforms — and neither is needed for core profiling.
               </p>
             </div>
 

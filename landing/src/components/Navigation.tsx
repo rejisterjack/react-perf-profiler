@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
-  { label: 'All Features', href: '#all-features' },
   { label: 'How It Works', href: '#demo' },
+  { label: 'Who It\'s For', href: '#who-is-it-for' },
+  { label: 'CI/CD', href: '#ci-cd' },
   { label: 'Compare', href: '#comparison' },
   { label: 'Pricing', href: '#pricing' },
   { label: 'FAQ', href: '#faq' },
@@ -52,7 +53,7 @@ export function Navigation() {
             </a>
 
             {/* Desktop Nav */}
-            <div className="hidden lg:flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-5">
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.href}
@@ -69,14 +70,18 @@ export function Navigation() {
 
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3 shrink-0">
-              <a href="https://github.com/rejisterjack/react-perf-profiler" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://github.com/rejisterjack/react-perf-profiler"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button variant="ghost" size="sm">
                   GitHub
                 </Button>
               </a>
               <a href="#download">
                 <Button variant="primary" size="sm">
-                  Download
+                  Install Free
                 </Button>
               </a>
             </div>
@@ -102,7 +107,7 @@ export function Navigation() {
             exit={{ opacity: 0, y: -20 }}
             className="fixed inset-x-0 top-16 z-40 lg:hidden bg-surface-900/95 backdrop-blur-xl border-b border-white/5 max-h-[80vh] overflow-y-auto"
           >
-            <div className="px-4 py-6 space-y-3">
+            <div className="px-4 py-6 space-y-1">
               {NAV_LINKS.map((link) =>
                 link.external ? (
                   <a
@@ -111,9 +116,10 @@ export function Navigation() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setMobileOpen(false)}
-                    className="block w-full text-left text-base text-surface-200 hover:text-white py-2"
+                    className="flex items-center justify-between w-full text-left text-base text-surface-200 hover:text-white py-3 px-2 rounded-lg hover:bg-white/5 transition-colors"
                   >
-                    {link.label} ↗
+                    <span>{link.label}</span>
+                    <span className="text-surface-500 text-sm">↗</span>
                   </a>
                 ) : (
                   <button
@@ -123,25 +129,25 @@ export function Navigation() {
                       setMobileOpen(false);
                       window.location.href = link.href;
                     }}
-                    className="block w-full text-left text-base text-surface-200 hover:text-white py-2"
+                    className="block w-full text-left text-base text-surface-200 hover:text-white py-3 px-2 rounded-lg hover:bg-white/5 transition-colors"
                   >
                     {link.label}
                   </button>
                 )
               )}
-              <div className="pt-4 border-t border-white/10 space-y-3">
+              <div className="pt-4 border-t border-white/10 space-y-3 mt-2">
                 <a
                   href="https://github.com/rejisterjack/react-perf-profiler"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <Button variant="ghost" className="w-full justify-center">
-                    GitHub
+                    View on GitHub
                   </Button>
                 </a>
                 <a href="#download">
                   <Button variant="primary" className="w-full justify-center">
-                    Download Extension
+                    Install Free — No Signup
                   </Button>
                 </a>
               </div>

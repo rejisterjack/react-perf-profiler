@@ -1,153 +1,342 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="canonical" href="https://rejisterjack.github.io/react-perf-profiler/" />
-    <title>Privacy Policy — React Perf Profiler</title>
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        line-height: 1.5;
-        max-width: 42rem;
-        margin: 2rem auto;
-        padding: 0 1rem;
-        color: #1a1a1a;
-      }
-      h1 {
-        font-size: 1.5rem;
-      }
-      h2 {
-        font-size: 1.15rem;
-        margin-top: 1.5rem;
-      }
-      ul {
-        padding-left: 1.25rem;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        font-size: 0.9rem;
-      }
-      th,
-      td {
-        border: 1px solid #ccc;
-        padding: 0.35rem 0.5rem;
-        text-align: left;
-        vertical-align: top;
-      }
-      th {
-        background: #f4f4f4;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Privacy Policy — React Perf Profiler</h1>
-    <p><strong>Last updated:</strong> April 3, 2026</p>
-    <p>
-      This page is the <strong>canonical privacy policy</strong> for store listings (Chrome Web Store and
-      Firefox Add-ons). Markdown sources live in the same folder of the GitHub repository.
-    </p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — React Perf Profiler</title>
+  <meta name="description" content="Privacy policy for the React Perf Profiler browser extension." />
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1b26;
+      --border: rgba(255,255,255,0.07);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #61dafb;
+      --heading: #f8fafc;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.7;
+      padding: 48px 24px 96px;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 48px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--heading);
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--heading);
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin: 40px 0;
+    }
+    .toc h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .toc ol {
+      padding-left: 20px;
+      space-y: 4px;
+    }
+    .toc li {
+      margin-bottom: 6px;
+    }
+    .toc a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .toc a:hover { text-decoration: underline; }
+    section {
+      margin-bottom: 48px;
+    }
+    h2 {
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: var(--heading);
+      margin-bottom: 16px;
+      padding-top: 8px;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--heading);
+      margin: 20px 0 10px;
+    }
+    p { margin-bottom: 14px; font-size: 15px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; font-size: 15px; }
+    strong { color: var(--heading); }
+    code {
+      background: rgba(97,218,251,0.08);
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .highlight {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: var(--text);
+    }
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+    footer {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.75rem; }
+      body { padding: 32px 18px 64px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a class="logo" href="/react-perf-profiler/">
+        <span class="logo-icon">⚡</span>
+        React Perf Profiler
+      </a>
+      <h1>Privacy Policy</h1>
+      <p class="meta">Last updated: June 2026 &nbsp;·&nbsp; Version 1.0</p>
+    </header>
 
-    <h2>Who we are</h2>
-    <p>
-      React Perf Profiler is open-source software. Repository:
-      <a href="https://github.com/rejisterjack/react-perf-profiler">github.com/rejisterjack/react-perf-profiler</a>.
-    </p>
+    <div class="highlight">
+      <strong>Short version:</strong> React Perf Profiler collects no personal data.
+      All profiling data stays on your machine by default. Optional features (AI suggestions,
+      cloud sync) only operate when you explicitly configure them with your own credentials.
+    </div>
 
-    <h2>Default behavior (no optional features)</h2>
-    <p>When you only record and analyze profiles in DevTools:</p>
-    <ul>
-      <li>
-        <strong>Profiling data</strong> (component names, render timings, commit structure from the React
-        Profiler path) is processed in extension contexts on your machine.
-      </li>
-      <li>
-        <strong>Storage:</strong> Preferences and session data are kept in the browser’s extension storage
-        (e.g. <code>chrome.storage.local</code> on Chrome; equivalent APIs on Firefox).
-      </li>
-      <li>
-        The project does not operate its own analytics server, advertising SDK, or account system for the
-        extension.
-      </li>
-      <li>
-        The tool is aimed at <strong>React render metadata</strong> you generate while debugging, not at
-        harvesting unrelated page content.
-      </li>
-    </ul>
+    <nav class="toc" aria-label="Table of contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#what-we-collect">What data we collect</a></li>
+        <li><a href="#what-we-dont-collect">What we do NOT collect</a></li>
+        <li><a href="#local-storage">Local data storage</a></li>
+        <li><a href="#ai-suggestions">AI Suggestions Panel</a></li>
+        <li><a href="#cloud-sync">Cloud sync (optional)</a></li>
+        <li><a href="#team-sessions">Team sessions (optional)</a></li>
+        <li><a href="#permissions">Browser permissions explained</a></li>
+        <li><a href="#third-parties">Third-party services</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ol>
+    </nav>
 
-    <h2>Optional features that can send data off your device</h2>
-    <p>
-      If you <strong>choose</strong> to enable and configure these features, data may leave your browser as
-      described:
-    </p>
-    <table>
-      <thead>
-        <tr>
-          <th>Feature</th>
-          <th>What may be sent</th>
-          <th>Where</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Cloud sync (S3, Dropbox, Google Drive, etc.)</td>
-          <td>Exported profile files or payloads you upload</td>
-          <td>The cloud provider you configure (their terms apply).</td>
-        </tr>
-        <tr>
-          <td>AI suggestions (OpenAI, Anthropic, …)</td>
-          <td>
-            Prompt text derived from your analysis (you may use privacy options in the UI where available) and
-            API authentication headers
-          </td>
-          <td>The provider’s API endpoints.</td>
-        </tr>
-        <tr>
-          <td>Ollama (local)</td>
-          <td>Requests to your local Ollama instance</td>
-          <td>Your machine only.</td>
-        </tr>
-        <tr>
-          <td>Team / collaboration (if enabled)</td>
-          <td>Session or signaling data required for the feature</td>
-          <td>Depends on configuration; see in-app description when enabled.</td>
-        </tr>
-      </tbody>
-    </table>
-    <p><strong>You control activation:</strong> Optional network features require your configuration.</p>
+    <section id="what-we-collect">
+      <h2>1. What data we collect</h2>
+      <p>
+        React Perf Profiler operates entirely on your local machine. The extension does not
+        have a backend, does not create accounts, and does not transmit any data to any server
+        operated by this project.
+      </p>
+      <p>
+        The only data processed by the extension is:
+      </p>
+      <ul>
+        <li>React component render data captured from the page you are actively profiling</li>
+        <li>Performance profiles you choose to export or sync (see sections 4–6 below)</li>
+        <li>Extension preferences you configure (stored locally in <code>chrome.storage.local</code>)</li>
+      </ul>
+    </section>
 
-    <h2>Permissions (summary)</h2>
-    <p>
-      The extension may request broad host access so a content script and bridge can attach on
-      <strong>development URLs you open</strong> (including iframes). That supports React / DevTools hook
-      access—not unrelated data collection. See the repository’s permission justification doc for
-      copy-paste text for reviewers.
-    </p>
+    <section id="what-we-dont-collect">
+      <h2>2. What we do NOT collect</h2>
+      <ul>
+        <li>Your name, email address, or any identifying information</li>
+        <li>The contents of pages you profile (DOM text, URLs, form data)</li>
+        <li>Browsing history or navigation patterns</li>
+        <li>Analytics, telemetry, or usage statistics</li>
+        <li>Crash reports (errors are logged to the browser console only)</li>
+        <li>Any data from pages where you are not actively using the profiler panel</li>
+      </ul>
+    </section>
 
-    <h2>Data retention and deletion</h2>
-    <ul>
-      <li>Clear extension data in the browser to remove stored profiles and settings.</li>
-      <li>Exported files on disk are your responsibility.</li>
-      <li>Cloud copies are managed in the provider you used.</li>
-    </ul>
+    <section id="local-storage">
+      <h2>3. Local data storage</h2>
+      <p>
+        The extension stores the following data locally using browser storage APIs:
+      </p>
+      <ul>
+        <li><strong>Profile sessions</strong> — Stored in <code>IndexedDB</code> for session recovery.
+          Cleared when you discard a session or uninstall the extension.</li>
+        <li><strong>Extension preferences</strong> — Stored in <code>chrome.storage.local</code>.
+          Includes panel layout, theme, and feature toggles.</li>
+        <li><strong>API keys</strong> — If you configure the AI Suggestions panel, your API key is
+          stored in <code>chrome.storage.local</code>. It is never transmitted except directly to
+          the AI provider of your choice when you request a suggestion.</li>
+      </ul>
+      <p>
+        None of this data is synced to any server operated by this project. It stays on your machine.
+      </p>
+    </section>
 
-    <h2>Children’s privacy</h2>
-    <p>The extension is intended for developers and is not directed at children under 13.</p>
+    <section id="ai-suggestions">
+      <h2>4. AI Suggestions Panel</h2>
+      <p>
+        The AI Suggestions panel is an opt-in feature that requires you to supply your own API key.
+        Supported providers: OpenAI, Anthropic, and local Ollama instances.
+      </p>
+      <p>When you request a suggestion:</p>
+      <ul>
+        <li>Component name, render count, wasted render count, and detected props are sent to
+          the provider you configured, using your API key.</li>
+        <li>No page content, URLs, or personally identifying information is included in the prompt.</li>
+        <li>Requests go directly from the extension to the provider — this project has no
+          intermediate server.</li>
+        <li>Using a <strong>local Ollama instance</strong> means no data leaves your machine at all.</li>
+      </ul>
+      <p>
+        Refer to your chosen provider's privacy policy for how they handle API requests:
+        <a href="https://openai.com/privacy" target="_blank" rel="noopener">OpenAI</a> |
+        <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic</a>.
+      </p>
+    </section>
 
-    <h2>Changes</h2>
-    <p>We may update this policy. The “Last updated” date will change when we do.</p>
+    <section id="cloud-sync">
+      <h2>5. Cloud sync (optional)</h2>
+      <p>
+        The cloud sync feature lets you export profiles to S3, Dropbox, or Google Drive.
+        This feature is disabled by default and only activates when you enter your own
+        cloud storage credentials.
+      </p>
+      <ul>
+        <li>Credentials are stored locally in <code>chrome.storage.local</code>.</li>
+        <li>Profiles are sent directly to your storage provider using your credentials.</li>
+        <li>This project does not operate any storage infrastructure.</li>
+      </ul>
+    </section>
 
-    <h2>Contact and security</h2>
-    <ul>
-      <li>
-        Security reports:
-        <a href="https://github.com/rejisterjack/react-perf-profiler/blob/main/SECURITY.md">SECURITY.md</a>
-      </li>
-      <li>General questions: open an issue on the GitHub repository linked above.</li>
-    </ul>
+    <section id="team-sessions">
+      <h2>6. Team sessions (optional)</h2>
+      <p>
+        Live team sessions use WebRTC for peer-to-peer communication. A signaling relay
+        server is used only to establish the WebRTC connection — it does not store profile data.
+      </p>
+      <ul>
+        <li>The relay passes WebRTC handshake messages (offers, answers, ICE candidates)
+          between peers. Profile data flows directly peer-to-peer after the connection is established.</li>
+        <li>You can run your own relay server using the included
+          <code>scripts/signaling-server.js</code>.</li>
+        <li>Session codes and join tokens expire after 30 minutes.</li>
+      </ul>
+    </section>
 
-    <h2>Open source</h2>
-    <p>You may audit behavior in the public repository.</p>
-  </body>
+    <section id="permissions">
+      <h2>7. Browser permissions explained</h2>
+      <p>The extension requests the following permissions:</p>
+      <ul>
+        <li><strong><code>devtools</code></strong> — Required to add the Perf Profiler tab to
+          Chrome/Firefox DevTools and access the React DevTools hook.</li>
+        <li><strong><code>storage</code></strong> — Required to store preferences and API keys
+          locally in <code>chrome.storage.local</code>.</li>
+        <li><strong><code>tabs</code></strong> — Required to associate profiling sessions with
+          specific browser tabs and clean up data when a tab closes.</li>
+        <li><strong><code>alarms</code></strong> — Required to keep the service worker alive
+          during long recording sessions (Chrome MV3 only).</li>
+        <li><strong><code>scripting</code></strong> — Required to inject the profiler bridge
+          script into the page being profiled.</li>
+      </ul>
+      <p>
+        No permission grants access to your browsing history, bookmarks, passwords, or
+        data from pages you are not actively profiling.
+      </p>
+    </section>
+
+    <section id="third-parties">
+      <h2>8. Third-party services</h2>
+      <p>
+        This project uses the following third-party services — none of which receive profiling data:
+      </p>
+      <ul>
+        <li><strong>GitHub</strong> — Hosts the source code and issue tracker.</li>
+        <li><strong>GitHub Pages</strong> — Hosts this landing page.
+          GitHub may collect standard web server logs (IP address, timestamp, page requested).
+          See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement"
+            target="_blank" rel="noopener">GitHub's Privacy Statement</a>.</li>
+      </ul>
+    </section>
+
+    <section id="contact">
+      <h2>9. Contact</h2>
+      <p>
+        If you have questions about this privacy policy, please open an issue on
+        <a href="https://github.com/rejisterjack/react-perf-profiler/issues" target="_blank"
+          rel="noopener">GitHub</a>.
+      </p>
+      <p>
+        Because the extension collects no personal data, there is no data to access,
+        correct, or delete.
+      </p>
+    </section>
+
+    <hr />
+    <footer>
+      <p>
+        React Perf Profiler is open source under the
+        <a href="https://github.com/rejisterjack/react-perf-profiler/blob/main/LICENSE"
+          target="_blank" rel="noopener">MIT License</a>.
+        &nbsp;·&nbsp;
+        <a href="/react-perf-profiler/">Back to homepage</a>
+      </p>
+    </footer>
+  </div>
+</body>
 </html>

@@ -9,6 +9,7 @@ import { useSessionPersistence } from './hooks/useSessionPersistence';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
 import { NotificationContainer } from './components/Notifications/NotificationContainer';
+import { FirstRunOverlay } from './components/Onboarding/FirstRunOverlay';
 
 /**
  * Connection error display component
@@ -231,6 +232,8 @@ export const App: React.FC = () => {
 
   return (
     <ErrorBoundary context="React Perf Profiler">
+      {/* First-run onboarding — shown once after install, stored in chrome.storage.local */}
+      <FirstRunOverlay />
       <div className={styles['app']} data-recording={isRecording}>
         <ErrorBoundary context="toolbar" compact>
           <Toolbar />

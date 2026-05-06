@@ -4,18 +4,20 @@ import { Mail, Check, Bell, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
- * EmailCapture — notifies users when the extension lands on the Chrome Web Store.
+ * EmailCapture — collects emails for release notes and feature announcements.
  *
- * Backend options (configure one via environment variable):
+ * Backend options (configure one via environment variable in landing/.env):
  *
- *   Option A — Formspree (free tier, no server needed):
- *     Set VITE_FORMSPREE_ID=your_form_id in landing/.env
- *     Create a form at https://formspree.io and paste the form ID here.
+ *   Option A — Formspree (free tier, zero server required):
+ *     VITE_FORMSPREE_ID=your_form_id
+ *     Create a form at https://formspree.io → copy the form ID.
  *
- *   Option B — Resend / custom endpoint:
- *     Set VITE_EMAIL_ENDPOINT=https://your-api.com/subscribe
+ *   Option B — Custom endpoint (Resend, ConvertKit, etc.):
+ *     VITE_EMAIL_ENDPOINT=https://your-api.com/subscribe
+ *     The endpoint should accept POST { email, source }.
  *
- *   Fallback: stores locally and logs to console (development only).
+ *   Fallback (no env vars set): persists in localStorage — useful in dev,
+ *   but not suitable for production.
  */
 
 const FORMSPREE_ID = import.meta.env.VITE_FORMSPREE_ID as string | undefined;
@@ -84,7 +86,7 @@ export function EmailCapture() {
             className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-brand-green/10 border border-brand-green/20 text-brand-green"
           >
             <Check className="w-5 h-5 shrink-0" />
-            <span className="font-medium">You will be notified when we launch on the Web Store!</span>
+            <span className="font-medium">You&apos;re on the list! We&apos;ll let you know about major updates and new features.</span>
           </motion.div>
         ) : (
           <motion.form
@@ -118,7 +120,7 @@ export function EmailCapture() {
               className="whitespace-nowrap"
               disabled={status === 'loading'}
             >
-              {status === 'loading' ? 'Submitting…' : 'Get Notified'}
+              {status === 'loading' ? 'Submitting…' : 'Stay Updated'}
             </Button>
           </motion.form>
         )}
@@ -137,7 +139,7 @@ export function EmailCapture() {
 
       {status !== 'submitted' && (
         <p className="text-center text-xs text-surface-500 mt-3">
-          No spam. One email when the extension goes live on the Web Store.
+          No spam. Unsubscribe any time. Major releases and important updates only.
         </p>
       )}
     </div>

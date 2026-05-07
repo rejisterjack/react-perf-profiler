@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "biome check src/",
     "db:push": "npx prisma db push",
@@ -19,7 +19,6 @@
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",
-    "gsap": "^3.12.5",
     "jsonwebtoken": "^9.0.3",
     "lenis": "^1.1.0",
     "lucide-react": "^0.462.0",

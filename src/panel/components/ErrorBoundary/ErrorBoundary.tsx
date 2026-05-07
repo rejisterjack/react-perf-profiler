@@ -7,7 +7,9 @@
 import { Component, createRef, type ErrorInfo, type ReactNode } from 'react';
 import { clearLastError, reloadPanel, reportError, resetPanel } from '@/panel/utils/errorRecovery';
 import { GENERIC_ISSUE_REPORT_URL, GITHUB_REPO_URL } from '@/shared/constants';
+import { t } from '@/shared/i18n';
 import { logger } from '@/shared/logger';
+import { captureException } from '@/shared/telemetry/sentry';
 import { Button } from '../Common/Button/Button';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './ErrorBoundary.module.css';
@@ -98,6 +100,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       errorId: this.state.errorId,
     });
 
+    // Report to Sentry (if enabled)
+    captureException(error, {
+      context: this.props.context ?? 'unknown',
+      errorId: this.state.errorId,
+    });
+
     // Call optional onError callback
     this.props.onError?.(error, errorInfo);
   }
@@ -143,22 +151,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       `[Bug] Error in React Perf Profiler: ${error?.message || 'Unknown error'}`
     );
     const body = encodeURIComponent(
-      `## Error Description\n\n` +
-        `**Error ID:** ${errorId}\n` +
-        `**Error Message:** ${error?.message || 'No error message'}\n\n` +
-        `**Stack Trace:**\n\`\`\`\n${error?.stack || 'No stack trace'}\n\`\`\`\n\n` +
-        `**Component Stack:**\n\`\`\`\n${errorInfo?.componentStack || 'No component stack'}\n\`\`\`\n\n` +
-        `**Context:** ${this.props.context || 'Unknown'}\n\n` +
-        `## Steps to Reproduce\n\n` +
-        `1. \n` +
-        `2. \n` +
-        `3. \n\n` +
-        `## Expected Behavior\n\n` +
-        `## Actual Behavior\n\n` +
-        `## Environment\n\n` +
-        `- Browser: ${navigator.userAgent}\n` +
-        `- URL: ${window.location.href}\n` +
-        `- Extension Version: ${import.meta.env?.['VITE_APP_VERSION'] || '1.0.0'}\n`
+      `## Error Description\n\n**Error ID:** ${errorId}\n**Error Message:** ${error?.message || 'No error message'}\n\n**Stack Trace:**\n\`\`\`\n${error?.stack || 'No stack trace'}\n\`\`\`\n\n**Component Stack:**\n\`\`\`\n${errorInfo?.componentStack || 'No component stack'}\n\`\`\`\n\n**Context:** ${this.props.context || 'Unknown'}\n\n## Steps to Reproduce\n\n1. \n2. \n3. \n\n## Expected Behavior\n\n## Actual Behavior\n\n## Environment\n\n- Browser: ${navigator.userAgent}\n- URL: ${window.location.href}\n- Extension Version: ${import.meta.env?.['VITE_APP_VERSION'] || '1.0.0'}\n`
     );
 
     // Use configurable GitHub URL with fallback
@@ -218,7 +211,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
 
           <h2 className={styles['errorTitle']}>
-            {compact ? 'Something went wrong' : 'Oops! Something went wrong'}
+            {compact ? t('errorBoundary.title') : 'Oops! Something went wrong'}
           </h2>
 
           <p className={styles['errorMessage']}>

@@ -64,6 +64,8 @@ export interface ExportOptions {
   includeRawData?: boolean;
   /** Whether to minify the output */
   minify?: boolean;
+  /** Export format: json (full), csv (component summary), html (report) */
+  format?: 'json' | 'csv' | 'html';
 }
 
 /**
@@ -128,9 +130,6 @@ export function useExport(): UseExportReturn {
   // Use ref for abort controller to allow cancellation
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Access store state
-  const store = useProfilerStore.getState();
-
   /**
    * Clear all errors
    */
@@ -168,6 +167,7 @@ export function useExport(): UseExportReturn {
       filename = `react-perf-profile-${new Date().toISOString().split('T')[0]}`,
       includeRawData = true,
       minify = false,
+      format = 'json',
     } = options;
 
     // Create abort controller for this operation
@@ -184,7 +184,9 @@ export function useExport(): UseExportReturn {
     try {
       // Stage 1: Collect data (0-30%)
       setExportProgress(prev => ({ ...prev, progress: 10 }));
-      
+
+      const store = useProfilerStore.getState();
+
       // Convert Map to Record for serialization
       const componentDataRecord: Record<string, unknown> = {};
       store.componentData.forEach((value, key) => {
@@ -219,8 +221,30 @@ export function useExport(): UseExportReturn {
         message: 'Serializing data...',
       });
 
-      const jsonString = JSON.stringify(exportData, null, minify ? undefined : 2);
-      
+      let blob: Blob;
+      let ext: string;
+
+      if (format === 'csv') {
+        const csvStore = useProfilerStore.getState();
+        const rows = ['Component,Render Count,Wasted Renders,Wasted %,Avg Duration (ms),Memo Hit Rate'];
+        csvStore.componentData.forEach((data, name) => {
+          const d = data as unknown as Record<string, unknown>;
+          rows.push(
+            `"${name}",${d.renderCount ?? 0},${d.wastedRenders ?? 0},${d.wastedRenderRate ?? 0},${((d.selfDuration as number) ?? 0).toFixed(2)},${d.memoHitRate ?? 'N/A'}`
+          );
+        });
+        blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+        ext = 'csv';
+      } else if (format === 'html') {
+        const html = generateHtmlReport(exportData);
+        blob = new Blob([html], { type: 'text/html' });
+        ext = 'html';
+      } else {
+        const jsonString = JSON.stringify(exportData, null, minify ? undefined : 2);
+        blob = new Blob([jsonString], { type: 'application/json' });
+        ext = 'json';
+      }
+
       if (signal.aborted) throw new Error('Export cancelled');
 
       // Stage 3: Create and download file (70-100%)
@@ -230,12 +254,11 @@ export function useExport(): UseExportReturn {
         message: 'Creating download...',
       });
 
-      const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}.json`;
+      a.download = `${filename}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -277,7 +300,7 @@ export function useExport(): UseExportReturn {
     } finally {
       abortControllerRef.current = null;
     }
-  }, [store]);
+  }, []);
 
   /**
    * Import profiling data from a JSON file
@@ -358,18 +381,19 @@ export function useExport(): UseExportReturn {
 
       // Import commits
       if (parsedData.commits && Array.isArray(parsedData.commits)) {
+        const importStore = useProfilerStore.getState();
         // Clear existing data first
-        store.clearData?.();
-        
+        importStore.clearData?.();
+
         // Add imported commits
         for (const commit of parsedData.commits) {
-          store.addCommit(commit);
+          importStore.addCommit(commit);
         }
       }
 
       // Import analysis results
       if (parsedData.analysisResults) {
-        store.setAnalysisResults(parsedData.analysisResults);
+        useProfilerStore.getState().setAnalysisResults(parsedData.analysisResults);
       }
 
       if (signal.aborted) throw new Error('Import cancelled');
@@ -410,7 +434,7 @@ export function useExport(): UseExportReturn {
     } finally {
       abortControllerRef.current = null;
     }
-  }, [store]);
+  }, []);
 
   return {
     exportProgress,
@@ -447,3 +471,25 @@ function readFileAsText(file: File): Promise<string> {
 }
 
 export default useExport;
+
+function generateHtmlReport(data: ExportData): string {
+  const rows = Object.entries(data.componentData)
+    .map(([name, d]) => {
+      const rec = d as Record<string, unknown>;
+      const wasted = Number(rec.wastedRenderRate ?? 0);
+      const color = wasted > 70 ? '#ef4444' : wasted > 30 ? '#f59e0b' : '#22c55e';
+      return `<tr><td>${name}</td><td>${rec.renderCount ?? 0}</td><td>${rec.wastedRenders ?? 0}</td><td style="color:${color}">${wasted.toFixed(1)}%</td><td>${((rec.selfDuration as number) ?? 0).toFixed(2)}</td></tr>`;
+    })
+    .join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>React Perf Profiler Report</title>
+<style>body{font-family:system-ui,sans-serif;max-width:960px;margin:2em auto;color:#e2e8f0;background:#0f172a}
+table{width:100%;border-collapse:collapse;margin-top:1em}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #1e293b}
+th{color:#94a3b8;font-size:12px;text-transform:uppercase}h1{font-size:20px}
+.meta{color:#64748b;font-size:13px;margin-bottom:1em}</style></head>
+<body><h1>React Perf Profiler Report</h1>
+<p class="meta">Exported ${new Date(data.exportedAt).toLocaleString()} &middot; ${data.metadata.totalCommits} commits &middot; ${data.metadata.totalComponents} components</p>
+<table><thead><tr><th>Component</th><th>Renders</th><th>Wasted</th><th>Wasted %</th><th>Avg ms</th></tr></thead>
+<tbody>${rows}</tbody></table></body></html>`;
+}

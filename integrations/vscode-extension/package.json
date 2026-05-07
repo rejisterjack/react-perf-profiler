@@ -1,0 +1,68 @@
+{
+  "name": "react-perf-profiler-vscode",
+  "displayName": "React Perf Profiler",
+  "description": "View React Perf Profiler insights directly in VS Code",
+  "version": "0.1.0",
+  "publisher": "rejisterjack",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Debuggers", "Testing"],
+  "activationEvents": [
+    "onCommand:reactPerfProfiler.openProfile",
+    "onView:reactPerfProfiler.sidebar"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "reactPerfProfiler.openProfile",
+        "title": "React Perf Profiler: Open Profile"
+      },
+      {
+        "command": "reactPerfProfiler.runBudgetCheck",
+        "title": "React Perf Profiler: Run Budget Check"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "reactPerfProfiler.sidebar",
+          "name": "Perf Profiler",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "React Perf Profiler",
+      "properties": {
+        "reactPerfProfiler.budgets.renderTime": {
+          "type": "number",
+          "default": 16,
+          "description": "Max render time budget in milliseconds"
+        },
+        "reactPerfProfiler.budgets.renderCount": {
+          "type": "number",
+          "default": 10,
+          "description": "Max render count per component before warning"
+        },
+        "reactPerfProfiler.profilePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to exported profile JSON"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.6.0",
+    "@vscode/vsce": "^3.0.0"
+  },
+  "license": "MIT"
+}

@@ -9,11 +9,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && tsc && vite build --config vite.config.firefox.ts",
     "build:dev": "tsc && vite build --mode development",
-    "build:firefox": "tsc && vite build --config vite.config.firefox.ts",
-    "build:firefox:dev": "tsc && vite build --config vite.config.firefox.ts --mode development",
-    "build:all": "pnpm run build && pnpm run build:firefox",
     "build:cli": "tsc -p tsconfig.cli.json",
     "analyze": "vite build --mode analyze",
     "test": "vitest run",
@@ -30,6 +27,7 @@
     "landing:dev": "cd landing && pnpm dev",
     "landing:build": "cd landing && pnpm build",
     "landing:preview": "cd landing && pnpm preview",
+    "zip": "node scripts/create-zips.mjs",
     "landing:zip": "node landing/scripts/build-extension-zips.mjs",
     "perf:check": "tsx src/cli/perf-check.ts",
     "perf:check:bundles": "tsx src/cli/perf-check.ts --check-bundles",
@@ -39,6 +37,7 @@
   },
   "dependencies": {
     "@react-three/fiber": "^8.15.0",
+    "@sentry/browser": "^10.51.0",
     "@tanstack/react-virtual": "^3.0.0",
     "@tensorflow/tfjs": "^4.10.0",
     "d3": "^7.8.5",
@@ -54,7 +53,7 @@
   "devDependencies": {
     "@axe-core/react": "^4.10.0",
     "@biomejs/biome": "^1.5.3",
-    "@crxjs/vite-plugin": "2.0.0-beta.28",
+    "@crxjs/vite-plugin": "^2.4.0",
     "@playwright/test": "^1.40.1",
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^14.1.2",
@@ -75,6 +74,14 @@
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
     "vitest": "^1.1.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "rollup@<2.80.0": "^2.80.0",
+      "picomatch@<2.3.2": "^2.3.2",
+      "picomatch@>=4.0.0 <4.0.4": "^4.0.4",
+      "postcss@<8.5.10": "^8.5.10"
+    }
   },
   "engines": {
     "node": ">=18.0.0"

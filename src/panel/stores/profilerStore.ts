@@ -8,6 +8,8 @@ import { create } from 'zustand';
 import { analysisWorker, rscWorker } from '@/panel/workers/workerClient';
 import { CircularBuffer } from '@/panel/utils/circularBuffer';
 import { notifications } from '@/panel/stores/notificationStore';
+import { trackEvent } from '@/shared/telemetry';
+import { startAnalysisTimer, endAnalysisTimer, startMemorySampling, stopMemorySampling } from '@/shared/telemetry/perfMonitor';
 import {
   DEFAULT_DETAIL_PANEL_WIDTH,
   DEFAULT_SIDEBAR_WIDTH,
@@ -506,6 +508,8 @@ const storeImplementation = (
 
   // Actions
   startRecording: () => {
+    trackEvent('recording_started');
+    startMemorySampling();
     // Clear circular buffer for new recording
     commitsBuffer.clear();
     
@@ -527,9 +531,11 @@ const storeImplementation = (
   },
 
   stopRecording: () => {
-    const { recordingStartTime, runAnalysis } = get();
+    const { recordingStartTime, runAnalysis, commits } = get();
     const duration = recordingStartTime ? Date.now() - recordingStartTime : 0;
     set({ isRecording: false, recordingDuration: duration });
+    stopMemorySampling();
+    trackEvent('recording_stopped', { duration_ms: duration, commit_count: commits.length });
     
     // Auto-trigger analysis after delay
     if (autoAnalysisTimer) {
@@ -813,6 +819,7 @@ const storeImplementation = (
 
   runAnalysis: async () => {
     set({ isAnalyzing: true, analysisError: null });
+    startAnalysisTimer();
 
     try {
       const { commits, config } = get();
@@ -905,6 +912,7 @@ const storeImplementation = (
         totalComponents,
       };
 
+      endAnalysisTimer(commits.length, totalComponents);
       set({
         isAnalyzing: false,
         performanceScore,
@@ -918,6 +926,7 @@ const storeImplementation = (
       notifications.analysisComplete(clampedScore);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+      endAnalysisTimer(get().commits.length, 0);
       set({
         isAnalyzing: false,
         analysisError: errorMessage,

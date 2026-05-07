@@ -8,11 +8,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useConnectionStore } from '@/panel/stores/connectionStore';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
 import { getErrorDisplay } from '@/panel/utils/errorMessages';
+import { t } from '@/shared/i18n';
 import { Button } from '../Common/Button/Button';
 import { Icon, type IconName } from '../Common/Icon/Icon';
 import styles from './WelcomeScreen.module.css';
-
-// =============================================================================
 // Types
 // =============================================================================
 
@@ -40,7 +39,7 @@ export const WelcomeScreen: React.FC = () => {
   const [detectionState, setDetectionState] = useState<ReactDetectionState>({
     isChecking: true,
     state: 'checking',
-    message: 'Checking React environment...',
+    message: t('status.checking'),
     canRetry: true,
   });
   const [isDetecting, setIsDetecting] = useState(false);
@@ -51,7 +50,7 @@ export const WelcomeScreen: React.FC = () => {
       setDetectionState({
         isChecking: false,
         state: 'disconnected',
-        message: 'Waiting for connection to the page...',
+        message: t('status.disconnected'),
         canRetry: true,
       });
       return;
@@ -84,7 +83,7 @@ export const WelcomeScreen: React.FC = () => {
             setDetectionState({
               isChecking: false,
               state: 'connected',
-              message: 'Connected to React',
+              message: t('status.connected'),
               canRetry: false,
             });
           }
@@ -131,21 +130,21 @@ export const WelcomeScreen: React.FC = () => {
       setDetectionState({
         isChecking: false,
         state: 'connected',
-        message: 'Connected to React',
+        message: t('status.connected'),
         canRetry: false,
       });
     } else if (!payload.reactDetected) {
       setDetectionState({
         isChecking: false,
         state: 'react-not-found',
-        message: 'React not detected on this page',
+        message: t('status.reactNotFound'),
         canRetry: true,
       });
     } else if (!payload.devtoolsDetected) {
       setDetectionState({
         isChecking: false,
         state: 'devtools-not-found',
-        message: 'React DevTools extension not found',
+        message: t('status.devtoolsNotFound'),
         canRetry: true,
       });
     }
@@ -211,7 +210,7 @@ export const WelcomeScreen: React.FC = () => {
           disabled={!isConnected || isRecording || detectionState.state !== 'connected'}
           className={styles['recordButton']}
         >
-          {isRecording ? 'Recording...' : 'Start Profiling'}
+          {isRecording ? t('welcome.recording') : t('welcome.startProfiling')}
         </Button>
 
         {detectionState.canRetry && (
@@ -222,7 +221,7 @@ export const WelcomeScreen: React.FC = () => {
             onClick={handleRetryConnection}
             disabled={isDetecting}
           >
-            {isDetecting ? 'Checking...' : 'Retry Connection'}
+            {isDetecting ? t('welcome.checking') : t('welcome.retryConnection')}
           </Button>
         )}
 
@@ -235,7 +234,38 @@ export const WelcomeScreen: React.FC = () => {
 
       {/* Features Grid - only show when connected */}
       {detectionState.state === 'connected' && (
-        <div className={styles['features']}>
+        <>
+          {/* Guided Workflows */}
+          <div className={styles['features']}>
+            <h3 style={{ gridColumn: '1 / -1', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>
+              Quick Workflows
+            </h3>
+            <button
+              type="button"
+              className={styles['featureCard']}
+              aria-label="Profile page load — auto-records 5 seconds to capture initial renders"
+              onClick={() => {
+                handleStartRecording();
+                setTimeout(() => useProfilerStore.getState().stopRecording(), 5000);
+              }}
+              style={{ cursor: 'pointer', textAlign: 'left', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '10px', padding: '14px' }}
+            >
+              <strong style={{ color: '#60a5fa', display: 'block', marginBottom: '4px' }}>Profile Page Load</strong>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>Auto-records 5s to capture initial renders</span>
+            </button>
+            <button
+              type="button"
+              className={styles['featureCard']}
+              aria-label="Profile interaction — record while you interact with your app"
+              onClick={handleStartRecording}
+              style={{ cursor: 'pointer', textAlign: 'left', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '10px', padding: '14px' }}
+            >
+              <strong style={{ color: '#a78bfa', display: 'block', marginBottom: '4px' }}>Profile Interaction</strong>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>Record while you interact with your app</span>
+            </button>
+          </div>
+
+          <div className={styles['features']}>
           <FeatureCard
             icon="tree"
             title="Component Tree"
@@ -257,6 +287,7 @@ export const WelcomeScreen: React.FC = () => {
             description="Get actionable optimization recommendations"
           />
         </div>
+        </>
       )}
 
       {/* Keyboard Shortcuts */}
@@ -305,7 +336,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ state, message }) => {
       case 'react-not-found':
       case 'devtools-not-found':
         return 'warning';
-      case 'disconnected':
       default:
         return 'dot';
     }
@@ -320,7 +350,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ state, message }) => {
       case 'react-not-found':
       case 'devtools-not-found':
         return styles['warning'] ?? '';
-      case 'disconnected':
       default:
         return styles['disconnected'] ?? '';
     }
@@ -330,8 +359,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ state, message }) => {
   const className = getClassName();
 
   return (
-    <div className={`${styles['statusBadge']} ${className}`}>
-      <Icon name={icon} size={20} className={state === 'checking' ? styles['spinning'] : ''} />
+    <div className={`${styles['statusBadge']} ${className}`} role="status" aria-live="polite">
+      <Icon name={icon} size={20} className={state === 'checking' ? styles['spinning'] : ''} aria-hidden="true" />
       <span>{message}</span>
     </div>
   );
@@ -356,6 +385,13 @@ const SetupInstructions: React.FC<SetupInstructionsProps> = ({ state, onDetect, 
             This page does not appear to be using React, or it is using a production build which
             does not expose the React DevTools hook.
           </p>
+          <h4>Common fixes:</h4>
+          <ol>
+            <li><strong>Development build required</strong> — Production React builds strip DevTools hooks. Use <code>npm run dev</code> / <code>next dev</code> / <code>vite</code> instead of <code>npm run build</code>.</li>
+            <li><strong>Next.js App Router</strong> — React loads asynchronously. Wait for the page to fully hydrate, then retry detection.</li>
+            <li><strong>Vite dev server</strong> — Ensure <code>@vitejs/plugin-react</code> is configured. Some setups use <code>react()</code> which may need <code>reactJsx()</code> instead for DevTools support.</li>
+            <li><strong>Extension permissions</strong> — Check that this extension has access to the current page (required for content script injection).</li>
+          </ol>
           <p className={styles['setupHint']}>
             Tip: Strict Mode, Fast Refresh, and concurrent rendering can affect render counts—see{' '}
             <a
@@ -367,12 +403,6 @@ const SetupInstructions: React.FC<SetupInstructionsProps> = ({ state, onDetect, 
             </a>
             .
           </p>
-          <h4>To use React Perf Profiler:</h4>
-          <ol>
-            <li>Navigate to a page that uses React</li>
-            <li>Make sure React is running in development mode</li>
-            <li>The page should load React before any profiling can begin</li>
-          </ol>
           <div className={styles['setupActions']}>
             <Button
               variant="secondary"
@@ -381,7 +411,7 @@ const SetupInstructions: React.FC<SetupInstructionsProps> = ({ state, onDetect, 
               onClick={onDetect}
               disabled={isDetecting}
             >
-              {isDetecting ? 'Detecting...' : 'Detect React'}
+              {isDetecting ? t('setup.detecting') : t('setup.detectReact')}
             </Button>
           </div>
         </div>
@@ -428,7 +458,7 @@ const SetupInstructions: React.FC<SetupInstructionsProps> = ({ state, onDetect, 
           </ol>
           <div className={styles['setupNote']}>
             <Icon name="info" size={14} />
-            <span>Already installed? Try refreshing the page or restarting your browser.</span>
+            <span>Already installed? Try refreshing the page, restarting your browser, or checking for extension conflicts.</span>
           </div>
           <div className={styles['setupActions']}>
             <Button
@@ -438,7 +468,7 @@ const SetupInstructions: React.FC<SetupInstructionsProps> = ({ state, onDetect, 
               onClick={onDetect}
               disabled={isDetecting}
             >
-              {isDetecting ? 'Detecting...' : 'Detect React'}
+              {isDetecting ? t('setup.detecting') : t('setup.detectReact')}
             </Button>
           </div>
         </div>

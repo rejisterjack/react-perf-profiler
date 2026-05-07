@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { t } from '@/shared/i18n';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
@@ -36,6 +37,10 @@ interface NotificationState {
   enableSound: boolean;
   /** Whether notifications are enabled */
   enabled: boolean;
+  /** Notification titles the user has permanently dismissed */
+  mutedTitles: string[];
+  /** Recent notification history (last 50) */
+  history: Notification[];
 }
 
 interface NotificationActions {
@@ -52,6 +57,12 @@ interface NotificationActions {
   markAsRead: (id: string) => void;
   /** Clear all notifications */
   clearAll: () => void;
+  /** Mute a notification title so it never shows again */
+  muteTitle: (title: string) => void;
+  /** Unmute a notification title */
+  unmuteTitle: (title: string) => void;
+  /** Clear notification history */
+  clearHistory: () => void;
   /** Update settings */
   updateSettings: (settings: Partial<Pick<NotificationState, 'maxNotifications' | 'enableSound' | 'enabled'>>) => void;
 }
@@ -81,11 +92,14 @@ export const useNotificationStore = create<NotificationStore>()(
       maxNotifications: 5,
       enableSound: false,
       enabled: true,
+      mutedTitles: [],
+      history: [],
 
       show: (options) => {
-        const { enabled, maxNotifications, enableSound } = get();
-        
+        const { enabled, maxNotifications, enableSound, mutedTitles } = get();
+
         if (!enabled) return '';
+        if (mutedTitles.includes(options.title)) return '';
 
         const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         const timeout = options.timeout ?? DEFAULT_TIMEOUTS[options.type];
@@ -105,6 +119,11 @@ export const useNotificationStore = create<NotificationStore>()(
           state.notifications.unshift(notification);
           if (state.notifications.length > maxNotifications) {
             state.notifications = state.notifications.slice(0, maxNotifications);
+          }
+          // Add to history (keep last 50)
+          state.history.unshift({ ...notification });
+          if (state.history.length > 50) {
+            state.history = state.history.slice(0, 50);
           }
         });
 
@@ -162,6 +181,26 @@ export const useNotificationStore = create<NotificationStore>()(
         });
       },
 
+      muteTitle: (title) => {
+        set((state) => {
+          if (!state.mutedTitles.includes(title)) {
+            state.mutedTitles.push(title);
+          }
+        });
+      },
+
+      unmuteTitle: (title) => {
+        set((state) => {
+          state.mutedTitles = state.mutedTitles.filter((t) => t !== title);
+        });
+      },
+
+      clearHistory: () => {
+        set((state) => {
+          state.history = [];
+        });
+      },
+
       updateSettings: (settings) => {
         set((state) => {
           Object.assign(state, settings);
@@ -192,53 +231,53 @@ export const notifications = {
   budgetExceeded: (metric: string, value: number, threshold: number) =>
     useNotificationStore.getState().show({
       type: 'warning',
-      title: 'Performance Budget Exceeded',
-      message: `${metric}: ${value.toFixed(2)}ms (threshold: ${threshold}ms)`,
+      title: t('notification.budgetExceeded'),
+      message: t('notification.budgetExceededMsg', { metric, value: value.toFixed(2), threshold: String(threshold) }),
       timeout: 5000,
     }),
-  
+
   /** Analysis complete notification */
   analysisComplete: (score: number) =>
     useNotificationStore.getState().show({
       type: 'success',
-      title: 'Analysis Complete',
-      message: `Performance score: ${Math.round(score)}/100`,
+      title: t('notification.analysisComplete'),
+      message: t('notification.analysisCompleteMsg', { score: String(Math.round(score)) }),
       timeout: 3000,
     }),
-  
+
   /** Export ready notification */
   exportReady: (filename: string) =>
     useNotificationStore.getState().show({
       type: 'success',
-      title: 'Export Ready',
-      message: `${filename} has been downloaded`,
+      title: t('notification.exportReady'),
+      message: t('notification.exportReadyMsg', { filename }),
       timeout: 3000,
     }),
-  
+
   /** Import success notification */
   importSuccess: (migrated?: boolean) =>
     useNotificationStore.getState().show({
       type: 'success',
-      title: 'Import Successful',
-      message: migrated ? 'Profile imported and migrated to current format' : 'Profile imported successfully',
+      title: t('notification.importSuccess'),
+      message: migrated ? t('notification.importMigratedMsg') : t('notification.importSuccessMsg'),
       timeout: 3000,
     }),
-  
+
   /** Recording started notification */
   recordingStarted: () =>
     useNotificationStore.getState().show({
       type: 'info',
-      title: 'Recording Started',
-      message: 'Profiling data is being captured',
+      title: t('recording.startedTitle'),
+      message: t('recording.started'),
       timeout: 2000,
     }),
-  
+
   /** Recording stopped notification */
   recordingStopped: (commitCount: number) =>
     useNotificationStore.getState().show({
       type: 'success',
-      title: 'Recording Stopped',
-      message: `${commitCount} commits captured`,
+      title: t('recording.stoppedTitle'),
+      message: t('recording.stopped', { count: String(commitCount) }),
       timeout: 3000,
     }),
 };

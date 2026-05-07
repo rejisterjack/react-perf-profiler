@@ -4,12 +4,21 @@ on:
   push:
     tags:
       - 'v*'
+      - 'v*-beta.*'
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
         type: string
+      channel:
+        description: 'Release channel'
+        required: false
+        type: choice
+        options:
+          - stable
+          - beta
+        default: stable
 
 jobs:
   build-and-release:
@@ -53,13 +62,32 @@ jobs:
       - name: Build Firefox extension
         run: pnpm run build:firefox
 
-      - name: Get version
+      - name: Get version and channel
         id: get_version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "CHANNEL=${{ github.event.inputs.channel }}" >> $GITHUB_ENV
           else
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+            TAG="${GITHUB_REF#refs/tags/v}"
+            echo "VERSION=${TAG}" >> $GITHUB_ENV
+            if [[ "$TAG" == *"-beta."* ]]; then
+              echo "CHANNEL=beta" >> $GITHUB_ENV
+            else
+              echo "CHANNEL=stable" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Tag beta builds in manifest name
+        run: |
+          if [ "$CHANNEL" = "beta" ]; then
+            cd dist-chrome
+            jq '.name = "React Perf Profiler (Beta)"' manifest.json > manifest.json.tmp
+            mv manifest.json.tmp manifest.json
+            cd ../dist-firefox
+            jq '.name = "React Perf Profiler (Beta)"' manifest.json > manifest.json.tmp
+            mv manifest.json.tmp manifest.json
+            cd ..
           fi
 
       - name: Update Chrome manifest version
@@ -86,6 +114,12 @@ jobs:
           zip -r ../react-perf-profiler-firefox-v${VERSION}.zip .
           cd ..
 
+      - name: Create beta ZIP archives
+        if: env.CHANNEL == 'beta'
+        run: |
+          cp react-perf-profiler-chrome-v${VERSION}.zip react-perf-profiler-chrome-beta-v${VERSION}.zip
+          cp react-perf-profiler-firefox-v${VERSION}.zip react-perf-profiler-firefox-beta-v${VERSION}.zip
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -94,8 +128,8 @@ jobs:
             react-perf-profiler-chrome-v*.zip
             react-perf-profiler-firefox-v*.zip
           generate_release_notes: true
-          draft: false
-          prerelease: false
+          draft: ${{ env.CHANNEL == 'beta' }}
+          prerelease: ${{ env.CHANNEL == 'beta' }}
 
       - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4

@@ -16,6 +16,16 @@ dist-ssr/
 build/
 *.local
 
+# Next.js
+.next/
+out/
+
+# Vercel
+.vercel/
+
+# Prisma
+web/prisma/migrations/
+
 # Testing
 coverage/
 .nyc_output/

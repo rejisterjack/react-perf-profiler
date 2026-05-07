@@ -56,6 +56,8 @@ export const TeamSessionPanel: React.FC = () => {
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Re-run when messages change (state is a zustand store subscription)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.messages]);
 
   // Initialize signaling service
@@ -126,7 +128,7 @@ export const TeamSessionPanel: React.FC = () => {
           }
         : undefined;
 
-      const sessionCode = await collabManager.createSession(currentProfile as any);
+      await collabManager.createSession(currentProfile as Parameters<typeof collabManager.createSession>[0]);
       
       if (signalingMode === 'manual') {
         setSignalingStep('idle');
@@ -645,10 +647,16 @@ export const TeamSessionPanel: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>👥 Team Session</h2>
-        {state?.isConnected && (
+        {state?.isConnected ? (
           <span className={styles.liveIndicator}>
             <span className={styles.liveDot} /> LIVE
           </span>
+        ) : isLoading ? (
+          <span className={styles.liveIndicator} style={{ color: '#f59e0b' }}>
+            <span className={styles.liveDot} style={{ background: '#f59e0b' }} /> Connecting...
+          </span>
+        ) : (
+          <span style={{ color: '#64748b', fontSize: '12px' }}>Not connected</span>
         )}
       </div>
 

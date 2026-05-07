@@ -14,7 +14,8 @@
  */
 
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '@/shared/i18n';
 
 // ─── Storage key ─────────────────────────────────────────────────────────────
 
@@ -53,6 +54,12 @@ const STEPS: Step[] = [
     title: 'Step 3 — Get AI-powered fixes',
     body: 'Open the AI Suggestions panel and add your OpenAI, Anthropic, or local Ollama API key. The AI reads your profile and generates specific code changes — useCallback wrapping, context splits, RSC boundaries.',
     hint: 'Keys are stored locally in chrome.storage.local and never sent anywhere except the AI provider.',
+  },
+  {
+    emoji: '🚀',
+    title: 'You\'re all set!',
+    body: 'You can also explore cloud sync for sharing profiles, team sessions for live collaboration, and CI/CD performance budgets from the toolbar. Check Settings for more options.',
+    hint: 'Tip: Use keyboard shortcuts 1–4 to switch between tree, flamegraph, timeline, and analysis views.',
   },
 ];
 
@@ -176,7 +183,7 @@ function useOnboardingState(): {
       return;
     }
 
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
+    chrome.storage.local.get([STORAGE_KEY, 'onboarding_completed_step'], (result) => {
       if (!result[STORAGE_KEY]) {
         setShow(true);
       }
@@ -187,7 +194,7 @@ function useOnboardingState(): {
   const markSeen = useCallback(() => {
     setShow(false);
     if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
-      chrome.storage.local.set({ [STORAGE_KEY]: true });
+      chrome.storage.local.set({ [STORAGE_KEY]: true, onboarding_completed_step: true });
     }
   }, []);
 
@@ -199,6 +206,8 @@ function useOnboardingState(): {
 export const FirstRunOverlay: React.FC = () => {
   const { loading, show, markSeen } = useOnboardingState();
   const [step, setStep] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const nextBtnRef = useRef<HTMLButtonElement>(null);
 
   const current = STEPS[step]!;
   const isLast = step === STEPS.length - 1;
@@ -211,16 +220,67 @@ export const FirstRunOverlay: React.FC = () => {
     }
   }, [isLast, markSeen]);
 
+  // Focus the "Next" button when step changes so keyboard users stay in the dialog
+  useEffect(() => {
+    if (show && nextBtnRef.current) {
+      nextBtnRef.current.focus();
+    }
+  }, [show]);
+
+  // Trap focus within the dialog
+  useEffect(() => {
+    if (!show) return;
+
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        const focusable = dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    dialog.addEventListener('keydown', handleKeyDown);
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
+  }, [show]);
+
   if (loading || !show) return null;
 
   return (
-    <div style={S.backdrop} role="dialog" aria-modal="true" aria-label="Welcome to React Perf Profiler">
-      <div style={S.card}>
+    <div style={S.backdrop} role="dialog" aria-modal="true" aria-label={t('onboarding.step1.title')}>
+      <div ref={dialogRef} style={S.card}>
+        {/* Screen reader announcement for step changes */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only" style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          borderWidth: 0,
+        }}>
+          Step {step + 1} of {STEPS.length}. {current.title}. {current.body}
+        </div>
+
         {/* Emoji */}
         <span style={S.emoji} aria-hidden="true">{current.emoji}</span>
 
         {/* Title */}
-        <div style={S.title}>{current.title}</div>
+        <div style={S.title} id="onboarding-title">{current.title}</div>
 
         {/* Body */}
         <p style={S.body}>{current.body}</p>
@@ -229,19 +289,26 @@ export const FirstRunOverlay: React.FC = () => {
         {current.hint && <div style={S.hint}>{current.hint}</div>}
 
         {/* Step dots */}
-        <div style={S.dots}>
-          {STEPS.map((_, i) => (
-            <div key={i} style={S.dot(i === step)} />
+        <div style={S.dots} role="tablist" aria-label="Onboarding steps">
+          {STEPS.map((s, i) => (
+            <div
+              key={i}
+              style={S.dot(i === step)}
+              role="tab"
+              tabIndex={0}
+              aria-selected={i === step}
+              aria-label={t('onboarding.stepLabel', { number: String(i + 1), title: s.title })}
+            />
           ))}
         </div>
 
         {/* Actions */}
         <div style={S.actions}>
           <button type="button" style={S.skipBtn} onClick={markSeen}>
-            Skip
+            {t('onboarding.skip')}
           </button>
-          <button type="button" style={S.nextBtn} onClick={handleNext}>
-            {isLast ? 'Get started' : 'Next →'}
+          <button type="button" ref={nextBtnRef} style={S.nextBtn} onClick={handleNext}>
+            {isLast ? t('onboarding.getStarted') : t('onboarding.next')}
           </button>
         </div>
       </div>

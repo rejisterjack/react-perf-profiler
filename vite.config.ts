@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => ({
     devSourcemap: true,
   },
   build: {
-    outDir: 'dist-chrome',
+    outDir: 'dist/dist-chrome',
     sourcemap: mode === 'development',
     rollupOptions: {
       input: {

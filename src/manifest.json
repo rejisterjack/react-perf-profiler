@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "React Perf Profiler",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Chrome DevTools extension for profiling React component performance",
   "author": "rejisterjack",
   "homepage_url": "https://github.com/rejisterjack/react-perf-profiler",
@@ -52,6 +52,6 @@
   ],
 
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.openai.com https://api.anthropic.com https://*.amazonaws.com https://*.googleapis.com https://*.dropboxapi.com https://*.graph.microsoft.com https://*.1drv.com wss://*:*"
   }
 }

@@ -86,7 +86,7 @@ function createChromeStorage(): StateStorage {
 
 export const DEFAULT_SETTINGS: Omit<
   SettingsState,
-  'updateSetting' | 'resetSettings' | 'loaded' | 'getProfilerConfig' | 'updateSettings'
+  'updateSetting' | 'resetSettings' | 'loaded' | 'getProfilerConfig' | 'updateSettings' | 'deleteAllData'
 > = {
   // Profiler settings
   maxCommits: 100,
@@ -110,6 +110,9 @@ export const DEFAULT_SETTINGS: Omit<
   exportIncludeMetrics: true,
   exportIncludeReports: true,
   maxComponentDataEntries: 1000,
+
+  // Privacy settings
+  enableCrashReporting: false,
 };
 
 // ============================================================================
@@ -168,6 +171,13 @@ export interface SettingsState {
   maxComponentDataEntries: number;
 
   // ==========================================================================
+  // Privacy Settings
+  // ==========================================================================
+
+  /** Enable anonymous crash reporting (requires VITE_SENTRY_DSN) */
+  enableCrashReporting: boolean;
+
+  // ==========================================================================
   // State
   // ==========================================================================
 
@@ -186,6 +196,8 @@ export interface SettingsState {
   getProfilerConfig: () => ProfilerConfig;
   /** Batch update multiple settings (auto-persisted) */
   updateSettings: (updates: Partial<SettingsState>) => void;
+  /** Delete all extension data from chrome.storage (local, sync) and reset settings */
+  deleteAllData: () => Promise<void>;
 }
 
 // ============================================================================
@@ -265,6 +277,19 @@ export const useSettingsStore = create<SettingsState>()(
           });
           // Note: Zustand persist middleware handles persistence automatically
         },
+
+        deleteAllData: async (): Promise<void> => {
+          // Clear all chrome.storage areas
+          await Promise.all([
+            new Promise<void>((resolve) => chrome.storage.local.clear(resolve)),
+            new Promise<void>((resolve) => chrome.storage.sync.clear(resolve)),
+          ]);
+          // Reset settings to defaults
+          set((state: SettingsState) => {
+            Object.assign(state, DEFAULT_SETTINGS, { loaded: true });
+            return state;
+          });
+        },
       })),
       {
         name: 'profiler-settings',
@@ -285,6 +310,7 @@ export const useSettingsStore = create<SettingsState>()(
           enableAutoAnalysis: state.enableAutoAnalysis,
           exportIncludeMetrics: state.exportIncludeMetrics,
           exportIncludeReports: state.exportIncludeReports,
+          enableCrashReporting: state.enableCrashReporting,
         }),
         onRehydrateStorage: () => (state) => {
           // Mark as loaded after rehydration completes

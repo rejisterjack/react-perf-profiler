@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rejisterjack.github.io/react-perf-profiler/sitemap.xml

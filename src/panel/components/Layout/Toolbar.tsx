@@ -17,6 +17,8 @@ import { ThemeToggle } from '../Theme/ThemeToggle';
 import { SettingsButton } from './SettingsButton';
 import styles from './Toolbar.module.css';
 import { ViewModeToggle } from './ViewModeToggle';
+import { GITHUB_REPO_URL } from '@/shared/constants';
+import { t } from '@/shared/i18n';
 
 // =============================================================================
 // Visual Feedback Toast Component
@@ -31,7 +33,7 @@ const FeedbackToast: React.FC<FeedbackToastProps> = ({ message, onClear }) => {
   useEffect(() => {
     const timer = setTimeout(onClear, 2000);
     return () => clearTimeout(timer);
-  }, [message, onClear]);
+  }, [onClear]);
 
   return (
     <div className={styles['feedbackToast']} role="status" aria-live="polite">
@@ -106,10 +108,13 @@ export const Toolbar: React.FC = () => {
 
   // Keyboard shortcut actions
   const handleToggleRecording = useCallback(() => {
+    const { sendMessage: send } = useConnectionStore.getState();
     if (isRecording) {
-      handleStopRecording();
+      send({ type: 'STOP_PROFILING' });
+      useProfilerStore.getState().stopRecording();
     } else {
-      handleStartRecording();
+      send({ type: 'START_PROFILING' });
+      useProfilerStore.getState().startRecording();
     }
   }, [isRecording]);
 
@@ -178,13 +183,23 @@ export const Toolbar: React.FC = () => {
 
   const handleClearData = useCallback(() => {
     if (commits.length > 0) {
-      handleClear();
+      const { sendMessage: send } = useConnectionStore.getState();
+      useProfilerStore.getState().clearData();
+      send({ type: 'CLEAR_DATA' });
     }
   }, [commits.length]);
 
   const handleExportProfile = useCallback(() => {
     if (commits.length > 0) {
-      handleExport();
+      const data = useProfilerStore.getState().exportData();
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `react-perf-profile-${timestamp}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
   }, [commits.length]);
 
@@ -242,7 +257,7 @@ export const Toolbar: React.FC = () => {
             iconPosition="left"
             aria-label={`Stop recording. Keyboard shortcut: ${recordShortcut}`}
           >
-            Stop
+            {t('toolbar.stop')}
           </Button>
         </Tooltip>
       );
@@ -259,7 +274,7 @@ export const Toolbar: React.FC = () => {
           iconPosition="left"
           aria-label={`Start recording. Keyboard shortcut: ${recordShortcut}`}
         >
-          Record
+          {t('toolbar.record')}
         </Button>
       </Tooltip>
     );
@@ -267,7 +282,7 @@ export const Toolbar: React.FC = () => {
 
   const renderConnectionStatus = () => {
     const statusClass = isConnected ? styles['connected'] : styles['disconnected'];
-    const statusText = isConnected ? 'Connected' : 'Disconnected';
+    const statusText = isConnected ? t('status.connectedShort') : t('status.disconnectedShort');
 
     return (
       <div className={styles['connectionStatus']}>
@@ -282,7 +297,7 @@ export const Toolbar: React.FC = () => {
       <div className={styles['leftSection']}>
         <div className={styles['logo']}>
           <Icon name="performance" size={20} />
-          <span>React Perf Profiler</span>
+          <span>{t('welcome.title')}</span>
         </div>
 
         {renderConnectionStatus()}
@@ -302,7 +317,7 @@ export const Toolbar: React.FC = () => {
               iconPosition="left"
               aria-label={`Clear all data. Keyboard shortcut: ${clearShortcut}`}
             >
-              Clear
+              {t('toolbar.clear')}
             </Button>
           </Tooltip>
 
@@ -316,7 +331,7 @@ export const Toolbar: React.FC = () => {
               iconPosition="left"
               aria-label={`Export profile. Keyboard shortcut: ${exportShortcut}`}
             >
-              Export
+              {t('toolbar.export')}
             </Button>
           </Tooltip>
 
@@ -329,7 +344,7 @@ export const Toolbar: React.FC = () => {
               iconPosition="left"
               aria-label={`Import profile. Keyboard shortcut: ${importShortcut}`}
             >
-              Import
+              {t('toolbar.import')}
             </Button>
           </Tooltip>
 
@@ -351,7 +366,7 @@ export const Toolbar: React.FC = () => {
             <div className={styles['stats']}>
               <div className={styles['stat']}>
                 <Icon name="commit" size={14} />
-                <span>{commits.length} commits</span>
+                <span>{commits.length} {t('toolbar.commits')}</span>
               </div>
 
               <div className={styles['stat']}>
@@ -363,7 +378,7 @@ export const Toolbar: React.FC = () => {
 
               <div className={styles['stat']}>
                 <Icon name="lightbulb" size={14} />
-                <span>Score: {Math.round(performanceScore?.score ?? 0)}</span>
+                <span>{t('toolbar.score')} {Math.round(performanceScore?.score ?? 0)}</span>
               </div>
             </div>
 
@@ -374,6 +389,29 @@ export const Toolbar: React.FC = () => {
         <div className={styles['toggles']}>
           <ViewModeToggle />
           <ThemeToggle />
+          <Tooltip content={t('toolbar.help')}>
+            <a
+              href={`${GITHUB_REPO_URL}#readme`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles['iconButton']}
+              aria-label="Help and documentation"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                color: '#94a3b8',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: '700',
+              }}
+            >
+              ?
+            </a>
+          </Tooltip>
           <SettingsButton />
         </div>
       </div>

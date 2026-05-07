@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  password  String
+  createdAt DateTime  @default(now())
+  profiles  Profile[]
+  sessions  Session[]
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  data      Json
+  metadata  Json     @default("{}")
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  name            String
+  ownerId         String
+  participants    String[] @default([])
+  signalingServer String
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([expiresAt])
+}
+
+model Plugin {
+  id          String   @id
+  name        String
+  version     String
+  description String?
+  author      String?
+  authorId    String
+  homepage    String?
+  codeUrl     String
+  hooks       String[]
+  permissions String[] @default([])
+  downloads   Int      @default(0)
+  rating      Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([authorId])
+}

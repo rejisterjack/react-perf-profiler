@@ -8,6 +8,7 @@ import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { useSessionPersistence } from './hooks/useSessionPersistence';
 import { useConnectionStore } from './stores/connectionStore';
 import { useProfilerStore } from './stores/profilerStore';
+import { t } from '@/shared/i18n';
 import { NotificationContainer } from './components/Notifications/NotificationContainer';
 import { FirstRunOverlay } from './components/Onboarding/FirstRunOverlay';
 
@@ -19,30 +20,98 @@ const ConnectionError: React.FC<{
   onRetry: () => void;
   isRetrying: boolean;
 }> = ({ error, onRetry, isRetrying }) => {
-  // Parse error to provide better messages
   const getErrorDetails = () => {
-    if (error.includes('React DevTools')) {
+    const lower = error.toLowerCase();
+
+    if (lower.includes('devtools') && (lower.includes('not found') || lower.includes('missing') || lower.includes('hook'))) {
       return {
-        title: 'React DevTools Not Found',
+        title: t('error.reactDevtoolsMissing'),
         message:
-          'React Perf Profiler requires the React DevTools browser extension to be installed.',
-        action: 'Install React DevTools',
+          t('error.reactDevtoolsMissingMsg'),
+        action: t('error.reactDevtoolsMissingAction'),
         actionUrl: 'https://react.dev/learn/react-developer-tools',
+        steps: [
+          t('error.reactDevtoolsMissing.step1'),
+          t('error.reactDevtoolsMissing.step2'),
+          t('error.reactDevtoolsMissing.step3'),
+        ],
       };
     }
-    if (error.includes('React not detected')) {
+    if (lower.includes('react') && (lower.includes('not detected') || lower.includes('not found'))) {
       return {
-        title: 'React Not Detected',
-        message: 'This page does not appear to be using React, or it is using a production build.',
-        action: 'View Setup Guide',
+        title: t('error.reactNotDetected'),
+        message: t('error.reactNotDetectedMsg'),
+        action: t('error.reactNotDetectedAction'),
         actionUrl: 'https://react.dev/learn/thinking-in-react',
+        steps: [
+          t('error.reactNotDetected.step1'),
+          t('error.reactNotDetected.step2'),
+          t('error.reactNotDetected.step3'),
+        ],
+      };
+    }
+    if (lower.includes('csp') || lower.includes('content security policy')) {
+      return {
+        title: t('error.cspBlocked'),
+        message: t('error.cspBlockedMsg'),
+        action: null,
+        actionUrl: null,
+        steps: [
+          t('error.cspBlocked.step1'),
+          t('error.cspBlocked.step2'),
+          t('error.cspBlocked.step3'),
+        ],
+      };
+    }
+    if (lower.includes('context') && (lower.includes('invalidated') || lower.includes('disconnected'))) {
+      return {
+        title: t('error.contextInvalidated'),
+        message: t('error.contextInvalidatedMsg'),
+        action: null,
+        actionUrl: null,
+        steps: [
+          t('error.contextInvalidated.step1'),
+          t('error.contextInvalidated.step2'),
+          t('error.contextInvalidated.step3'),
+        ],
+      };
+    }
+    if (lower.includes('storage') && lower.includes('full')) {
+      return {
+        title: t('error.storageFull'),
+        message: t('error.storageFullMsg'),
+        action: null,
+        actionUrl: null,
+        steps: [
+          'Open Settings and click "Clear Profile Data"',
+          'Or reduce "Max Commits" in advanced settings',
+          t('error.storageFull.step3'),
+        ],
+      };
+    }
+    if (lower.includes('navigated') || lower.includes('page') && lower.includes('closed')) {
+      return {
+        title: t('error.pageNavigated'),
+        message: t('error.pageNavigatedMsg'),
+        action: null,
+        actionUrl: null,
+        steps: [
+          t('error.pageNavigated.step1'),
+          t('error.pageNavigated.step2'),
+          t('error.pageNavigated.step3'),
+        ],
       };
     }
     return {
-      title: 'Connection Error',
+      title: t('error.generic'),
       message: error,
       action: null,
       actionUrl: null,
+      steps: [
+        t('error.generic.step1'),
+        t('error.generic.step2'),
+        t('error.generic.step3'),
+      ],
     };
   };
 
@@ -70,6 +139,20 @@ const ConnectionError: React.FC<{
         </div>
         <h2>{details.title}</h2>
         <p>{details.message}</p>
+        {details.steps && details.steps.length > 0 && (
+          <ol className={styles['errorSteps']} style={{
+            textAlign: 'left',
+            paddingLeft: '20px',
+            margin: '12px 0',
+            fontSize: '12px',
+            color: '#94a3b8',
+            lineHeight: '1.8',
+          }}>
+            {details.steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        )}
         <div className={styles['errorActions']}>
           <button
             type="button"
@@ -80,7 +163,7 @@ const ConnectionError: React.FC<{
             {isRetrying ? (
               <>
                 <span className={styles['spinner']} />
-                Retrying...
+                {t('error.retrying')}
               </>
             ) : (
               'Retry Connection'
@@ -113,8 +196,7 @@ const SessionRestoreBanner: React.FC<{
 }> = ({ commitCount, savedAt, onRestore, onDiscard }) => (
   <div className={styles['restoreBanner']} role="alert">
     <span>
-      Previous session ({commitCount} commits, saved {new Date(savedAt).toLocaleTimeString()})
-      available.
+      {t('session.previousAvailable')} ({commitCount} commits, saved {new Date(savedAt).toLocaleTimeString()})
     </span>
     <button type="button" onClick={onRestore} className={styles['restoreButton']}>
       Restore

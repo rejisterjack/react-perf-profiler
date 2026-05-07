@@ -9,7 +9,9 @@
 [![Firefox MV2](https://img.shields.io/badge/Firefox-Manifest%20V2-FF7139.svg)](./README.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-A high-performance Chrome DevTools extension for profiling React component render behavior. Hooks into the React DevTools Profiler API to deliver actionable insights on render counts, wasted renders, and memoization effectiveness.
+**Install:** [Chrome Web Store](https://chromewebstore.google.com/detail/react-perf-profiler/TODO) · [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/react-perf-profiler/) · [Download ZIP](https://github.com/rejisterjack/react-perf-profiler/releases/latest)
+
+A high-performance Chrome & Firefox DevTools extension for profiling React component render behavior. Hooks into the React DevTools Profiler API to deliver actionable insights on render counts, wasted renders, and memoization effectiveness.
 
 **Built for developers who care about performance at scale.** This tool directly addresses the challenges Meta engineers face when optimizing React applications serving billions of interactions.
 
@@ -119,7 +121,21 @@ interface WastedRenderAnalysis {
 
 ## 🚀 Quick Start
 
-### 30-Second Setup
+### One-Click Install (Recommended)
+
+| Browser | Link |
+|---------|------|
+| **Chrome / Edge / Brave** | [Chrome Web Store](https://chromewebstore.google.com/detail/react-perf-profiler/TODO) |
+| **Firefox** | [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/react-perf-profiler/) |
+
+**First Profile:**
+1. Open your React app
+2. Open Chrome DevTools (F12)
+3. Switch to the **"⚡ Perf Profiler"** tab
+4. Click **Record** → Interact with your app → **Stop**
+5. See wasted renders instantly highlighted
+
+### Build from Source
 
 ```bash
 # Clone and setup

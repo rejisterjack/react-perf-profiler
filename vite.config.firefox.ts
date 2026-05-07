@@ -25,7 +25,7 @@ function firefoxExtensionPlugin(): Plugin {
     },
     writeBundle(options) {
       // Ensure icons directory exists for static assets
-      const outDir = options.dir || 'dist-firefox';
+      const outDir = options.dir || 'dist/dist-firefox';
       try {
         mkdirSync(resolve(outDir, 'icons'), { recursive: true });
       } catch (error) {
@@ -64,8 +64,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     // Firefox-specific output directory (separate from Chrome's dist)
-    outDir: 'dist-firefox',
-    // Empty output directory before build
+    outDir: 'dist/dist-firefox',
     emptyOutDir: true,
     sourcemap: mode === 'development',
     rollupOptions: {

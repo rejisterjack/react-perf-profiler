@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "React Perf Profiler",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Firefox DevTools extension for profiling React performance",
   "author": "rejisterjack",
   "homepage_url": "https://github.com/rejisterjack/react-perf-profiler",
@@ -37,5 +37,5 @@
     "128": "icons/icon128.svg"
   },
   "web_accessible_resources": ["bridge.js", "injected.js", "panel.html", "panel.js"],
-  "content_security_policy": "script-src 'self'; object-src 'self'"
+  "content_security_policy": "script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.openai.com https://api.anthropic.com https://*.amazonaws.com https://*.googleapis.com https://*.dropboxapi.com https://*.graph.microsoft.com https://*.1drv.com wss://*:*"
 }

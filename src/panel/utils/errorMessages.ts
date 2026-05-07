@@ -25,6 +25,10 @@ export const BRIDGE_ERROR_TYPES = {
   REACT_NOT_FOUND: 'REACT_NOT_FOUND',
   DEVTOOLS_NOT_FOUND: 'DEVTOOLS_NOT_FOUND',
   CONNECTION_LOST: 'CONNECTION_LOST',
+  STORAGE_FULL: 'STORAGE_FULL',
+  SERVICE_WORKER_SUSPENDED: 'SERVICE_WORKER_SUSPENDED',
+  TAB_NAVIGATED: 'TAB_NAVIGATED',
+  EXTENSION_CONTEXT_INVALIDATED: 'EXTENSION_CONTEXT_INVALIDATED',
   UNKNOWN: 'UNKNOWN',
 } as const;
 
@@ -80,6 +84,34 @@ const ERROR_DISPLAY_MAP: Record<BridgeErrorType, ErrorDisplay> = {
       'The DevTools panel lost its connection to the inspected page. ' +
       'The page may have navigated or been closed. Reopen DevTools to reconnect.',
     recoverable: true,
+  },
+  STORAGE_FULL: {
+    title: 'Extension storage is full',
+    detail:
+      'The profiler has run out of storage space. ' +
+      'Clear old profile data via the settings menu, or reduce the maximum commit count in advanced settings.',
+    recoverable: true,
+  },
+  SERVICE_WORKER_SUSPENDED: {
+    title: 'Background service was suspended',
+    detail:
+      'Chrome suspended the extension background service to save resources. ' +
+      'Your profiling data was auto-saved. Click Retry to resume — the session will be restored automatically.',
+    recoverable: true,
+  },
+  TAB_NAVIGATED: {
+    title: 'The inspected page navigated',
+    detail:
+      'The page you were profiling navigated to a new URL or reloaded. ' +
+      'The previous profiling session data is preserved. Start a new recording to profile the current page.',
+    recoverable: true,
+  },
+  EXTENSION_CONTEXT_INVALIDATED: {
+    title: 'Extension was updated or reloaded',
+    detail:
+      'The extension was updated or reloaded while you were profiling. ' +
+      'Close and reopen DevTools to start a fresh session.',
+    recoverable: false,
   },
   UNKNOWN: {
     title: 'An unexpected error occurred',

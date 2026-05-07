@@ -38,10 +38,24 @@ export class CloudSyncManager {
   };
   private listeners: Set<(state: CloudSyncState) => void> = new Set();
   private syncInterval?: number;
+  private recentCalls: number[] = [];
+  private static MAX_CALLS_PER_MINUTE = 10;
 
   constructor() {
     this.loadConfig();
     this.setupOnlineOfflineListeners();
+  }
+
+  private async enforceRateLimit(): Promise<void> {
+    const now = Date.now();
+    this.recentCalls = this.recentCalls.filter((t) => now - t < 60_000);
+    if (this.recentCalls.length >= CloudSyncManager.MAX_CALLS_PER_MINUTE) {
+      const oldest = this.recentCalls[0]!;
+      const waitMs = 60_000 - (now - oldest) + 100;
+      logger.warn(`Rate limit reached, waiting ${waitMs}ms`, { source: 'CloudSyncManager' });
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+    this.recentCalls.push(now);
   }
 
   // =============================================================================
@@ -135,6 +149,7 @@ export class CloudSyncManager {
     this.setState({ isSyncing: true });
 
     try {
+      await this.enforceRateLimit();
       const result = await this.provider!.uploadProfile(profile, filename, options);
       
       if (result.success) {
@@ -171,6 +186,7 @@ export class CloudSyncManager {
     this.setState({ isSyncing: true });
 
     try {
+      await this.enforceRateLimit();
       const result = await this.provider!.downloadProfile(profileId);
       
       if (result.success) {

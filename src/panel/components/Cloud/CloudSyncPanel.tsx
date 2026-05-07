@@ -70,7 +70,7 @@ export const CloudSyncPanel: React.FC = () => {
     if (activeTab === 'profiles' && cloudManager.isReady()) {
       loadProfiles();
     }
-  }, [activeTab]);
+  }, [activeTab, cloudManager]);
 
   const loadProfiles = useCallback(async () => {
     setIsLoading(true);
@@ -118,7 +118,6 @@ export const CloudSyncPanel: React.FC = () => {
           clientId: gdriveConfig.clientId,
         };
         break;
-      case 'local':
       default:
         settings = {
           type: 'local',
@@ -237,6 +236,23 @@ export const CloudSyncPanel: React.FC = () => {
           </span>
         </label>
       </div>
+
+      {provider !== 'local' && (
+        <div className={styles.securityNote} style={{
+          padding: '10px 14px',
+          background: 'rgba(234, 179, 8, 0.08)',
+          border: '1px solid rgba(234, 179, 8, 0.2)',
+          borderRadius: '8px',
+          fontSize: '12px',
+          color: '#94a3b8',
+          lineHeight: '1.5',
+          marginBottom: '16px',
+        }}>
+          Credentials are stored in <code style={{ color: '#eab308' }}>chrome.storage.local</code> —
+          private to this extension profile, but <strong style={{ color: '#fbbf24' }}>not encrypted at
+          rest</strong> like an OS keychain. Only configure providers you trust.
+        </div>
+      )}
 
       {provider === 's3' && (
         <div className={styles.providerConfig}>
@@ -450,13 +466,13 @@ export const CloudSyncPanel: React.FC = () => {
       <div className={styles.statusGrid}>
         <div className={styles.statusItem}>
           <span className={styles.statusLabel}>Status</span>
-          <span className={state?.isOnline ? styles.statusOnline : styles.statusOffline}>
+          <span className={state?.isOnline ? styles.statusOnline : styles.statusOffline} role="status" aria-label={state?.isOnline ? 'Online' : 'Offline'}>
             {state?.isOnline ? '🟢 Online' : '🔴 Offline'}
           </span>
         </div>
         <div className={styles.statusItem}>
           <span className={styles.statusLabel}>Cloud Sync</span>
-          <span className={cloudManager.isReady() ? styles.statusReady : styles.statusNotReady}>
+          <span className={cloudManager.isReady() ? styles.statusReady : styles.statusNotReady} role="status" aria-label={cloudManager.isReady() ? 'Cloud sync connected' : 'Cloud sync not connected'}>
             {cloudManager.isReady() ? '✅ Connected' : '❌ Not connected'}
           </span>
         </div>

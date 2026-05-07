@@ -6,6 +6,8 @@
 import type React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useProfilerStore } from '@/panel/stores/profilerStore';
+import { useSettingsStore } from '@/panel/stores/settingsStore';
+import { setCrashReportingEnabled } from '@/shared/telemetry/sentry';
 import { Icon } from '../Common/Icon/Icon';
 import styles from './SettingsButton.module.css';
 
@@ -25,6 +27,9 @@ export const SettingsButton: React.FC = () => {
     setSeverityFilter,
     clearData,
   } = useProfilerStore();
+  const deleteAllData = useSettingsStore((s) => s.deleteAllData);
+  const enableCrashReporting = useSettingsStore((s) => s.enableCrashReporting);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -99,7 +104,7 @@ export const SettingsButton: React.FC = () => {
           <div className={styles["section"]}>
             <h4 className={styles["sectionTitle"]}>Filters</h4>
 
-            <div className={styles["menuItem"]} role="none">
+            <div className={styles["menuItem"]} role="presentation">
               <label className={styles["checkboxLabel"]}>
                 <input
                   type="checkbox"
@@ -112,7 +117,7 @@ export const SettingsButton: React.FC = () => {
               </label>
             </div>
 
-            <div className={styles["menuItem"]} role="none">
+            <div className={styles["menuItem"]} role="presentation">
               <label className={styles["checkboxLabel"]}>
                 <input
                   type="checkbox"
@@ -125,7 +130,7 @@ export const SettingsButton: React.FC = () => {
               </label>
             </div>
 
-            <div className={styles["menuItem"]} role="none">
+            <div className={styles["menuItem"]} role="presentation">
               <label className={styles["checkboxLabel"]}>
                 <input
                   type="checkbox"
@@ -146,7 +151,7 @@ export const SettingsButton: React.FC = () => {
           <div className={styles["section"]}>
             <h4 className={styles["sectionTitle"]}>Component Type</h4>
 
-            <div className={styles["menuItem"]} role="none">
+            <div className={styles["menuItem"]} role="presentation">
               <label className={styles["radioLabel"]}>
                 <input
                   type="radio"
@@ -159,7 +164,7 @@ export const SettingsButton: React.FC = () => {
               </label>
             </div>
 
-            <div className={styles["menuItem"]} role="none">
+            <div className={styles["menuItem"]} role="presentation">
               <label className={styles["radioLabel"]}>
                 <input
                   type="radio"
@@ -172,7 +177,7 @@ export const SettingsButton: React.FC = () => {
               </label>
             </div>
 
-            <div className={styles["menuItem"]} role="none">
+            <div className={styles["menuItem"]} role="presentation">
               <label className={styles["radioLabel"]}>
                 <input
                   type="radio"
@@ -183,6 +188,32 @@ export const SettingsButton: React.FC = () => {
                 />
                 Unmemoized Only
               </label>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <hr className={styles["divider"]} />
+
+          {/* Section: Privacy */}
+          <div className={styles["section"]}>
+            <h4 className={styles["sectionTitle"]}>Privacy</h4>
+            <div className={styles["menuItem"]} role="presentation">
+              <label className={styles["checkboxLabel"]}>
+                <input
+                  type="checkbox"
+                  checked={enableCrashReporting}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    updateSetting('enableCrashReporting', enabled);
+                    setCrashReportingEnabled(enabled);
+                  }}
+                  className={styles["checkbox"]}
+                />
+                Crash Reports
+              </label>
+              <small style={{ display: 'block', marginTop: '2px', marginLeft: '22px', fontSize: '10px', color: '#64748b' }}>
+                Sends anonymous error reports to help fix bugs
+              </small>
             </div>
           </div>
 
@@ -200,7 +231,22 @@ export const SettingsButton: React.FC = () => {
               }}
             >
               <Icon name="clear" size={16} />
-              Clear All Data
+              Clear Profile Data
+            </button>
+
+            <button
+              type="button"
+              className={styles["actionButton"]}
+              style={{ color: '#ef4444' }}
+              onClick={async () => {
+                if (window.confirm('This will permanently delete ALL extension data including settings, API keys, and profile history. This cannot be undone. Continue?')) {
+                  await deleteAllData();
+                  setIsOpen(false);
+                }
+              }}
+            >
+              <Icon name="trash" size={16} />
+              Delete All Extension Data
             </button>
           </div>
 

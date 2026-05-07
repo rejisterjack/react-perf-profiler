@@ -28,7 +28,6 @@ async function initializeDevToolsPanel(): Promise<void> {
 
     logger.info(`Panel "${panel.title}" created successfully`, { source: 'DevTools' });
 
-    // Set up panel show/hide event listeners
     panel.onShown(() => {
       logger.debug('Panel shown', { source: 'DevTools' });
     });
@@ -37,15 +36,12 @@ async function initializeDevToolsPanel(): Promise<void> {
       logger.debug('Panel hidden', { source: 'DevTools' });
     });
   } catch (error) {
-    logger.error('Failed to create DevTools panel', { 
+    logger.error('Failed to create DevTools panel', {
       error: error instanceof Error ? error.message : String(error),
-      source: 'DevTools' 
+      source: 'DevTools'
     });
   }
 }
 
 // Initialize the panel when the script loads
 initializeDevToolsPanel();
-
-// Optional: Add sidebar pane for element inspection
-// chrome.devtools.panels.elements.createSidebarPane(...)

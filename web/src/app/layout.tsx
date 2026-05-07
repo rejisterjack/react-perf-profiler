@@ -6,6 +6,7 @@ import {
   howToSchema,
   breadcrumbSchema,
 } from '@/lib/structured-data';
+import { WebVitals } from '@/components/WebVitals';
 import './globals.css';
 
 const inter = Inter({
@@ -132,7 +133,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${inter.className} antialiased`}>
+        <WebVitals />
+        {children}
+      </body>
     </html>
   );
 }

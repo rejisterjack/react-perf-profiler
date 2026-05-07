@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import {
+  softwareApplicationSchema,
+  faqSchema,
+  howToSchema,
+  breadcrumbSchema,
+} from '@/lib/structured-data';
 import './globals.css';
 
 const inter = Inter({
@@ -100,6 +106,30 @@ export default function RootLayout({
             process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || 'localhost'
           }
           src="https://plausible.io/js/script.js"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(softwareApplicationSchema),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqSchema),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(howToSchema),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(breadcrumbSchema),
+          }}
         />
       </head>
       <body className={`${inter.className} antialiased`}>{children}</body>

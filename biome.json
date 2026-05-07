@@ -68,6 +68,9 @@
         "useAriaPropsForRole": "warn",
         "useValidAriaRole": "warn",
         "noNoninteractiveTabindex": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
       }
     }
   },

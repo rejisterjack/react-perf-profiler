@@ -70,20 +70,36 @@ export default async function Image() {
         </div>
         <div
           style={{
-            fontSize: '56px',
-            fontWeight: 700,
-            color: '#FFFFFF',
-            fontFamily: 'sans-serif',
-            textAlign: 'center',
-            lineHeight: 1.2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             marginBottom: '24px',
           }}
         >
-          Stop Guessing.
-          <br />
-          Start Profiling.
+          <span
+            style={{
+              fontSize: '56px',
+              fontWeight: 700,
+              color: '#FFFFFF',
+              fontFamily: 'sans-serif',
+              lineHeight: 1.2,
+            }}
+          >
+            Stop Guessing.
+          </span>
+          <span
+            style={{
+              fontSize: '56px',
+              fontWeight: 700,
+              color: '#FFFFFF',
+              fontFamily: 'sans-serif',
+              lineHeight: 1.2,
+            }}
+          >
+            Start Profiling.
+          </span>
         </div>
-        <div
+        <span
           style={{
             fontSize: '22px',
             color: '#94A3B8',
@@ -93,7 +109,7 @@ export default async function Image() {
         >
           Open-source React performance profiler — wasted renders, memoization
           scoring, AI fixes
-        </div>
+        </span>
         <div
           style={{
             display: 'flex',

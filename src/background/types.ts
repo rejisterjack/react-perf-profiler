@@ -109,7 +109,7 @@ export interface ConnectionManagerConfig {
 export const DEFAULT_CONNECTION_MANAGER_CONFIG: ConnectionManagerConfig = {
   maxTrackedTabs: 100,
   cleanupIntervalMs: 30000,
-  enableLogging: process.env['NODE_ENV'] !== 'production',
+  enableLogging: import.meta.env.DEV,
 };
 
 /**

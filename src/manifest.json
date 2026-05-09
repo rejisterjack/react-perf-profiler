@@ -6,7 +6,7 @@
   "author": "rejisterjack",
   "homepage_url": "https://github.com/rejisterjack/react-perf-profiler",
 
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage", "alarms"],
 
   "host_permissions": ["<all_urls>"],
 
@@ -30,18 +30,18 @@
     "default_popup": "src/popup/index.html",
     "default_title": "React Perf Profiler",
     "default_icon": {
-      "16": "icons/icon16.svg",
-      "32": "icons/icon32.svg",
-      "48": "icons/icon48.svg",
-      "128": "icons/icon128.svg"
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
 
   "icons": {
-    "16": "icons/icon16.svg",
-    "32": "icons/icon32.svg",
-    "48": "icons/icon48.svg",
-    "128": "icons/icon128.svg"
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
 
   "web_accessible_resources": [
@@ -52,6 +52,6 @@
   ],
 
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.openai.com https://api.anthropic.com https://*.amazonaws.com https://*.googleapis.com https://*.dropboxapi.com https://*.graph.microsoft.com https://*.1drv.com wss://*:*"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://*:* wss://*:*"
   }
 }

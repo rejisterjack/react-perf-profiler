@@ -322,7 +322,7 @@ export const useSettingsStore = create<SettingsState>()(
     ),
     {
       name: 'settings-store',
-      enabled: process.env['NODE_ENV'] === 'development',
+      enabled: import.meta.env.DEV,
     }
   )
 );

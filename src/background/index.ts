@@ -20,7 +20,7 @@ import { LogLevel } from './types';
 const EXTENSION_VERSION = '1.0.0';
 
 /** Enable debug logging based on environment */
-const ENABLE_DEBUG_LOG = process.env['NODE_ENV'] !== 'production';
+const ENABLE_DEBUG_LOG = import.meta.env.DEV;
 
 // ============================================================================
 // Manager Instances
@@ -86,7 +86,7 @@ function log(level: LogLevel, message: string, data?: Record<string, unknown>): 
 function initialize(): void {
   log(LogLevel.INFO, 'Initializing React Perf Profiler background service worker', {
     version: EXTENSION_VERSION,
-    environment: process.env['NODE_ENV'],
+    environment: import.meta.env.MODE,
   });
 
   try {
@@ -502,12 +502,75 @@ self.addEventListener('unhandledrejection', (event) => {
  */
 const KEEPALIVE_ALARM = 'perf-profiler-keepalive';
 
+/** Storage key for persisting critical state across SW lifecycle */
+const STATE_STORAGE_KEY = 'perf-profiler-sw-state';
+
 /**
  * Minimum alarm period allowed by Chrome (in minutes).
  * Chrome clamps alarms to a minimum of 1 minute; we use the min so the
  * service worker wakes up every 20-30s via the alarm + the onAlarm handler.
  */
 const KEEPALIVE_ALARM_PERIOD_MINUTES = 0.4; // ~24 seconds — Chrome clamps to ≥ 0.
+
+// ============================================================================
+// State Persistence (survives SW termination)
+// ============================================================================
+
+interface PersistedSWState {
+  /** Whether any tab is currently profiling */
+  activeProfilingTabs: number[];
+  /** Extension version when state was saved */
+  version: string;
+}
+
+/**
+ * Persist critical state to chrome.storage.local so it survives
+ * service worker termination (Firefox MV2 / Chrome MV3 lifecycle).
+ */
+function persistState(): void {
+  const connections = connectionManager?.getAllConnections() ?? [];
+  const activeProfilingTabs = connections
+    .filter((conn) => conn.isProfiling)
+    .map((conn) => conn.tabId);
+
+  if (activeProfilingTabs.length > 0) {
+    const state: PersistedSWState = {
+      activeProfilingTabs,
+      version: EXTENSION_VERSION,
+    };
+    chrome.storage.local.set({ [STATE_STORAGE_KEY]: state });
+  } else {
+    // No active profiling — clear persisted state
+    chrome.storage.local.remove(STATE_STORAGE_KEY);
+  }
+}
+
+/**
+ * Restore critical state from chrome.storage.local after SW restart.
+ * Called once during initialization.
+ */
+function restoreState(): void {
+  chrome.storage.local.get(STATE_STORAGE_KEY, (result) => {
+    const state = result[STATE_STORAGE_KEY] as PersistedSWState | undefined;
+    if (!state?.activeProfilingTabs?.length) return;
+
+    // Verify tabs still exist before re-arming keepalive
+    chrome.tabs.query({}, (tabs) => {
+      const activeTabIds = new Set(tabs.map((t) => t.id));
+      const survivingTabs = state.activeProfilingTabs.filter((id) => activeTabIds.has(id));
+
+      if (survivingTabs.length > 0) {
+        log(LogLevel.INFO, 'Restored profiling state after SW restart', {
+          tabCount: survivingTabs.length,
+        });
+        armKeepalive();
+      }
+
+      // Clean up stale persisted state
+      persistState();
+    });
+  });
+}
 
 /**
  * Sets up chrome.alarms-based service worker keepalive for Manifest V3.
@@ -518,6 +581,11 @@ const KEEPALIVE_ALARM_PERIOD_MINUTES = 0.4; // ~24 seconds — Chrome clamps to 
  * terminated state, guaranteeing continuity during long recording sessions.
  */
 function setupKeepAlive(): void {
+  if (!chrome.alarms) {
+    log(LogLevel.WARN, 'chrome.alarms API not available, skipping keepalive setup');
+    return;
+  }
+
   // Register the recurring alarm (no-op if already registered with same period)
   chrome.alarms.create(KEEPALIVE_ALARM, {
     periodInMinutes: KEEPALIVE_ALARM_PERIOD_MINUTES,
@@ -537,10 +605,13 @@ function setupKeepAlive(): void {
       chrome.runtime.getPlatformInfo(() => {
         // No-op: the API call itself extends the service worker's active window
       });
+      // Persist state so we can recover if SW terminates between alarms
+      persistState();
     } else {
       // No active sessions — clear the alarm to avoid unnecessary wake-ups
       chrome.alarms.clear(KEEPALIVE_ALARM);
       log(LogLevel.DEBUG, 'Keepalive alarm cleared — no active profiling sessions');
+      persistState();
     }
   });
 
@@ -572,6 +643,9 @@ export function armKeepalive(): void {
 
 // Initialize the background service worker
 initialize();
+
+// Restore persisted state from previous SW lifecycle (Firefox MV2 / Chrome MV3)
+restoreState();
 
 // Set up keep-alive mechanism for Manifest V3
 setupKeepAlive();

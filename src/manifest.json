@@ -46,7 +46,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["bridge.js", "injected.js", "panel.html", "panel.js"],
+      "resources": ["bridge.js", "injected.js"],
       "matches": ["<all_urls>"]
     }
   ],

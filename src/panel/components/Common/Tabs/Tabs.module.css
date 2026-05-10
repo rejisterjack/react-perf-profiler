@@ -35,8 +35,7 @@
   cursor: pointer;
   transition: 
     color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-spring);
+    background-color var(--duration-fast) var(--ease-out);
   white-space: nowrap;
   outline: none;
   position: relative;
@@ -49,7 +48,7 @@
 }
 
 .tab:active:not(.disabled) {
-  transform: scale(0.98);
+  background: var(--bg-active);
 }
 
 .tab:focus-visible {
@@ -108,8 +107,11 @@
 
 /* Compact variant */
 .compact .tabList {
-  padding: 2px;
-  gap: 2px;
+  padding: 0;
+  gap: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--border-default);
+  border-radius: 0;
 }
 
 .compact .tab {

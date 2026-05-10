@@ -191,11 +191,12 @@ function getPortTypeFromName(portName: string): PortType | null {
     case PortNameEnum.PANEL_BACKGROUND:
       return 'panel';
     default:
-      // Check if it starts with any known prefix
+      // Check if it starts with any known prefix (handles suffixed names like "react-perf-profiler-panel-12345")
+      // Order matters: check more specific prefixes first
+      if (portName.startsWith(PortNameEnum.PANEL_BACKGROUND)) return 'panel';
       if (portName.startsWith(PortNameEnum.CONTENT_BACKGROUND)) return 'content';
       if (portName.startsWith(PortNameEnum.DEVTOOLS_BACKGROUND)) return 'devtools';
       if (portName.startsWith(PortNameEnum.POPUP_BACKGROUND)) return 'popup';
-      if (portName.startsWith(PortNameEnum.PANEL_BACKGROUND)) return 'panel';
       return null;
   }
 }

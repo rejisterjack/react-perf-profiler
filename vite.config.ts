@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development',
     rollupOptions: {
       input: {
-        // Entry points are handled by @crxjs/vite-plugin
+        panel: resolve(__dirname, 'src/panel/index.html'),
       },
       output: {
         manualChunks(id: string) {
@@ -74,12 +74,5 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'zustand', 'd3'],
-  },
-  server: {
-    port: 3000,
-    strictPort: true,
-    hmr: {
-      port: 3001,
-    },
   },
 }));

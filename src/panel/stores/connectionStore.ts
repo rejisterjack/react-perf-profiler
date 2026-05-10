@@ -136,34 +136,34 @@ export const useConnectionStore = create<ConnectionStore>()(
           }
         }
 
-        // Get current tab ID first
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (chrome.runtime.lastError) {
-            set({
-              error: chrome.runtime.lastError.message,
-              lastError: chrome.runtime.lastError.message,
-              isConnecting: false,
-            });
-            return;
+        // Get tab ID — prefer chrome.devtools API (available in DevTools panels),
+        // fall back to chrome.tabs.query for other contexts
+        const getTabId = (): number | null => {
+          if (typeof chrome !== 'undefined' && chrome.devtools?.inspectedWindow?.tabId) {
+            return chrome.devtools.inspectedWindow.tabId;
           }
+          return null;
+        };
 
-          if (!tabs || tabs.length === 0 || !tabs[0]?.id) {
-            set({
-              error: 'Could not determine current tab',
-              lastError: 'Could not determine current tab',
-              isConnecting: false,
-            });
-            return;
-          }
+        const currentTabId = getTabId();
+        if (!currentTabId) {
+          set({
+            error: 'Could not determine current tab',
+            lastError: 'Could not determine current tab',
+            isConnecting: false,
+          });
+          return;
+        }
+        set({ tabId: currentTabId });
 
-          const currentTabId = tabs[0]?.id;
-          set({ tabId: currentTabId });
-
-          try {
-            // Create new connection to background script
-            const newPort = chrome.runtime.connect({
-              name: 'react-perf-profiler-panel',
-            });
+        try {
+          // Create new connection to background script
+          // Include the inspected tab ID in the port name so the background
+          // script can associate this connection with the correct tab.
+          const portName = `react-perf-profiler-panel-${currentTabId}`;
+          const newPort = chrome.runtime.connect({
+            name: portName,
+          });
 
             // Handle connection establishment
             newPort.onMessage.addListener((message: PanelMessage) => {
@@ -217,15 +217,28 @@ export const useConnectionStore = create<ConnectionStore>()(
                 case 'REACT_DETECT_RESULT':
                   // React detection result
                   if (message.payload) {
+                    const hasReact = message.payload.reactDetected ?? false;
+                    const hasDevtools = message.payload.devtoolsDetected ?? false;
+                    const isInit = message.payload.isInitialized ?? false;
+
+                    let newBridgeState: BridgeState;
+                    if (hasReact && hasDevtools && isInit) {
+                      newBridgeState = 'success';
+                    } else if (hasReact && hasDevtools) {
+                      // DevTools hook exists but no renderers yet — still pending
+                      newBridgeState = 'success';
+                    } else if (hasReact && !hasDevtools) {
+                      // React detected (production build) but no DevTools hook
+                      // This is a valid "connected" state for detection purposes
+                      newBridgeState = 'success';
+                    } else {
+                      newBridgeState = 'failed';
+                    }
+
                     set({
-                      reactDetected: message.payload.reactDetected ?? null,
-                      devtoolsDetected: message.payload.devtoolsDetected ?? null,
-                      bridgeState:
-                        message.payload.reactDetected && message.payload.devtoolsDetected
-                          ? 'success'
-                          : message.payload.reactDetected
-                            ? 'not-detected'
-                            : 'failed',
+                      reactDetected: hasReact,
+                      devtoolsDetected: hasDevtools,
+                      bridgeState: newBridgeState,
                     });
                   }
                   break;
@@ -267,7 +280,56 @@ export const useConnectionStore = create<ConnectionStore>()(
             // Flush pending messages immediately after connection
             get().flushPendingMessages();
 
-            // Request bridge status
+            // Detect React directly via inspectedWindow
+            try {
+              const detectCode = [
+                '(function(){',
+                'var h=window.__REACT_DEVTOOLS_GLOBAL_HOOK__;',
+                'if(h)return{detected:true,hasHook:true,hasRenderers:!!(h.renderers&&h.renderers.size>0)};',
+                'if(window.React||window.__REACT__)return{detected:true,hasHook:false};',
+                'function chk(el){if(!el)return false;try{var n=Object.getOwnPropertyNames(el);',
+                'for(var i=0;i<n.length;i++){if(n[i].indexOf("__reactContainer$")===0||n[i].indexOf("_reactRootContainer")===0||',
+                'n[i].indexOf("__reactFiber$")===0||n[i].indexOf("__reactProps$")===0)return true;}}catch(e){}return false;}',
+                'var sels=["#root","#app","#__next","#__nuxt","#__gatsby","[data-reactroot]","#react-root","#main"];',
+                'var roots=document.querySelectorAll(sels.join(","));',
+                'for(var i=0;i<roots.length;i++){if(chk(roots[i]))return{detected:true,hasHook:false};}',
+                'var bc=document.querySelectorAll("body > div, body > main, body > section");',
+                'for(var b=0;b<Math.min(bc.length,15);b++){if(chk(bc[b]))return{detected:true,hasHook:false};}',
+                'var ds=["#root > *","#__next > *","body > div > *","main > *"];',
+                'for(var si=0;si<ds.length;si++){try{var e=document.querySelectorAll(ds[si]);',
+                'for(var ei=0;ei<Math.min(e.length,10);ei++){if(chk(e[ei]))return{detected:true,hasHook:false};}',
+                '}catch(_){}}return{detected:false,hasHook:false};',
+                '})()'
+              ].join('');
+              chrome.devtools.inspectedWindow['eval'](detectCode, (result: unknown, exceptionInfo: { isError: boolean; code: string; description: string; details: unknown[] } | undefined) => {
+                if (exceptionInfo?.isError) {
+                  // Don't overwrite successful state from bridge messages
+                  const current = get();
+                  if (current.bridgeState !== 'success') {
+                    set({ bridgeState: 'failed', reactDetected: false });
+                  }
+                  return;
+                }
+                const r = result as { detected: boolean; hasHook: boolean; hasRenderers?: boolean } | undefined;
+                if (r?.detected) {
+                  set({
+                    bridgeState: 'success',
+                    reactDetected: true,
+                    devtoolsDetected: r.hasHook,
+                  });
+                } else {
+                  // Don't overwrite successful state from bridge messages
+                  const current = get();
+                  if (current.bridgeState !== 'success') {
+                    set({ bridgeState: 'failed', reactDetected: false });
+                  }
+                }
+              });
+            } catch {
+              // inspectedWindow API not available
+            }
+
+            // Also request bridge status via background
             newPort.postMessage({ type: 'GET_BRIDGE_STATUS' });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Failed to connect';
@@ -279,7 +341,6 @@ export const useConnectionStore = create<ConnectionStore>()(
               isConnecting: false,
             });
           }
-        });
       },
 
       disconnect: () => {

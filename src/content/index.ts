@@ -22,6 +22,8 @@ let isBridgeInjected = false;
 let bridgeInitState: 'pending' | 'success' | 'failed' = 'pending';
 let bridgeError: { type: string; message: string; recoverable: boolean } | null = null;
 let bridgeRetryCount = 0;
+let lastKnownReactDetected = false;
+let lastKnownDevtoolsDetected = false;
 const pendingMessages: unknown[] = [];
 
 // Message source identifiers
@@ -102,6 +104,9 @@ function injectBridgeScript(): void {
         type: 'BRIDGE_INJECTED',
         payload: { url: window.location.href },
       });
+
+      // Trigger initial detection
+      sendToBridge({ type: 'DETECT_REACT' });
     };
 
     script.onerror = (error) => {
@@ -220,6 +225,14 @@ function handleBridgeMessage(event: MessageEvent): void {
       break;
 
     case 'INIT':
+      // Update local state if provided
+      if (typeof data === 'object' && data !== null) {
+        if ('reactDetected' in data) lastKnownReactDetected = !!data.reactDetected;
+        if ('isInitialized' in data) {
+          bridgeInitState = data.isInitialized ? 'success' : 'pending';
+        }
+      }
+      
       // Forward to background
       sendToBackground({
         type: 'BRIDGE_INIT',
@@ -246,17 +259,20 @@ function handleBridgeMessage(event: MessageEvent): void {
       break;
 
     case 'DETECT_RESULT': {
+      lastKnownReactDetected = !!message.payload.reactDetected;
+      lastKnownDevtoolsDetected = !!message.payload.devtoolsDetected;
+
       if (checkReactPopup) {
         const { timer, respond } = checkReactPopup;
         checkReactPopup = null;
         clearTimeout(timer);
-        respond({ hasReact: message.payload.reactDetected ?? false });
+        respond({ hasReact: lastKnownReactDetected });
       }
       sendToBackground({
         type: 'REACT_DETECT_RESULT',
         payload: {
-          reactDetected: message.payload.reactDetected,
-          devtoolsDetected: message.payload.devtoolsDetected,
+          reactDetected: lastKnownReactDetected,
+          devtoolsDetected: lastKnownDevtoolsDetected,
           isInitialized: message.payload.isInitialized,
         },
       });
@@ -300,7 +316,7 @@ function sendToBridge(payload: unknown): void {
  */
 function connectToBackground(): void {
   try {
-    port = chrome.runtime.connect({ name: 'react-perf-profiler' });
+    port = chrome.runtime.connect({ name: 'content-background' });
 
     port.onMessage.addListener((message: BackgroundMessage) => {
       handleBackgroundMessage(message);
@@ -374,6 +390,9 @@ function handleBackgroundMessage(message: BackgroundMessage): void {
       break;
 
     case 'GET_BRIDGE_STATUS':
+      // Trigger a fresh detection to be sure
+      sendToBridge({ type: 'DETECT_REACT' });
+      
       sendToBackground({
         type: 'BRIDGE_STATUS',
         payload: {
@@ -381,7 +400,8 @@ function handleBackgroundMessage(message: BackgroundMessage): void {
           error: bridgeError,
           retryCount: bridgeRetryCount,
           isInjected: isBridgeInjected,
-          reactDetected: checkReactAvailability(),
+          reactDetected: lastKnownReactDetected,
+          devtoolsDetected: lastKnownDevtoolsDetected,
         },
       });
       break;
@@ -437,7 +457,7 @@ function handleVisibilityChange(): void {
     // Page is hidden, could pause profiling here
   } else {
     // Page is visible again
-
+    
     // Ensure connection is alive
     if (!port) {
       connectToBackground();
@@ -447,6 +467,9 @@ function handleVisibilityChange(): void {
     if (bridgeInitState === 'failed' && bridgeError?.recoverable) {
       sendToBridge({ type: 'FORCE_INIT' });
     }
+    
+    // Trigger detection on visibility change
+    sendToBridge({ type: 'DETECT_REACT' });
   }
 }
 
@@ -483,12 +506,7 @@ function cleanup(): void {
  * Use the injected bridge (DETECT_REACT / DETECT_RESULT) or scripting.executeScript in MAIN world.
  */
 function checkReactAvailability(): boolean {
-  return !!(
-    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
-    window.React ||
-    document.querySelector('[data-reactroot]') ||
-    document.querySelector('[data-reactid]')
-  );
+  return lastKnownReactDetected;
 }
 
 // =============================================================================
@@ -517,7 +535,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     checkReactPopup = null;
     if (!settled) {
       settled = true;
-      sendResponse({ hasReact: false });
+      sendResponse({ hasReact: lastKnownReactDetected });
     }
   }, 3000);
 

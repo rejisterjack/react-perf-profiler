@@ -129,14 +129,4 @@
    Additional Theme Tokens (for future extensions)
    ============================================================================ */
 
-/* Focus ring styles */
-:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
-}
-
-/* Selection styles */
-::selection {
-  background: var(--accent-primary);
-  color: var(--text-inverse);
-}
+/* Focus ring and selection styles are defined in global.css */

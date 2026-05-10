@@ -53,7 +53,7 @@ export const ViewModeToggle: React.FC = () => {
   const hasData = commits.length > 0;
 
   return (
-    <div className={styles["viewModeToggle"]} role="radiogroup" aria-label="View mode">
+    <div className={`${styles["viewModeToggle"]} ${styles["underline"]}`} role="radiogroup" aria-label="View mode">
       {VIEW_MODES.map(({ mode, label, icon, shortcut }) => {
         const isActive = viewMode === mode;
         const isDisabled = !hasData && mode !== 'analysis';

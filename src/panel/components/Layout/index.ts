@@ -13,3 +13,5 @@ export { DetailPanel } from './DetailPanel';
 export { WelcomeScreen } from './WelcomeScreen';
 export { ViewModeToggle } from './ViewModeToggle';
 export { SettingsButton } from './SettingsButton';
+export { ConnectionError } from './ConnectionError';
+export { SessionRestoreBanner } from './SessionRestoreBanner';

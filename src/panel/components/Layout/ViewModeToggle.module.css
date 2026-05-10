@@ -5,12 +5,20 @@
 
 .viewModeToggle {
   display: flex;
-  gap: var(--spacing-1);
-  background: var(--bg-tertiary);
-  padding: var(--spacing-1);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  gap: 0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  border: none;
   position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+  width: 100%;
+}
+
+.viewModeToggle::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .viewModeToggle::before {
@@ -99,8 +107,9 @@
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   font-family: var(--font-family-mono);
-  font-size: 10px;
-  font-weight: var(--font-weight-semibold);
+  font-size: 9px;
+  opacity: 0.5;
+  font-weight: var(--font-weight-medium);
   transition: 
     background-color var(--duration-fast),
     color var(--duration-fast);
@@ -133,7 +142,6 @@
 .underline {
   background: transparent;
   border: none;
-  border-bottom: 2px solid var(--border-default);
   border-radius: 0;
   padding: 0;
   gap: 0;
@@ -145,14 +153,17 @@
 
 .underline .modeButton {
   border-radius: 0;
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-1) var(--spacing-2);
   position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
 }
 
 .underline .modeButton::after {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 2px;

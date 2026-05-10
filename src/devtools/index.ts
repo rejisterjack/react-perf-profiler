@@ -23,7 +23,7 @@ async function initializeDevToolsPanel(): Promise<void> {
     const panel = await createDevToolsPanel({
       title: '⚡ Perf Profiler',
       iconPath: 'icons/icon16.png',
-      pagePath: 'panel/index.html',
+      pagePath: 'src/panel/index.html',
     });
 
     logger.info(`Panel "${panel.title}" created successfully`, { source: 'DevTools' });

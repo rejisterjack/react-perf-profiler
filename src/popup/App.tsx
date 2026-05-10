@@ -3,19 +3,71 @@ import { useEffect, useState } from 'react';
 
 export const App: React.FC = () => {
   const [hasReact, setHasReact] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if React is present on the current page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(tabs[0].id, { type: 'CHECK_REACT' }, (response) => {
+      if (!tabs[0]?.id) return;
+
+      // Use scripting.executeScript to detect React directly in the page context.
+      // This works even if the content script hasn't finished loading (CRXJS async modules).
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tabs[0].id },
+          world: 'MAIN',
+          func: () => {
+            // Check DevTools hook
+            if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) return true;
+            // React globals
+            if (window.React || window.__REACT__) return true;
+
+            // Check root containers for React 18+ internal properties
+            const roots = document.querySelectorAll('#root, #app, #__next, #__nuxt');
+            for (let i = 0; i < roots.length; i++) {
+              const el = roots[i];
+              if (!el) continue;
+              const names = Object.getOwnPropertyNames(el);
+              for (let j = 0; j < names.length; j++) {
+                const n = names[j];
+                if (n && (n.startsWith('__reactContainer$') || n.startsWith('_reactRootContainer'))) {
+                  return true;
+                }
+              }
+            }
+
+            // Check child elements for React fiber markers
+            const selectors = ['#root > *', '#app > *', '#__next > *', 'body > div'];
+            for (const sel of selectors) {
+              try {
+                const els = document.querySelectorAll(sel);
+                for (let e = 0; e < Math.min(els.length, 10); e++) {
+                  const el = els[e];
+                  if (!el) continue;
+                  const pnames = Object.getOwnPropertyNames(el);
+                  for (let p = 0; p < pnames.length; p++) {
+                    const pn = pnames[p];
+                    if (pn && (pn.startsWith('__react') || pn.startsWith('_react'))) {
+                      return true;
+                    }
+                  }
+                }
+              } catch (_) {}
+            }
+
+            return false;
+          },
+        },
+        (results) => {
           if (chrome.runtime.lastError) {
+            setError(chrome.runtime.lastError.message ?? 'Unknown error');
             setHasReact(false);
             return;
           }
-          setHasReact(response?.hasReact ?? false);
-        });
-      }
+          const detected = results?.[0]?.result === true;
+          setHasReact(detected);
+        },
+      );
     });
   }, []);
 
@@ -35,6 +87,11 @@ export const App: React.FC = () => {
             <p style={styles["hint"]}>
               Make sure you're on a page that uses React, or try refreshing.
             </p>
+            {error && (
+              <p style={{ ...styles["hint"], color: '#f14c4c', marginTop: '8px', wordBreak: 'break-all' }}>
+                Debug: {error}
+              </p>
+            )}
           </div>
         )}
 

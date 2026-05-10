@@ -172,12 +172,74 @@ export class MessageRouter {
         this.handleCommitMessage(source, tabId, message);
         break;
 
+      case MessageTypeEnum.COMMIT_DATA:
+        // Content script sends COMMIT_DATA — treat same as COMMIT
+        this.handleCommitMessage(source, tabId, {
+          ...message,
+          type: MessageTypeEnum.COMMIT,
+        });
+        break;
+
       case MessageTypeEnum.GET_DATA:
         this.handleGetDataMessage(source, tabId, message);
         break;
 
       case MessageTypeEnum.CLEAR_DATA:
         this.handleClearDataMessage(source, tabId, message);
+        break;
+
+      // Bridge detection messages — forward between panel and content script
+      case MessageTypeEnum.GET_BRIDGE_STATUS:
+      case MessageTypeEnum.DETECT_REACT:
+      case MessageTypeEnum.FORCE_INIT:
+        // Forward from panel/devtools → content script
+        if (source === 'panel' || source === 'devtools' || source === 'popup') {
+          this.connectionManager.broadcastToPort(tabId, 'content', message);
+        }
+        break;
+
+      case MessageTypeEnum.BRIDGE_STATUS:
+      case MessageTypeEnum.REACT_DETECT_RESULT:
+      case MessageTypeEnum.BRIDGE_INIT:
+      case MessageTypeEnum.BRIDGE_ERROR:
+        // Forward from content → panel/devtools
+        if (source === 'content') {
+          this.connectionManager.broadcastToPort(tabId, 'panel', message);
+          this.connectionManager.broadcastToPort(tabId, 'devtools', message);
+        }
+        break;
+
+      // Connection / session broadcast messages
+      case MessageTypeEnum.CONNECTION_STATUS:
+      case MessageTypeEnum.STATUS_UPDATE:
+      case MessageTypeEnum.PROFILING_STARTED:
+      case MessageTypeEnum.PROFILING_STOPPED:
+      case MessageTypeEnum.DATA_RESPONSE:
+      case MessageTypeEnum.DATA_CLEARED:
+        this.connectionManager.broadcastToAllPorts(tabId, message);
+        break;
+
+      // Bridge injected notification — forward to panel
+      case MessageTypeEnum.BRIDGE_INJECTED:
+        if (source === 'content') {
+          this.connectionManager.broadcastToPort(tabId, 'panel', message);
+        }
+        break;
+
+      // Ping / Pong — keepalive, forward back to sender
+      case MessageTypeEnum.PING:
+        this.connectionManager.broadcastToPort(tabId, source, {
+          type: MessageTypeEnum.PONG,
+          timestamp: Date.now(),
+        });
+        break;
+
+      case MessageTypeEnum.PONG:
+        // Pong is a response — propagate to panel/devtools
+        if (source === 'content') {
+          this.connectionManager.broadcastToPort(tabId, 'panel', message);
+          this.connectionManager.broadcastToPort(tabId, 'devtools', message);
+        }
         break;
 
       default:
@@ -288,23 +350,23 @@ export class MessageRouter {
     // Store the commit
     this.sessionManager.addCommit(tabId, commit);
 
-    // Forward to panel for real-time display
+    // Forward to panel for real-time display (panel expects COMMIT_DATA)
     this.connectionManager.broadcastToPort(tabId, 'panel', {
-      type: MessageTypeEnum.COMMIT,
+      type: MessageTypeEnum.COMMIT_DATA,
       payload: { commit },
       timestamp: Date.now(),
     });
 
     // Also forward to DevTools legacy port if connected
     this.connectionManager.broadcastToPort(tabId, 'devtools', {
-      type: MessageTypeEnum.COMMIT,
+      type: MessageTypeEnum.COMMIT_DATA,
       payload: { commit },
       timestamp: Date.now(),
     });
 
     // Also forward to popup if connected
     this.connectionManager.broadcastToPort(tabId, 'popup', {
-      type: MessageTypeEnum.COMMIT,
+      type: MessageTypeEnum.COMMIT_DATA,
       payload: { commit },
       timestamp: Date.now(),
     });

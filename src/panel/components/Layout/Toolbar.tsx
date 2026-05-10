@@ -387,33 +387,25 @@ export const Toolbar: React.FC = () => {
         )}
 
         <div className={styles['toggles']}>
-          <ViewModeToggle />
           <ThemeToggle />
           <Tooltip content={t('toolbar.help')}>
             <a
               href={`${GITHUB_REPO_URL}#readme`}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles['iconButton']}
+              className={styles['helpLink']}
               aria-label="Help and documentation"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '6px',
-                color: '#94a3b8',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: '700',
-              }}
             >
               ?
             </a>
           </Tooltip>
           <SettingsButton />
         </div>
+      </div>
+
+      {/* View mode tabs — separate row below main controls */}
+      <div className={styles['viewModeRow']}>
+        <ViewModeToggle />
       </div>
 
       <ImportDialog isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />

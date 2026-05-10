@@ -1,114 +1,111 @@
-import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
+import { defineConfig, devices } from "@playwright/test";
+import path from "path";
 
 /**
  * Playwright configuration for React Perf Profiler E2E tests
- * 
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
-  
+  testDir: "./tests/e2e",
+
   /* Run tests in files in parallel */
   fullyParallel: true,
-  
+
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-  
+
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  
+
   /* Opt out of parallel tests on CI */
   workers: process.env.CI ? 1 : undefined,
-  
+
   /* Reporter to use */
-  reporter: [
-    ['html', { open: 'never' }],
-    ['list'],
-  ],
-  
+  reporter: [["html", { open: "never" }], ["list"]],
+
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:5173',
-    
+    baseURL: "http://localhost:5173",
+
     /* Collect trace when retrying the failed test */
-    trace: 'on-first-retry',
-    
+    trace: "on-first-retry",
+
     /* Screenshot on failure */
-    screenshot: 'only-on-failure',
-    
+    screenshot: "only-on-failure",
+
     /* Video recording */
-    video: 'on-first-retry',
-    
+    video: "on-first-retry",
+
     /* Action timeout */
     actionTimeout: 15000,
-    
+
     /* Navigation timeout */
     navigationTimeout: 30000,
   },
-  
+
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
-      use: { 
-        ...devices['Desktop Chrome'],
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
         /* Chrome extension testing requires specific args */
         launchOptions: {
           args: [
-            '--disable-extensions-except=./dist-chrome',
-            '--load-extension=./dist-chrome',
+            "--disable-extensions-except=./dist-chrome",
+            "--load-extension=./dist-chrome",
           ],
         },
       },
     },
-    
+
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
-    
+
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
-    
+
     /* Test against mobile viewports */
     {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: "Mobile Chrome",
+      use: { ...devices["Pixel 5"] },
     },
-    
+
     {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
+      name: "Mobile Safari",
+      use: { ...devices["iPhone 12"] },
     },
   ],
-  
+
   /* Run local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: "npm run dev",
+    url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
-  
+
   /* Global setup and teardown */
-  globalSetup: require.resolve('./tests/e2e/global-setup'),
-  globalTeardown: require.resolve('./tests/e2e/global-teardown'),
-  
+  globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
+
   /* Test timeout */
   timeout: 60000,
-  
+
   /* Expect timeout */
   expect: {
     timeout: 5000,
   },
-  
+
   /* Output directory for test artifacts */
-  outputDir: 'test-results/',
-  
+  outputDir: "test-results/",
+
   /* Snapshot directory */
-  snapshotDir: 'tests/e2e/snapshots',
+  snapshotDir: "tests/e2e/snapshots",
 });

@@ -434,33 +434,34 @@ function detectReact(): boolean {
     '[id="root"], [id="app"], [id="__next"], [id="__nuxt"]'
   );
   for (let i = 0; i < Math.min(rootElements.length, 5); i++) {
-    const el = rootElements[i] as {
-      _reactRootContainer?: unknown;
-      __reactContainer$?: unknown;
-    };
-    if (el._reactRootContainer || el.__reactContainer$) {
+    const el = rootElements[i] as Element & { _reactRootContainer?: unknown };
+    if (el._reactRootContainer) {
+      return true;
+    }
+    // React 18+ uses __reactContainer$<randomId> — check via property names
+    if (Object.getOwnPropertyNames(el).some((k) => k.startsWith('__reactContainer$'))) {
       return true;
     }
   }
 
   // Check for React-specific properties on a limited set of elements
-  // Limit to first 100 elements to avoid O(n) performance issue
   const candidateSelectors = [
     '#root > *',
     '#app > *',
+    '#__next > *',
     'body > div',
-    '[data-reactroot]',
-    '[data-reactid]',
+    'body > *',
   ];
-  
+
   for (const selector of candidateSelectors) {
     try {
       const elements = document.querySelectorAll(selector);
       for (let i = 0; i < Math.min(elements.length, 20); i++) {
         const el = elements[i];
         if (!el) continue;
-        const keys = Object.keys(el);
-        if (keys.some((k) => k.startsWith('__react') || k.startsWith('_react'))) {
+        // React 18+ stores __reactFiber$<id> and __reactProps$<id> as non-enumerable
+        const names = Object.getOwnPropertyNames(el);
+        if (names.some((k) => k.startsWith('__react') || k.startsWith('_react'))) {
           return true;
         }
       }
@@ -494,11 +495,9 @@ function getReactDetectionInfo(): {
         '[id^="root"], [id^="app"], [id^="__next"], [id^="__nuxt"]'
       );
       for (const el of rootElements) {
-        const elWithReact = el as {
-          _reactRootContainer?: unknown;
-          __reactContainer$?: unknown;
-        };
-        if (elWithReact._reactRootContainer || elWithReact.__reactContainer$) {
+        const elWithReact = el as Element & { _reactRootContainer?: unknown };
+        if (elWithReact._reactRootContainer) return true;
+        if (Object.getOwnPropertyNames(el).some((k) => k.startsWith('__reactContainer$'))) {
           return true;
         }
       }

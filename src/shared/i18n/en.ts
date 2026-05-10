@@ -18,6 +18,7 @@ const en = {
   // Status states
   'status.checking': 'Checking React environment...',
   'status.disconnected': 'Waiting for connection to the page...',
+  'status.detectionTimeout': 'Detection timed out. The page may not have React, or the bridge connection is blocked.',
   'status.connected': 'Connected to React',
   'status.reactNotFound': 'React not detected on this page',
   'status.devtoolsNotFound': 'React DevTools extension not found',

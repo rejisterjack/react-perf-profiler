@@ -58,6 +58,10 @@ class AnalysisWorkerClient {
   private worker: Worker | null = null;
   private pendingRequests: Map<string, AnalysisPendingRequest> = new Map();
   private requestId = 0;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private lastWorkerResponse: number = Date.now();
+  private static readonly HEALTH_CHECK_INTERVAL_MS = 5000;
+  private static readonly WORKER_STALE_THRESHOLD_MS = 10000;
 
   /**
    * Initialize the worker using the proper analysis worker module
@@ -70,6 +74,7 @@ class AnalysisWorkerClient {
 
     this.worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const { id, type, result, error } = e.data;
+      this.lastWorkerResponse = Date.now();
       const request = this.pendingRequests.get(id);
 
       if (!request) return;
@@ -426,10 +431,52 @@ class AnalysisWorkerClient {
    * Terminate the worker
    */
   terminate(): void {
+    this.stopHealthCheck();
     if (this.worker) {
       // Reject all pending requests
       this.pendingRequests.forEach((request) => {
         request.reject(new Error('Worker terminated'));
+      });
+      this.pendingRequests.clear();
+
+      this.worker.terminate();
+      this.worker = null;
+    }
+  }
+
+  /**
+   * Start periodic health check — pings the worker and respawns if stale.
+   */
+  startHealthCheck(): void {
+    this.stopHealthCheck();
+    this.lastWorkerResponse = Date.now();
+    this.healthCheckInterval = setInterval(() => {
+      if (!this.worker) return;
+
+      const staleMs = Date.now() - this.lastWorkerResponse;
+      if (staleMs > AnalysisWorkerClient.WORKER_STALE_THRESHOLD_MS) {
+        this.respawnWorker();
+      }
+    }, AnalysisWorkerClient.HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  /**
+   * Stop the health check interval.
+   */
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
+  /**
+   * Respawn the worker — terminate the old one and create a fresh instance.
+   */
+  private respawnWorker(): void {
+    if (this.worker) {
+      this.pendingRequests.forEach((request) => {
+        request.reject(new Error('Worker respawned — please retry'));
       });
       this.pendingRequests.clear();
 

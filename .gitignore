@@ -73,3 +73,7 @@ logs/
 
 # OS specific
 Thumbs.db
+
+# Superpowers skill docs (local only)
+docs/superpowers/
+.env*.local

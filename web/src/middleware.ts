@@ -62,6 +62,36 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // CSRF protection: require Origin header on state-changing requests
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('host');
+
+    if (!origin && !host) {
+      return NextResponse.json(
+        { error: { code: 'CSRF_DENIED', message: 'Missing origin header' } },
+        { status: 403 },
+      );
+    }
+
+    // Allow extension requests (they use Bearer auth, not cookies)
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      // Extension requests with Bearer token are CSRF-safe
+    } else {
+      // For browser requests, validate Origin matches Host
+      if (origin && host) {
+        const originHost = origin.replace(/^https?:\/\//, '');
+        if (originHost !== host) {
+          return NextResponse.json(
+            { error: { code: 'CSRF_DENIED', message: 'Origin does not match host' } },
+            { status: 403 },
+          );
+        }
+      }
+    }
+  }
+
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? request.headers.get('x-real-ip')
     ?? 'unknown';

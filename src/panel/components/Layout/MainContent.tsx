@@ -41,6 +41,9 @@ const PerformanceDashboard = React.lazy(() =>
 const ComponentTree3D = React.lazy(() =>
   import('../Visualizations3D/ComponentTree3D').then((m) => ({ default: m.ComponentTree3D }))
 );
+const FallbackFlamegraph = React.lazy(() =>
+  import('../Visualizations3D/FallbackFlamegraph').then((m) => ({ default: m.FallbackFlamegraph }))
+);
 
 // =============================================================================
 // Props Interface
@@ -137,14 +140,36 @@ export const MainContent: React.FC<MainContentProps> = ({ className }) => {
           </ErrorBoundary>
         )}
         {viewMode === '3d' && (
-          <ErrorBoundary context="3D Component Tree">
-            <React.Suspense fallback={<div className={styles["loadingFallback"]}>Loading 3D view…</div>}>
+          <React.Suspense fallback={<div className={styles["loadingFallback"]}>Loading 3D view…</div>}>
+            <ThreeDFallbackWrapper commits={commits}>
               <ComponentTree3D commits={commits} />
-            </React.Suspense>
-          </ErrorBoundary>
+            </ThreeDFallbackWrapper>
+          </React.Suspense>
         )}
       </div>
     </main>
+  );
+};
+
+// =============================================================================
+// 3D Fallback Wrapper — catches WebGL/Three.js errors, renders D3 fallback
+// =============================================================================
+
+const ThreeDFallbackWrapper: React.FC<{
+  commits: ReturnType<typeof useProfilerStore.getState>['commits'];
+  children: React.ReactNode;
+}> = ({ commits, children }) => {
+  return (
+    <ErrorBoundary
+      context="3D Component Tree"
+      fallback={
+        <React.Suspense fallback={null}>
+          <FallbackFlamegraph commits={commits} error="WebGL unavailable or crashed" />
+        </React.Suspense>
+      }
+    >
+      {children}
+    </ErrorBoundary>
   );
 };
 

@@ -16,8 +16,8 @@ const secret = process.env.NEXTAUTH_SECRET;
 if (!secret) {
   throw new Error('NEXTAUTH_SECRET environment variable is required');
 }
-if (process.env.NODE_ENV === 'production' && DEV_SECRETS.has(secret)) {
-  throw new Error('NEXTAUTH_SECRET must be a strong random value in production (not a placeholder)');
+if (DEV_SECRETS.has(secret)) {
+  throw new Error('NEXTAUTH_SECRET must be a strong random value (not a placeholder). Generate one with: openssl rand -base64 32');
 }
 
 const credentialsSchema = z.object({

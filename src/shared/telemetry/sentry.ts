@@ -45,7 +45,16 @@ export function setCrashReportingEnabled(enabled: boolean): void {
 }
 
 export function captureException(error: Error, context?: Record<string, unknown>): void {
-  if (!initialized) return;
+  // Also try auto-init if user-enabled init hasn't happened
+  if (!initialized) {
+    // Import and call auto-init as a fallback (uses VITE_SENTRY_DSN)
+    import('@/shared/sentry').then(({ reportError }) => {
+      reportError(error, context);
+    }).catch(() => {
+      // Sentry not available — silently ignore
+    });
+    return;
+  }
   Sentry.withScope((scope) => {
     if (context) {
       for (const [k, v] of Object.entries(context)) {

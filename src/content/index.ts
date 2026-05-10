@@ -3,7 +3,9 @@
  * Injects the bridge script, listens for messages, and communicates with background script
  */
 
-import type { BackgroundMessage, BridgeMessage } from './types';
+import type { BackgroundMessage } from './types';
+import { isBridgeMessage, isBackgroundMessage } from '@/shared/messageSchema';
+import { installCSPDetector, type CSPDetectionResult } from './cspDetector';
 
 // Bridge script URL (must match web_accessible_resources in manifest)
 const BRIDGE_SCRIPT_URL = chrome.runtime.getURL('bridge.js');
@@ -23,7 +25,6 @@ let bridgeRetryCount = 0;
 const pendingMessages: unknown[] = [];
 
 // Message source identifiers
-const BRIDGE_SOURCE = 'react-perf-profiler-bridge';
 const CONTENT_SOURCE = 'react-perf-profiler-content';
 
 // =============================================================================
@@ -39,6 +40,23 @@ function init(): void {
 
   // Set up listener for messages from the injected bridge
   setupBridgeListener();
+
+  // Set up CSP violation detection
+  installCSPDetector((result: CSPDetectionResult) => {
+    if (result.blocked) {
+      bridgeInitState = 'failed';
+      bridgeError = {
+        type: 'CSP_BLOCKED',
+        message: `CSP directive "${result.directive}" blocked script injection`,
+        recoverable: false,
+      };
+      reportError('CSP blocked bridge injection', {
+        type: 'CSP_BLOCKED',
+        details: `Directive: ${result.directive}, URI: ${result.blockedURI}`,
+        recoverable: false,
+      });
+    }
+  });
 
   // Connect to background service worker
   connectToBackground();
@@ -143,11 +161,10 @@ function handleBridgeMessage(event: MessageEvent): void {
   // Security: Only accept messages from the same window
   if (event.source !== window) return;
 
-  const message = event.data as BridgeMessage;
+  const message = event.data;
 
-  // Check if it's a message from our bridge
-  if (!message || typeof message !== 'object') return;
-  if (message.source !== BRIDGE_SOURCE) return;
+  // Validate message structure
+  if (!isBridgeMessage(message)) return;
   if (!message.payload) return;
 
   const { type, data, error, errorType, recoverable, retryCount } = message.payload;
@@ -321,7 +338,7 @@ function connectToBackground(): void {
  * Handle messages from background script
  */
 function handleBackgroundMessage(message: BackgroundMessage): void {
-  if (!message || !message.type) return;
+  if (!isBackgroundMessage(message)) return;
 
   switch (message.type) {
     case 'START_PROFILING':

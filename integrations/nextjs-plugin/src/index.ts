@@ -56,7 +56,45 @@ function withPerfProfilerPlugin(options: PerfBudget = {}) {
 
         // Run budget check in development mode
         if (opts.dev && profilePath) {
-          // TODO: load and analyze the profile against budgets
+          try {
+            const fs = require('node:fs') as typeof import('fs');
+            const path = require('node:path') as typeof import('path');
+            const profileFullPath = path.resolve(process.cwd(), profilePath);
+            if (fs.existsSync(profileFullPath)) {
+              const raw = fs.readFileSync(profileFullPath, 'utf-8');
+              const profile = JSON.parse(raw);
+              const commits = profile?.data?.commits ?? [];
+              const violations: string[] = [];
+
+              for (const commit of commits) {
+                for (const node of commit.nodes ?? []) {
+                  if (node.actualDuration > renderTime) {
+                    violations.push(
+                      `${node.displayName}: ${node.actualDuration.toFixed(1)}ms > ${renderTime}ms render budget`
+                    );
+                  }
+                  if (node.renderCount > renderCount) {
+                    violations.push(
+                      `${node.displayName}: ${node.renderCount} renders > ${renderCount} render budget`
+                    );
+                  }
+                }
+              }
+
+              if (violations.length > 0) {
+                const msg = `[perf-profiler] ${violations.length} budget violation(s):\n  ${violations.slice(0, 10).join('\n  ')}`;
+                if (options.failOnViolation) {
+                  throw new Error(msg);
+                }
+                console.warn(msg);
+              }
+            }
+          } catch (err) {
+            if (err instanceof Error && err.message.includes('budget violation')) {
+              throw err;
+            }
+            // Non-fatal: profile loading failure shouldn't break the build
+          }
         }
 
         // Call user's webpack config if it exists

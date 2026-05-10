@@ -8,7 +8,13 @@ const JWT_SECRET = process.env.NEXTAUTH_SECRET!;
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(12, 'Password must be at least 12 characters')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\-_])[A-Za-z\d@$!%*?&\-_]+$/,
+      'Password must contain uppercase, lowercase, number, and special character'
+    ),
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
 });
 
@@ -86,7 +92,6 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error('Registration error:', error);
     return NextResponse.json(
       {
         error: {

@@ -11,7 +11,23 @@ Please **do not** open a public GitHub issue for security reports.
 - **Preferred:** Use [GitHub private vulnerability reporting](https://github.com/rejisterjack/react-perf-profiler/security/advisories/new) for this repository (if enabled for the repo), or contact the maintainers through a private channel you already use with them.
 - Include: affected version or commit, steps to reproduce, impact assessment, and any suggested fix if you have one.
 
-We aim to acknowledge reports within a few business days. This project is maintained in good faith; timelines depend on maintainer availability.
+We aim to acknowledge reports within 48 hours and provide an initial assessment within 5 business days. This project is maintained in good faith; timelines depend on maintainer availability.
+
+### Response Timeline
+
+| Stage | Target SLA |
+|-------|-----------|
+| Acknowledgment | Within 48 hours |
+| Initial assessment | Within 5 business days |
+| Fix developed | Within 14 days (critical), 30 days (medium) |
+| Disclosure coordination | After fix is released |
+
+### Supported Versions
+
+| Version | Supported |
+|---------|-----------|
+| 1.0.x   | Active development |
+| < 1.0   | Not supported |
 
 ## Scope
 

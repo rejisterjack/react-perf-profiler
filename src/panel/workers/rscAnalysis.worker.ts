@@ -259,11 +259,33 @@ function handleAnalyzeAll(
     ...userConfig,
   };
 
-  // Parse all payloads
+  // Parse all payloads with chunk validation
+  const MAX_PAYLOAD_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per payload
+  const MAX_PAYLOAD_COUNT = 500; // Max individual payloads
   const parsedPayloads: RSCPayload[] = [];
   for (const data of payloads) {
     try {
+      // Validate payload before parsing
+      const validationResult = validateChunkData(data, MAX_PAYLOAD_SIZE_BYTES);
+      if (!validationResult.valid) {
+        workerLogger.warn('Skipping invalid RSC chunk', {
+          source: 'rscAnalysis.worker',
+          reason: validationResult.reason,
+        });
+        continue;
+      }
       const payload = parseRSCPayload(data);
+
+      // Post-parse validation: cap boundary count
+      if (payload.boundaries && payload.boundaries.length > MAX_PAYLOAD_COUNT) {
+        workerLogger.warn('Truncating excessive boundaries', {
+          source: 'rscAnalysis.worker',
+          count: payload.boundaries.length,
+          max: MAX_PAYLOAD_COUNT,
+        });
+        payload.boundaries = payload.boundaries.slice(0, MAX_PAYLOAD_COUNT);
+      }
+
       parsedPayloads.push(payload);
     } catch (error) {
       // Continue with other payloads if one fails
@@ -738,6 +760,61 @@ function formatBytes(bytes: number): string {
  */
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+// ============================================================================
+// Chunk Validation
+// ============================================================================
+
+interface ChunkValidationResult {
+  valid: boolean;
+  reason?: string;
+}
+
+/**
+ * Validate RSC chunk data before parsing.
+ * Guards against malformed, oversized, or non-parseable chunks.
+ */
+function validateChunkData(
+  data: string | object,
+  maxSizeBytes: number,
+): ChunkValidationResult {
+  // Null/undefined check
+  if (data === null || data === undefined) {
+    return { valid: false, reason: 'Chunk data is null or undefined' };
+  }
+
+  // String validation
+  if (typeof data === 'string') {
+    if (data.length === 0) {
+      return { valid: false, reason: 'Empty string chunk' };
+    }
+    // Rough byte estimate (2 bytes per char for BMP, more for astral)
+    const estimatedBytes = data.length * 2;
+    if (estimatedBytes > maxSizeBytes) {
+      return { valid: false, reason: `Chunk exceeds ${maxSizeBytes} bytes (${estimatedBytes} estimated)` };
+    }
+    // Check for common malformed patterns
+    if (!data.trim()) {
+      return { valid: false, reason: 'Whitespace-only chunk' };
+    }
+    return { valid: true };
+  }
+
+  // Object validation
+  if (typeof data === 'object') {
+    try {
+      const serialized = JSON.stringify(data);
+      if (serialized && serialized.length * 2 > maxSizeBytes) {
+        return { valid: false, reason: 'Object chunk exceeds size limit' };
+      }
+    } catch {
+      return { valid: false, reason: 'Object is not serializable' };
+    }
+    return { valid: true };
+  }
+
+  return { valid: false, reason: `Unexpected chunk type: ${typeof data}` };
 }
 
 // ============================================================================

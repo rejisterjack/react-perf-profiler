@@ -8,7 +8,7 @@ import { Component, createRef, type ErrorInfo, type ReactNode } from 'react';
 import { clearLastError, reloadPanel, reportError, resetPanel } from '@/panel/utils/errorRecovery';
 import { GENERIC_ISSUE_REPORT_URL, GITHUB_REPO_URL } from '@/shared/constants';
 import { t } from '@/shared/i18n';
-import { logger } from '@/shared/logger';
+import { logger, ErrorSeverity, ErrorCodes, createProfiledError } from '@/shared/logger';
 import { captureException } from '@/shared/telemetry/sentry';
 import { Button } from '../Common/Button/Button';
 import { Icon } from '../Common/Icon/Icon';
@@ -104,6 +104,27 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     captureException(error, {
       context: this.props.context ?? 'unknown',
       errorId: this.state.errorId,
+    });
+
+    // Create a ProfiledError for structured tracking
+    const profiledError = createProfiledError(
+      ErrorCodes.E_UNKNOWN,
+      ErrorSeverity.ERROR,
+      error.message || 'An unexpected error occurred',
+      {
+        context: { context: this.props.context, errorId: this.state.errorId },
+        recoverable: true,
+        recoveryActions: [
+          { label: 'Reload Panel', action: 'reload' },
+          { label: 'Reset Data', action: 'reset' },
+        ],
+      },
+    );
+    logger.error('ProfiledError created', {
+      code: profiledError.code,
+      severity: profiledError.severity,
+      errorId: profiledError.id,
+      source: 'ErrorBoundary',
     });
 
     // Call optional onError callback

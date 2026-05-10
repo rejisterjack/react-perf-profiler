@@ -4,9 +4,14 @@
   "description": "Next.js plugin that integrates React Perf Profiler performance budgets into the build pipeline.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
     "next": ">=13.0.0"
@@ -15,5 +20,21 @@
     "typescript": "^5.6.0",
     "next": "^14.0.0"
   },
-  "license": "MIT"
+  "keywords": [
+    "nextjs",
+    "react",
+    "performance",
+    "profiler",
+    "build-plugin",
+    "performance-budget"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rejisterjack/react-perf-profiler",
+    "directory": "integrations/nextjs-plugin"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

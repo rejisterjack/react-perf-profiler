@@ -1,6 +1,7 @@
 /**
  * Structured Logger Utility
  * Provides consistent, level-based logging across the extension
+ * with Sentry integration and ProfiledError taxonomy.
  */
 
 // =============================================================================
@@ -269,3 +270,90 @@ export const logError = (message: string, context?: LogContext): void => {
 };
 
 export default logger;
+
+// =============================================================================
+// Profiled Error Taxonomy
+// =============================================================================
+
+export enum ErrorSeverity {
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  FATAL = 'fatal',
+}
+
+export interface ProfiledError {
+  id: string;
+  code: string;
+  severity: ErrorSeverity;
+  context: Record<string, unknown>;
+  userMessage: string;
+  recoverable: boolean;
+  recoveryActions?: Array<{ label: string; action: string }>;
+}
+
+/**
+ * Error codes for the extension.
+ * Format: E_<COMPONENT>_<ISSUE>
+ */
+export const ErrorCodes = {
+  // Recording
+  E_RECORDING_START_FAILED: 'E_RECORDING_START_FAILED',
+  E_RECORDING_ALREADY_ACTIVE: 'E_RECORDING_ALREADY_ACTIVE',
+  E_RECORDING_STOP_FAILED: 'E_RECORDING_STOP_FAILED',
+
+  // Bridge
+  E_BRIDGE_INJECTION_FAILED: 'E_BRIDGE_INJECTION_FAILED',
+  E_BRIDGE_HOOK_NOT_FOUND: 'E_BRIDGE_HOOK_NOT_FOUND',
+  E_BRIDGE_CSP_BLOCKED: 'E_BRIDGE_CSP_BLOCKED',
+  E_BRIDGE_CONTEXT_INVALIDATED: 'E_BRIDGE_CONTEXT_INVALIDATED',
+
+  // Connection
+  E_CONNECTION_LOST: 'E_CONNECTION_LOST',
+  E_CONNECTION_TIMEOUT: 'E_CONNECTION_TIMEOUT',
+  E_PORT_DISCONNECTED: 'E_PORT_DISCONNECTED',
+
+  // Analysis
+  E_ANALYSIS_WORKER_CRASH: 'E_ANALYSIS_WORKER_CRASH',
+  E_ANALYSIS_NO_COMMITS: 'E_ANALYSIS_NO_COMMITS',
+  E_ANALYSIS_TIMEOUT: 'E_ANALYSIS_TIMEOUT',
+
+  // Storage
+  E_STORAGE_FULL: 'E_STORAGE_FULL',
+  E_STORAGE_READ_FAILED: 'E_STORAGE_READ_FAILED',
+  E_STORAGE_WRITE_FAILED: 'E_STORAGE_WRITE_FAILED',
+
+  // React detection
+  E_REACT_NOT_DETECTED: 'E_REACT_NOT_DETECTED',
+  E_REACT_VERSION_UNSUPPORTED: 'E_REACT_VERSION_UNSUPPORTED',
+
+  // General
+  E_UNKNOWN: 'E_UNKNOWN',
+} as const;
+
+let errorCounter = 0;
+
+/**
+ * Create a ProfiledError with a unique ID for tracking.
+ */
+export function createProfiledError(
+  code: string,
+  severity: ErrorSeverity,
+  userMessage: string,
+  options?: {
+    context?: Record<string, unknown>;
+    recoverable?: boolean;
+    recoveryActions?: Array<{ label: string; action: string }>;
+  },
+): ProfiledError {
+  errorCounter++;
+  return {
+    id: `err_${Date.now()}_${errorCounter}`,
+    code,
+    severity,
+    context: options?.context ?? {},
+    userMessage,
+    recoverable: options?.recoverable ?? severity !== ErrorSeverity.FATAL,
+    recoveryActions: options?.recoveryActions,
+  };
+}

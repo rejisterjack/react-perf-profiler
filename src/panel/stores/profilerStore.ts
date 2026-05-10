@@ -13,10 +13,14 @@ import { startAnalysisTimer, endAnalysisTimer, startMemorySampling, stopMemorySa
 import {
   DEFAULT_DETAIL_PANEL_WIDTH,
   DEFAULT_SIDEBAR_WIDTH,
-  MAX_PERFORMANCE_SCORE,
-  MIN_PERFORMANCE_SCORE,
-  RENDER_TIME_SCORE,
 } from '@/shared/constants';
+import {
+  aggregateComponentData,
+  calculateWastedRenderRate,
+  calculateMemoEffectiveness,
+  calculatePerformanceScore,
+} from '@/panel/utils/analysisPipeline';
+import { addBreadcrumb } from '@/shared/sentry';
 import {
   autoMigrateProfileWithLogging,
   CorruptedProfileError,
@@ -302,7 +306,7 @@ const MAX_EXPANDED_NODES = 1000;
  * O(1) LRU Cache manager for component data
  * Uses Map's insertion order preservation for O(1) access, update, and eviction
  */
-class ComponentDataLRUCache {
+export class ComponentDataLRUCache {
   private cache: Map<string, ComponentData>;
   private maxSize: number;
 
@@ -460,6 +464,9 @@ const AUTO_ANALYSIS_DELAY_MS = 500;
 /** Debounce timer for auto-analysis */
 let autoAnalysisTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Recording mutex — prevents concurrent startRecording calls */
+let isStartingRecording = false;
+
 /** Circular buffer for O(1) commit storage (module-level for persistence across renders) */
 const commitsBuffer = new CircularBuffer<CommitData>(MAX_COMMITS);
 
@@ -508,17 +515,23 @@ const storeImplementation = (
 
   // Actions
   startRecording: () => {
+    // Guard against concurrent calls (e.g. rapid button clicks)
+    const { isRecording } = get();
+    if (isRecording || isStartingRecording) return;
+    isStartingRecording = true;
+
     trackEvent('recording_started');
     startMemorySampling();
+    addBreadcrumb('profiler', 'Recording started');
     // Clear circular buffer for new recording
     commitsBuffer.clear();
-    
+
     // Cancel any pending auto-analysis
     if (autoAnalysisTimer) {
       clearTimeout(autoAnalysisTimer);
       autoAnalysisTimer = null;
     }
-    
+
     set({
       isRecording: true,
       recordingStartTime: Date.now(),
@@ -528,6 +541,8 @@ const storeImplementation = (
       memoReports: [],
       analysisResults: null,
     });
+
+    isStartingRecording = false;
   },
 
   stopRecording: () => {
@@ -536,6 +551,7 @@ const storeImplementation = (
     set({ isRecording: false, recordingDuration: duration });
     stopMemorySampling();
     trackEvent('recording_stopped', { duration_ms: duration, commit_count: commits.length });
+    addBreadcrumb('profiler', 'Recording stopped', { duration_ms: duration, commits: commits.length });
     
     // Auto-trigger analysis after delay
     if (autoAnalysisTimer) {
@@ -585,7 +601,17 @@ const storeImplementation = (
   addCommit: (commit: CommitData) => {
     // O(1) append using circular buffer
     commitsBuffer.push(commit);
-    
+
+    // Warn on extremely large trees (>10K nodes in a single commit)
+    const nodeCount = commit.nodes?.length ?? 0;
+    if (nodeCount > 10000) {
+      notifications.warning(
+        'Large component tree',
+        `Commit has ${nodeCount} nodes (>10K). This may impact panel performance. Consider narrowing your recording scope.`,
+        6000,
+      );
+    }
+
     // Export to array for React state (UI reads from this)
     set({ commits: commitsBuffer.toArray() });
   },
@@ -824,93 +850,28 @@ const storeImplementation = (
     try {
       const { commits, config } = get();
 
-      // Check if there are commits to analyze
       if (commits.length === 0) {
-        set({
-          isAnalyzing: false,
-          analysisError: 'No commits to analyze',
-        });
+        set({ isAnalyzing: false, analysisError: 'No commits to analyze' });
         return;
       }
 
-      // Use the analysis worker for off-main-thread computation
+      // Pass 1: Worker analysis (off-main-thread)
       const analysisResult = await analysisWorker.analyzeAll(commits);
 
-      // Aggregate component data using LRU cache for the store
-      const componentData = new ComponentDataLRUCache(config.maxComponentDataEntries);
+      // Pass 2: Aggregate component data
+      const { componentData, totalComponents, avgRenderTime } =
+        aggregateComponentData(commits, config.maxComponentDataEntries);
 
-      for (const commit of commits) {
-        for (const node of commit.nodes ?? []) {
-          const name = node.displayName;
-          if (!name) continue;
+      // Pass 3: Wasted render rate
+      const { wastedRenderRate, reports: wastedReports } = calculateWastedRenderRate(analysisResult);
 
-          let data = componentData.get(name);
-          if (!data) {
-            data = {
-              name,
-              renderCount: 0,
-              wastedRenders: 0,
-              wastedRenderRate: 0,
-              averageDuration: 0,
-              totalDuration: 0,
-              isMemoized: node.isMemoized,
-              memoHitRate: 0,
-              commitIds: [],
-              severity: 'none',
-            };
-          }
+      // Pass 4: Memo effectiveness
+      const { avgMemoHitRate, reports: memoReports } = calculateMemoEffectiveness(analysisResult);
 
-          data.renderCount++;
-          data.totalDuration += node.actualDuration;
-          data.commitIds.push(commit.id);
-
-          // Set/update in LRU cache
-          componentData.set(name, data);
-        }
-      }
-
-      // Calculate averages
-      for (const data of componentData.values()) {
-        data.averageDuration = data.totalDuration / data.renderCount;
-      }
-
-      // Calculate performance score from analysis results
-      const totalComponents = componentData.size;
-      const totalRenderTime = Array.from(componentData.values()).reduce(
-        (sum, c) => sum + c.totalDuration,
-        0
+      // Pass 5: Performance score
+      const { score: clampedScore, performanceScore } = calculatePerformanceScore(
+        avgRenderTime, wastedRenderRate, avgMemoHitRate, totalComponents,
       );
-      const avgRenderTime = totalComponents > 0 ? totalRenderTime / totalComponents : 0;
-
-      // Calculate wasted render rate from worker reports
-      const wastedReports = analysisResult.wastedRenderReports ?? [];
-      const totalWastedRenders = wastedReports.reduce((sum: number, r) => sum + r.wastedRenders, 0);
-      const totalRenders = wastedReports.reduce((sum: number, r) => sum + r.totalRenders, 0);
-      const wastedRenderRate = totalRenders > 0 ? (totalWastedRenders / totalRenders) * 100 : 0;
-
-      // Calculate average memo hit rate
-      const memoReports = analysisResult.memoReports ?? [];
-      const avgMemoHitRate =
-        memoReports.length > 0
-          ? (memoReports.reduce((sum: number, r) => sum + r.currentHitRate, 0) /
-              memoReports.length) *
-            100
-          : 0;
-
-      // Calculate performance score based on average render time
-      const calculatedScore = MAX_PERFORMANCE_SCORE - avgRenderTime * RENDER_TIME_SCORE.MULTIPLIER;
-      const clampedScore = Math.max(
-        MIN_PERFORMANCE_SCORE,
-        Math.min(MAX_PERFORMANCE_SCORE, calculatedScore)
-      );
-
-      const performanceScore: PerformanceMetrics = {
-        score: clampedScore,
-        averageRenderTime: avgRenderTime,
-        wastedRenderRate,
-        averageMemoHitRate: avgMemoHitRate,
-        totalComponents,
-      };
 
       endAnalysisTimer(commits.length, totalComponents);
       set({
@@ -921,18 +882,12 @@ const storeImplementation = (
         memoReports: memoReports,
         analysisResults: analysisResult,
       });
-      
-      // Show success notification
+
       notifications.analysisComplete(clampedScore);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
       endAnalysisTimer(get().commits.length, 0);
-      set({
-        isAnalyzing: false,
-        analysisError: errorMessage,
-      });
-      
-      // Show error notification
+      set({ isAnalyzing: false, analysisError: errorMessage });
       notifications.error('Analysis Failed', errorMessage);
     }
   },

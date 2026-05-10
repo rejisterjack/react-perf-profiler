@@ -24,7 +24,16 @@ const nextConfig: NextConfig = {
           ...securityHeaders,
           {
             key: 'Access-Control-Allow-Origin',
-            value: 'chrome-extension://*, moz-extension://*',
+            value: [
+              // Production extension ID(s) — update after CWS / AMO publishing
+              ...(process.env.ALLOWED_EXTENSION_IDS
+                ? process.env.ALLOWED_EXTENSION_IDS.split(',').map((id) => `chrome-extension://${id}`)
+                : []),
+              // Allow development extension ID (changes per load, so allow all in dev)
+              ...(process.env.NODE_ENV !== 'production'
+                ? ['chrome-extension://*', 'moz-extension://*']
+                : []),
+            ].join(', '),
           },
           {
             key: 'Access-Control-Allow-Methods',

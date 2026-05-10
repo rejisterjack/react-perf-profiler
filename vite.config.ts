@@ -70,6 +70,7 @@ export default defineConfig(({ mode }) => ({
   },
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'zustand', 'd3'],

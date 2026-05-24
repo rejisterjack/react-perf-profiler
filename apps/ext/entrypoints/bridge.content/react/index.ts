@@ -1,0 +1,1 @@
+export { ReactAdapter } from './adapter';

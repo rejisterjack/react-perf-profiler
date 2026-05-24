@@ -1,0 +1,15 @@
+{
+  "name": "@react-perf-profiler/analyzer",
+  "version": "1.0.0",
+  "description": "Pure analysis engine for React profiling data — zero browser dependencies",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

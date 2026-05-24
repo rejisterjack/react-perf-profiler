@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "componentPattern": "*",
+      "maxRenderCount": 100,
+      "maxWastedRenderRate": 50
+    },
+    {
+      "componentPattern": "App",
+      "maxRenderCount": 20
+    }
+  ]
+}

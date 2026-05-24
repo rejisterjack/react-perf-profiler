@@ -1,0 +1,21 @@
+{
+  "name": "@react-perf-profiler/cli",
+  "version": "1.0.0",
+  "description": "CLI for analyzing React profiling data in CI/CD",
+  "type": "module",
+  "bin": {
+    "rpp": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@react-perf-profiler/analyzer": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@react-perf-profiler/test-plugin",
+  "version": "1.0.0",
+  "description": "Vitest/Jest plugin for automated React performance testing",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./vitest": "./dist/vitest.js",
+    "./jest": "./dist/jest.js",
+    "./matchers": "./dist/matchers.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@react-perf-profiler/analyzer": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "typescript": "^5.9.3"
+  }
+}

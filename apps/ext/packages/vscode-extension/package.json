@@ -1,0 +1,68 @@
+{
+  "name": "react-perf-profiler-vscode",
+  "displayName": "React Perf Profiler",
+  "description": "Inline performance diagnostics from React Perf Profiler Chrome extension",
+  "version": "1.0.0",
+  "publisher": "react-perf-profiler",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Debuggers", "Programming Languages"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "reactPerf.showReport",
+        "title": "React Perf: Show Performance Report"
+      },
+      {
+        "command": "reactPerf.setBaseline",
+        "title": "React Perf: Set Baseline"
+      },
+      {
+        "command": "reactPerf.connect",
+        "title": "React Perf: Connect to Chrome Extension"
+      },
+      {
+        "command": "reactPerf.disconnect",
+        "title": "React Perf: Disconnect"
+      }
+    ],
+    "configuration": {
+      "title": "React Perf Profiler",
+      "properties": {
+        "reactPerf.wsPort": {
+          "type": "number",
+          "default": 9876,
+          "description": "WebSocket port for Chrome extension connection"
+        },
+        "reactPerf.showInlineDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline render count badges next to component functions"
+        },
+        "reactPerf.maxRenderCountForGreen": {
+          "type": "number",
+          "default": 5,
+          "description": "Render count at or below this shows green"
+        },
+        "reactPerf.maxRenderCountForYellow": {
+          "type": "number",
+          "default": 20,
+          "description": "Render count above green but at or below this shows yellow"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3"
+  }
+}

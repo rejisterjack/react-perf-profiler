@@ -1,159 +1,68 @@
-# Turborepo starter
+# ⚠️ This project is deprecated
 
-This Turborepo starter is maintained by the Turborepo core team.
+**`react-perf-profiler` has been merged into [`frontend-dev-helper`](https://github.com/rejisterjack/frontend-dev-helper).**
 
-## Using this example
+All React profiling capabilities from this extension — wasted-render detection, memoization scoring, render-cause attribution, CPU Profile export, flamegraphs, timelines, the component tree, Web Vitals, profile comparison, and AI-powered optimization suggestions — now live in **`frontend-dev-helper`** as a dedicated **React Profiler** tab inside its DevTools panel.
 
-Run the following command:
+This repository is preserved for historical reference and is no longer maintained. No new features, bug fixes, or releases will happen here. Please switch to `frontend-dev-helper` for all React profiling work.
 
-```sh
-npx create-turbo@latest
+---
+
+## Why the merge?
+
+`frontend-dev-helper` is a Chrome DevTools extension built on the same stack (WXT + React 19 + shadcn/ui + Zustand + Tailwind v4) and already ships performance, accessibility, and design-system tooling. Maintaining two separate extensions — and two MAIN-world fiber bridges, two analyzer packages, two AI integrations — duplicated a lot of effort. Consolidating into one extension gives you a single DevTools panel that does everything.
+
+---
+
+## Where each feature went
+
+| `react-perf-profiler`                                                        | `frontend-dev-helper`                                                                                                            |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/ext/packages/analyzer` (pure analysis)                                 | `packages/profiler-analyzer`                                                                                                     |
+| `packages/profile-contract` (types + Zod schemas)                            | `packages/profiler-contract`                                                                                                     |
+| MAIN-world fiber bridge (`bridge.content/`)                                  | `apps/ext/entrypoints/profiler-bridge.content/`                                                                                  |
+| `onCommitFiberRoot` monkey-patch + batching                                  | Same pipeline, routed through FDH's existing content script + background service worker                                          |
+| `analysisWorker.ts` + `analysisWorkerManager.ts`                             | `apps/ext/lib/profiler/`                                                                                                         |
+| `cpuProfileExport.ts`                                                        | `apps/ext/lib/profiler/cpuProfileExport.ts`                                                                                      |
+| `patchGenerator.ts` + `AISuggestionsPanel.tsx`                               | `apps/ext/lib/profiler/ai/` + `apps/ext/components/profiler/analysis/AISuggestionsPanel.tsx`                                     |
+| `claudeProvider` / `openaiProvider` / `ollamaProvider`                       | **Removed** — reuses FDH's existing `lib/llm-service.ts` (OpenRouter / Ollama / Fireworks / ZAI) and global Settings → AI config |
+| Tree, Flamegraph, Timeline, Analysis, WebVitals, Compare, Dependencies views | `apps/ext/components/profiler/`                                                                                                  |
+| Session persistence, JSON export, keyboard shortcuts                         | `apps/ext/hooks/profiler/`                                                                                                       |
+| "Open in Editor" via `vscode://` / `cursor://` URL hacks                     | "Apply in VS Code" via FDH's authenticated WebSocket bridge (`PreviewFix` message)                                               |
+
+---
+
+## Switch to `frontend-dev-helper`
+
+### Option A — Build from source (load unpacked)
+
+```bash
+git clone https://github.com/rejisterjack/frontend-dev-helper.git
+cd frontend-dev-helper
+bun install
+bun run build      # builds the extension to apps/ext/.output/
 ```
 
-## What's inside?
+Then in Chrome:
 
-This Turborepo includes the following packages/apps:
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (top-right)
+3. Click **Load unpacked**
+4. Select `frontend-dev-helper/apps/ext/.output/chrome-mv3-devtools-panel/`
+5. Open DevTools → you'll see the **Frontend Dev Helper** panel with a **React Profiler** tab inside it.
 
-### Apps and Packages
+### Option B — Published build
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+Once `frontend-dev-helper` is published to the Chrome Web Store, search for it there. (This README will be updated with the store link at that time.)
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+---
 
-### Utilities
+## A note on dev-only React builds
 
-This Turborepo has some additional tools already setup for you:
+The React Profiler hooks into `window.__REACT_DEVTOOLS_GLOBAL_HOOK__`, which **only exists when React runs in development mode**. Production builds of React strip this hook, so production sites cannot be profiled. This is a fundamental limitation of fiber-hooking — not specific to the merge — and is surfaced in the new panel's welcome screen.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+---
 
-### Build
+## Thanks
 
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo build
-bun dlx turbo build
-bun exec turbo build
-```
-
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-bun exec turbo build --filter=docs
-bun exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-bun exec turbo dev
-bun exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-bun exec turbo dev --filter=web
-bun exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-bun exec turbo login
-bun exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-bun exec turbo link
-bun exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Thank you to everyone who used, contributed to, and filed issues against `react-perf-profiler`. The work continues at [`frontend-dev-helper`](https://github.com/rejisterjack/frontend-dev-helper).

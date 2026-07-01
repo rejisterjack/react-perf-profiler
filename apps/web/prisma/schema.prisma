@@ -4,8 +4,6 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -29,7 +27,13 @@ model Profile {
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Indexes covering the access patterns in /api/profiles:
+  //  - findByUserOrPublic (ORDER BY createdAt DESC)
+  //  - findByPublic (ORDER BY createdAt DESC)
+  //  - findByOwner (covered by the existing userId index)
   @@index([userId])
+  @@index([createdAt])
+  @@index([isPublic, createdAt])
 }
 
 model Session {

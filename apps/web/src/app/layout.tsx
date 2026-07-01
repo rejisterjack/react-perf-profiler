@@ -22,9 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://reactperfprofiler.com',
-  ),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://reactperfprofiler.com'),
   title: 'React Perf Profiler — Stop Guessing. Start Profiling.',
   description:
     'The open-source React performance profiler that finds wasted renders, scores memoization effectiveness, and tells you exactly what to fix. Works with React 16.5+, Next.js, Vite, and Remix.',
@@ -93,21 +91,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <script
-          defer
-          data-domain={
-            process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || 'localhost'
-          }
-          src="https://plausible.io/js/script.js"
-        />
+        {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
+          <script
+            defer
+            data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
+            src="https://plausible.io/js/script.js"
+          />
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

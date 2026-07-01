@@ -20,7 +20,17 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
   Resources: [
     {
       label: 'Documentation',
-      href: 'https://github.com/rejisterjack/react-perf-profiler#readme',
+      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/README.md',
+      external: true,
+    },
+    {
+      label: 'Extension Guide',
+      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/apps/ext/README.md',
+      external: true,
+    },
+    {
+      label: 'Architecture',
+      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/README.md#architecture',
       external: true,
     },
     {
@@ -30,34 +40,23 @@ const FOOTER_LINKS: Record<string, FooterLink[]> = {
     },
     {
       label: 'Changelog',
-      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/CHANGELOG.md',
+      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/apps/ext/CHANGELOG.md',
       external: true,
     },
     {
       label: 'Contributing',
-      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/CONTRIBUTING.md',
-      external: true,
-    },
-    {
-      label: 'Plugin Development',
-      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/docs/PLUGIN_DEVELOPMENT.md',
-      external: true,
-    },
-    {
-      label: 'Architecture',
-      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/docs/ARCHITECTURE.md',
+      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/apps/ext/CONTRIBUTING.md',
       external: true,
     },
   ],
   Legal: [
     {
       label: 'Privacy Policy',
-      href: 'https://rejisterjack.github.io/react-perf-profiler/',
-      external: true,
+      href: '/privacy',
     },
     {
       label: 'Security',
-      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/SECURITY.md',
+      href: 'https://github.com/rejisterjack/react-perf-profiler/blob/main/apps/ext/SECURITY.md',
       external: true,
     },
     {
@@ -75,40 +74,43 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12 mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-2">
-            <a href="/react-perf-profiler/" className="flex items-center gap-2.5 mb-4">
+            <a href="/" className="flex items-center gap-2.5 mb-4">
               <div className="w-8 h-8 rounded-lg bg-brand-react flex items-center justify-center">
                 <Zap className="w-5 h-5 text-surface-900" />
               </div>
               <span className="font-bold text-white">React Perf Profiler</span>
             </a>
             <p className="text-sm text-surface-500 leading-relaxed mb-4">
-              The React performance profiler that finds your wasted renders and tells you exactly what to fix.
+              The React performance profiler that finds your wasted renders and tells you exactly
+              what to fix.
             </p>
             <p className="text-xs text-surface-600">
               v1.0.0 · MIT License · Open source and free forever
             </p>
 
-            {/* Quick download */}
+            {/* Quick install */}
             <div className="mt-5 flex gap-2 flex-wrap">
               <a
-                href="./downloads/react-perf-profiler-chrome.zip"
-                download="react-perf-profiler-chrome.zip"
+                href="https://github.com/rejisterjack/react-perf-profiler#quick-start"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-brand-blue/15 text-brand-blue hover:bg-brand-blue/25 border border-brand-blue/20 transition-all"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.923 6.817C7.023 8.478 9.352 7 12 7c3.923 0 7.153 2.773 7.9 6.453l4.638-8.027C22.401 2.158 17.448 0 12 0z"/>
+                  <path d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.923 6.817C7.023 8.478 9.352 7 12 7c3.923 0 7.153 2.773 7.9 6.453l4.638-8.027C22.401 2.158 17.448 0 12 0z" />
                 </svg>
-                Chrome ZIP
+                Install Chrome
               </a>
               <a
-                href="./downloads/react-perf-profiler-firefox.zip"
-                download="react-perf-profiler-firefox.zip"
+                href="https://github.com/rejisterjack/react-perf-profiler#quick-start"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-surface-700/60 text-surface-300 hover:bg-surface-600/60 border border-white/10 transition-all"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z" />
                 </svg>
-                Firefox ZIP
+                Install Firefox
               </a>
             </div>
           </div>
@@ -140,9 +142,7 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-surface-500">
-            MIT License · Open source and free forever.
-          </p>
+          <p className="text-sm text-surface-500">MIT License · Open source and free forever.</p>
           <div className="flex items-center gap-4">
             <a
               href="https://github.com/rejisterjack/react-perf-profiler"
@@ -163,9 +163,7 @@ export function Footer() {
               <BookOpen className="w-5 h-5" />
             </a>
             <a
-              href="https://rejisterjack.github.io/react-perf-profiler/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/privacy"
               className="p-2 text-surface-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
               aria-label="Privacy Policy"
             >

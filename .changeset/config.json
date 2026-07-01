@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "rejisterjack/react-perf-profiler"
+    }
+  ],
+  "commit": false,
+  "fixed": [],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "@repo/eslint-config",
+    "@repo/typescript-config",
+    "@repo/profile-contract",
+    "react-perf-profiler",
+    "web"
+  ]
+}

@@ -1,0 +1,119 @@
+name: Release Extension
+
+# Builds the Chrome (MV3) and Firefox (MV2) extensions, attaches signed ZIPs
+# to the GitHub Release for the matching tag, and uploads them to the Chrome
+# Web Store (and signs them for AMO). Triggered by pushing a tag like
+# `ext-v1.2.3`.
+
+on:
+  push:
+    tags:
+      - 'ext-v*'
+
+permissions:
+  contents: write
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun --filter web run postinstall
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#ext-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync manifest version
+        # Keep wxt.config.ts manifest.version in lockstep with the tag.
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const p = 'apps/ext/wxt.config.ts';
+            const src = fs.readFileSync(p, 'utf8');
+            const next = src.replace(/version:\s*'[^']*'/, \`version: '${{ steps.version.outputs.version }}'\`);
+            if (next === src) throw new Error('manifest version field not found');
+            fs.writeFileSync(p, next);
+            console.log('Bumped apps/ext/wxt.config.ts to ${{ steps.version.outputs.version }}');
+          "
+
+      - name: Build extension (Chrome)
+        run: bun --filter react-perf-profiler run build
+        working-directory: apps/ext
+
+      - name: Build extension (Firefox)
+        run: bun --filter react-perf-profiler run build:firefox
+        working-directory: apps/ext
+
+      - name: Package Chrome ZIP
+        working-directory: apps/ext/.output/chrome-mv3
+        run: zip -r -X -q "$RUNNER_TEMP/react-perf-profiler-chrome-${{ steps.version.outputs.version }}.zip" .
+
+      - name: Package Firefox ZIP
+        working-directory: apps/ext/.output/firefox-mv2
+        run: zip -r -X -q "$RUNNER_TEMP/react-perf-profiler-firefox-${{ steps.version.outputs.version }}.zip" .
+
+      - name: Upload artifacts to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ runner.temp }}/react-perf-profiler-chrome-${{ steps.version.outputs.version }}.zip
+            ${{ runner.temp }}/react-perf-profiler-firefox-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+  publish-chrome:
+    name: Upload to Chrome Web Store
+    needs: build
+    runs-on: ubuntu-latest
+    # Secrets must be configured in the repo settings:
+    #   CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN, CWS_ITEM_ID
+    if: ${{ vars.CWS_PUBLISH_ENABLED == 'true' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: react-perf-profiler-chrome-*.zip
+          merge-multiple: true
+      - name: Upload to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@5.0.0
+        with:
+          file-path: react-perf-profiler-chrome-*.zip
+          extension-id: ${{ secrets.CWS_ITEM_ID }}
+          client-id: ${{ secrets.CWS_CLIENT_ID }}
+          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
+          publish: true # submit for review after upload
+
+  publish-firefox:
+    name: Sign for Firefox AMO
+    needs: build
+    runs-on: ubuntu-latest
+    # Secrets: AMO_JWT_ISSUER, AMO_JWT_SECRET
+    if: ${{ vars.AMO_PUBLISH_ENABLED == 'true' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: react-perf-profiler-firefox-*.zip
+          merge-multiple: true
+      - name: Sign on AMO
+        uses: yayuyokitano/firefox-addon-sign-action@v1
+        with:
+          api_key: ${{ secrets.AMO_JWT_ISSUER }}
+          api_secret: ${{ secrets.AMO_JWT_SECRET }}
+          guid: react-perf-profiler@reactperfprofiler.com
+          xpi_path: react-perf-profiler-firefox-*.zip

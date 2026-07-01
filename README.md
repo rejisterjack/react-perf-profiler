@@ -1,133 +1,68 @@
-# React Perf Profiler
+# ⚠️ This project is deprecated
 
-> Stop guessing. Start profiling.
+**`react-perf-profiler` has been merged into [`frontend-dev-helper`](https://github.com/rejisterjack/frontend-dev-helper).**
 
-**React Perf Profiler** is an open-source Chrome DevTools extension for profiling React component performance. It detects wasted renders, scores memoization effectiveness, attributes render causes, and tells you exactly what to fix — without leaving DevTools.
+All React profiling capabilities from this extension — wasted-render detection, memoization scoring, render-cause attribution, CPU Profile export, flamegraphs, timelines, the component tree, Web Vitals, profile comparison, and AI-powered optimization suggestions — now live in **`frontend-dev-helper`** as a dedicated **React Profiler** tab inside its DevTools panel.
 
-This repository is a Turborepo monorepo containing the browser extension, a Next.js marketing/API app, and shared packages.
+This repository is preserved for historical reference and is no longer maintained. No new features, bug fixes, or releases will happen here. Please switch to `frontend-dev-helper` for all React profiling work.
 
-## What's inside?
+---
 
-### Apps
+## Why the merge?
 
-- **[`apps/ext`](apps/ext/README.md)** — the WXT-based Manifest V3 browser extension (Chrome + Firefox). This is the core product: a React 19 + shadcn/ui DevTools panel that hooks `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot`, performs delta-diffing of Fiber commits, attributes render causes, and analyzes profiles in a Web Worker.
-- **[`apps/web`](apps/web)** — a Next.js 15 app serving as the public marketing site (`reactperfprofiler.com`) and a REST API for first-party cloud sync (auth, profiles, sessions, plugins).
+`frontend-dev-helper` is a Chrome DevTools extension built on the same stack (WXT + React 19 + shadcn/ui + Zustand + Tailwind v4) and already ships performance, accessibility, and design-system tooling. Maintaining two separate extensions — and two MAIN-world fiber bridges, two analyzer packages, two AI integrations — duplicated a lot of effort. Consolidating into one extension gives you a single DevTools panel that does everything.
 
-### Packages
+---
 
-- **[`packages/profile-contract`](packages/profile-contract/README.md)** — the single source of truth for the profile data contract (`FiberData`, `CommitData`, `AnalysisResult`) shared between the extension and the web API, with both TypeScript types and Zod runtime schemas.
-- **[`packages/eslint-config`](packages/eslint-config)** — shared ESLint flat configs (`base`, `next-js`, `react-internal`).
-- **[`packages/typescript-config`](packages/typescript-config)** — shared `tsconfig.json` presets (`base`, `react-library`, `nextjs`).
+## Where each feature went
 
-### Extension sub-packages (`apps/ext/packages/*`)
+| `react-perf-profiler`                                                        | `frontend-dev-helper`                                                                                                            |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/ext/packages/analyzer` (pure analysis)                                 | `packages/profiler-analyzer`                                                                                                     |
+| `packages/profile-contract` (types + Zod schemas)                            | `packages/profiler-contract`                                                                                                     |
+| MAIN-world fiber bridge (`bridge.content/`)                                  | `apps/ext/entrypoints/profiler-bridge.content/`                                                                                  |
+| `onCommitFiberRoot` monkey-patch + batching                                  | Same pipeline, routed through FDH's existing content script + background service worker                                          |
+| `analysisWorker.ts` + `analysisWorkerManager.ts`                             | `apps/ext/lib/profiler/`                                                                                                         |
+| `cpuProfileExport.ts`                                                        | `apps/ext/lib/profiler/cpuProfileExport.ts`                                                                                      |
+| `patchGenerator.ts` + `AISuggestionsPanel.tsx`                               | `apps/ext/lib/profiler/ai/` + `apps/ext/components/profiler/analysis/AISuggestionsPanel.tsx`                                     |
+| `claudeProvider` / `openaiProvider` / `ollamaProvider`                       | **Removed** — reuses FDH's existing `lib/llm-service.ts` (OpenRouter / Ollama / Fireworks / ZAI) and global Settings → AI config |
+| Tree, Flamegraph, Timeline, Analysis, WebVitals, Compare, Dependencies views | `apps/ext/components/profiler/`                                                                                                  |
+| Session persistence, JSON export, keyboard shortcuts                         | `apps/ext/hooks/profiler/`                                                                                                       |
+| "Open in Editor" via `vscode://` / `cursor://` URL hacks                     | "Apply in VS Code" via FDH's authenticated WebSocket bridge (`PreviewFix` message)                                               |
 
-- `@react-perf-profiler/analyzer` — framework-agnostic profile analysis (wasted renders, memoization, performance scoring, anomaly detection).
-- `@react-perf-profiler/cli` — `rpp` CLI for headless performance budgets in CI.
-- `@react-perf-profiler/vscode-extension` — VS Code extension that surfaces profiler diagnostics inline.
-- `@react-perf-profiler/test-plugin` — Vitest integration for asserting render behavior in tests.
+---
 
-## Quick start
+## Switch to `frontend-dev-helper`
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18+
-- [bun](https://bun.sh/) 1.3+
-
-### Install dependencies
+### Option A — Build from source (load unpacked)
 
 ```bash
-git clone https://github.com/rejisterjack/react-perf-profiler.git
-cd react-perf-profiler
+git clone https://github.com/rejisterjack/frontend-dev-helper.git
+cd frontend-dev-helper
 bun install
+bun run build      # builds the extension to apps/ext/.output/
 ```
 
-### Build everything
+Then in Chrome:
 
-```bash
-bun run build          # turbo run build (all apps + packages)
-bun run check-types    # turbo run check-types
-bun run lint           # turbo run lint
-```
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (top-right)
+3. Click **Load unpacked**
+4. Select `frontend-dev-helper/apps/ext/.output/chrome-mv3-devtools-panel/`
+5. Open DevTools → you'll see the **Frontend Dev Helper** panel with a **React Profiler** tab inside it.
 
-### Run the extension only
+### Option B — Published build
 
-If you only want to develop the extension (and skip the web app's env requirements):
+Once `frontend-dev-helper` is published to the Chrome Web Store, search for it there. (This README will be updated with the store link at that time.)
 
-```bash
-cd apps/ext
-bun install
-bun run dev            # WXT dev server with HMR
-```
+---
 
-Then load it into Chrome: `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `apps/ext/.output/chrome-mv3/`. See [`apps/ext/README.md`](apps/ext/README.md) for full instructions.
+## A note on dev-only React builds
 
-### Run the web app
+The React Profiler hooks into `window.__REACT_DEVTOOLS_GLOBAL_HOOK__`, which **only exists when React runs in development mode**. Production builds of React strip this hook, so production sites cannot be profiled. This is a fundamental limitation of fiber-hooking — not specific to the merge — and is surfaced in the new panel's welcome screen.
 
-The web app requires a Postgres database and a few environment variables. Copy [`apps/web/.env.example`](apps/web/.env.example) to `apps/web/.env` and fill it in, then:
+---
 
-```bash
-cd apps/web
-bun run db:push        # apply schema to your database
-bun run dev            # http://localhost:7394
-```
+## Thanks
 
-## Architecture
-
-```mermaid
-flowchart LR
-    subgraph Browser["Browser (apps/ext)"]
-        Target["Target React App"]
-        Bridge["Bridge Script<br/>(MAIN world)"]
-        Content["Content Script<br/>(ISOLATED world)"]
-        SW["Background<br/>Service Worker"]
-        Panel["DevTools Panel<br/>(React + Zustand)"]
-        Analyzer["Analyzer<br/>(Web Worker)"]
-
-        Target -->|"onCommitFiberRoot"| Bridge
-        Bridge -->|"window.postMessage"| Content
-        Content -->|"runtime.connect"| SW
-        SW --> Panel
-        Panel --> Analyzer
-    end
-
-    subgraph WebApp["apps/web (Next.js 15)"]
-        Landing["Landing Page"]
-        API["REST API<br/>(auth, profiles, sessions, plugins)"]
-        DB[("Postgres via Prisma")]
-        Landing --> API
-        API --> DB
-    end
-
-    Panel -.->|"POST /api/profiles<br/>(bearer token)"| API
-
-    subgraph Contract["packages/profile-contract"]
-        Types["FiberData / CommitData<br/>TS types + Zod schemas"]
-    end
-
-    Analyzer -.-> Types
-    API -.-> Types
-```
-
-The bridge hooks into `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot` to intercept React Fiber commits, then forwards them through a rate-limited 4-stage pipeline (MAIN → ISOLATED → Service Worker → Panel) to the DevTools panel, where the analyzer Web Worker scores them.
-
-> **Note:** The bridge relies on React's DevTools global hook, which is only present in **development** builds of React. Production (`NODE_ENV=production`) React builds do not expose this hook and cannot be profiled by this extension. This is a documented limitation shared with React DevTools itself.
-
-## Tech stack
-
-- **Monorepo:** Turborepo + bun workspaces
-- **Extension:** [WXT](https://wxt.dev/), React 19, shadcn/ui (Nova), Tailwind CSS v4, Zustand + Reselect, D3.js
-- **Web:** Next.js 15 (App Router), React 19, Prisma 6, NextAuth v5, Tailwind CSS 3
-- **Shared:** TypeScript 5.9, ESLint 9, Prettier 3, Zod 3
-
-## Documentation
-
-- Extension install, usage, architecture: [`apps/ext/README.md`](apps/ext/README.md)
-- Contributing guide: [`apps/ext/CONTRIBUTING.md`](apps/ext/CONTRIBUTING.md)
-- Security policy & disclosure: [`apps/ext/SECURITY.md`](apps/ext/SECURITY.md)
-- Changelog: [`apps/ext/CHANGELOG.md`](apps/ext/CHANGELOG.md)
-- Roadmap: [`apps/ext/ROADMAP.md`](apps/ext/ROADMAP.md)
-- Profile data contract: [`packages/profile-contract/README.md`](packages/profile-contract/README.md)
-
-## License
-
-[MIT](LICENSE) — open source and free forever.
+Thank you to everyone who used, contributed to, and filed issues against `react-perf-profiler`. The work continues at [`frontend-dev-helper`](https://github.com/rejisterjack/frontend-dev-helper).

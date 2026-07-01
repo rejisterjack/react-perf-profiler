@@ -8,9 +8,7 @@ interface ScrollAnimationOptions {
   triggerOnce?: boolean;
 }
 
-export function useScrollAnimation<T extends HTMLElement>(
-  options: ScrollAnimationOptions = {}
-) {
+export function useScrollAnimation<T extends HTMLElement>(options: ScrollAnimationOptions = {}) {
   const ref = useRef<T>(null);
   const prefersReduced = useReducedMotion();
 
@@ -22,11 +20,12 @@ export function useScrollAnimation<T extends HTMLElement>(
 
     el.style.opacity = '0';
     el.style.transform = 'translateY(30px)';
-    el.style.transition = 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+    el.style.transition =
+      'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           el.style.opacity = '1';
           el.style.transform = 'translateY(0)';
           if (options.triggerOnce !== false) {
@@ -34,7 +33,7 @@ export function useScrollAnimation<T extends HTMLElement>(
           }
         }
       },
-      { threshold: options.threshold || 0.15 }
+      { threshold: options.threshold || 0.15 },
     );
 
     observer.observe(el);

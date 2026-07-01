@@ -1,159 +1,133 @@
-# Turborepo starter
+# React Perf Profiler
 
-This Turborepo starter is maintained by the Turborepo core team.
+> Stop guessing. Start profiling.
 
-## Using this example
+**React Perf Profiler** is an open-source Chrome DevTools extension for profiling React component performance. It detects wasted renders, scores memoization effectiveness, attributes render causes, and tells you exactly what to fix — without leaving DevTools.
 
-Run the following command:
-
-```sh
-npx create-turbo@latest
-```
+This repository is a Turborepo monorepo containing the browser extension, a Next.js marketing/API app, and shared packages.
 
 ## What's inside?
 
-This Turborepo includes the following packages/apps:
+### Apps
 
-### Apps and Packages
+- **[`apps/ext`](apps/ext/README.md)** — the WXT-based Manifest V3 browser extension (Chrome + Firefox). This is the core product: a React 19 + shadcn/ui DevTools panel that hooks `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot`, performs delta-diffing of Fiber commits, attributes render causes, and analyzes profiles in a Web Worker.
+- **[`apps/web`](apps/web)** — a Next.js 15 app serving as the public marketing site (`reactperfprofiler.com`) and a REST API for first-party cloud sync (auth, profiles, sessions, plugins).
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Packages
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+- **[`packages/profile-contract`](packages/profile-contract/README.md)** — the single source of truth for the profile data contract (`FiberData`, `CommitData`, `AnalysisResult`) shared between the extension and the web API, with both TypeScript types and Zod runtime schemas.
+- **[`packages/eslint-config`](packages/eslint-config)** — shared ESLint flat configs (`base`, `next-js`, `react-internal`).
+- **[`packages/typescript-config`](packages/typescript-config)** — shared `tsconfig.json` presets (`base`, `react-library`, `nextjs`).
 
-### Utilities
+### Extension sub-packages (`apps/ext/packages/*`)
 
-This Turborepo has some additional tools already setup for you:
+- `@react-perf-profiler/analyzer` — framework-agnostic profile analysis (wasted renders, memoization, performance scoring, anomaly detection).
+- `@react-perf-profiler/cli` — `rpp` CLI for headless performance budgets in CI.
+- `@react-perf-profiler/vscode-extension` — VS Code extension that surfaces profiler diagnostics inline.
+- `@react-perf-profiler/test-plugin` — Vitest integration for asserting render behavior in tests.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## Quick start
 
-### Build
+### Prerequisites
 
-To build all apps and packages, run the following command:
+- [Node.js](https://nodejs.org/) 18+
+- [bun](https://bun.sh/) 1.3+
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### Install dependencies
 
-```sh
-cd my-turborepo
-turbo build
+```bash
+git clone https://github.com/rejisterjack/react-perf-profiler.git
+cd react-perf-profiler
+bun install
 ```
 
-Without global `turbo`, use your package manager:
+### Build everything
 
-```sh
-cd my-turborepo
-npx turbo build
-bun dlx turbo build
-bun exec turbo build
+```bash
+bun run build          # turbo run build (all apps + packages)
+bun run check-types    # turbo run check-types
+bun run lint           # turbo run lint
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Run the extension only
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+If you only want to develop the extension (and skip the web app's env requirements):
 
-```sh
-turbo build --filter=docs
+```bash
+cd apps/ext
+bun install
+bun run dev            # WXT dev server with HMR
 ```
 
-Without global `turbo`:
+Then load it into Chrome: `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `apps/ext/.output/chrome-mv3/`. See [`apps/ext/README.md`](apps/ext/README.md) for full instructions.
 
-```sh
-npx turbo build --filter=docs
-bun exec turbo build --filter=docs
-bun exec turbo build --filter=docs
+### Run the web app
+
+The web app requires a Postgres database and a few environment variables. Copy [`apps/web/.env.example`](apps/web/.env.example) to `apps/web/.env` and fill it in, then:
+
+```bash
+cd apps/web
+bun run db:push        # apply schema to your database
+bun run dev            # http://localhost:7394
 ```
 
-### Develop
+## Architecture
 
-To develop all apps and packages, run the following command:
+```mermaid
+flowchart LR
+    subgraph Browser["Browser (apps/ext)"]
+        Target["Target React App"]
+        Bridge["Bridge Script<br/>(MAIN world)"]
+        Content["Content Script<br/>(ISOLATED world)"]
+        SW["Background<br/>Service Worker"]
+        Panel["DevTools Panel<br/>(React + Zustand)"]
+        Analyzer["Analyzer<br/>(Web Worker)"]
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+        Target -->|"onCommitFiberRoot"| Bridge
+        Bridge -->|"window.postMessage"| Content
+        Content -->|"runtime.connect"| SW
+        SW --> Panel
+        Panel --> Analyzer
+    end
 
-```sh
-cd my-turborepo
-turbo dev
+    subgraph WebApp["apps/web (Next.js 15)"]
+        Landing["Landing Page"]
+        API["REST API<br/>(auth, profiles, sessions, plugins)"]
+        DB[("Postgres via Prisma")]
+        Landing --> API
+        API --> DB
+    end
+
+    Panel -.->|"POST /api/profiles<br/>(bearer token)"| API
+
+    subgraph Contract["packages/profile-contract"]
+        Types["FiberData / CommitData<br/>TS types + Zod schemas"]
+    end
+
+    Analyzer -.-> Types
+    API -.-> Types
 ```
 
-Without global `turbo`, use your package manager:
+The bridge hooks into `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot` to intercept React Fiber commits, then forwards them through a rate-limited 4-stage pipeline (MAIN → ISOLATED → Service Worker → Panel) to the DevTools panel, where the analyzer Web Worker scores them.
 
-```sh
-cd my-turborepo
-npx turbo dev
-bun exec turbo dev
-bun exec turbo dev
-```
+> **Note:** The bridge relies on React's DevTools global hook, which is only present in **development** builds of React. Production (`NODE_ENV=production`) React builds do not expose this hook and cannot be profiled by this extension. This is a documented limitation shared with React DevTools itself.
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Tech stack
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- **Monorepo:** Turborepo + bun workspaces
+- **Extension:** [WXT](https://wxt.dev/), React 19, shadcn/ui (Nova), Tailwind CSS v4, Zustand + Reselect, D3.js
+- **Web:** Next.js 15 (App Router), React 19, Prisma 6, NextAuth v5, Tailwind CSS 3
+- **Shared:** TypeScript 5.9, ESLint 9, Prettier 3, Zod 3
 
-```sh
-turbo dev --filter=web
-```
+## Documentation
 
-Without global `turbo`:
+- Extension install, usage, architecture: [`apps/ext/README.md`](apps/ext/README.md)
+- Contributing guide: [`apps/ext/CONTRIBUTING.md`](apps/ext/CONTRIBUTING.md)
+- Security policy & disclosure: [`apps/ext/SECURITY.md`](apps/ext/SECURITY.md)
+- Changelog: [`apps/ext/CHANGELOG.md`](apps/ext/CHANGELOG.md)
+- Roadmap: [`apps/ext/ROADMAP.md`](apps/ext/ROADMAP.md)
+- Profile data contract: [`packages/profile-contract/README.md`](packages/profile-contract/README.md)
 
-```sh
-npx turbo dev --filter=web
-bun exec turbo dev --filter=web
-bun exec turbo dev --filter=web
-```
+## License
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-bun exec turbo login
-bun exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-bun exec turbo link
-bun exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+[MIT](LICENSE) — open source and free forever.

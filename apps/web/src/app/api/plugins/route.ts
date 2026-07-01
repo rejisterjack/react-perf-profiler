@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth-utils';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
+import { logger, generateRequestId } from '@/lib/logger';
 
 const publishPluginSchema = z.object({
   id: z.string().min(1, 'Plugin ID is required').max(100),
@@ -15,29 +16,53 @@ const publishPluginSchema = z.object({
   permissions: z.array(z.string()).optional().default([]),
 });
 
-export async function GET() {
+function requestIdFrom(request: Request): string {
+  return request.headers.get('x-request-id') ?? generateRequestId();
+}
+
+function jsonWithRequestId(
+  body: unknown,
+  init: { status?: number } & ResponseInit,
+  requestId: string,
+) {
+  const res = NextResponse.json(body, init);
+  res.headers.set('X-Request-Id', requestId);
+  return res;
+}
+
+export async function GET(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     const plugins = await prisma.plugin.findMany({
       orderBy: { downloads: 'desc' },
     });
 
-    return NextResponse.json({ plugins });
+    return jsonWithRequestId({ plugins }, {}, requestId);
   } catch (error) {
-    console.error('Get plugins error:', error);
-    return NextResponse.json(
-      { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
+    logger.error('Get plugins failed', { requestId, error: String(error) });
+    return jsonWithRequestId(
+      {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An unexpected error occurred',
+          requestId,
+        },
+      },
       { status: 500 },
+      requestId,
     );
   }
 }
 
 export async function POST(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     const user = await getAuthUser(request);
     if (!user) {
-      return NextResponse.json(
+      return jsonWithRequestId(
         { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 },
+        requestId,
       );
     }
 
@@ -46,9 +71,17 @@ export async function POST(request: Request) {
 
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors;
-      return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: fieldErrors } },
+      return jsonWithRequestId(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid input',
+            details: fieldErrors,
+            requestId,
+          },
+        },
         { status: 400 },
+        requestId,
       );
     }
 
@@ -70,9 +103,18 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ plugin }, { status: 201 });
+    logger.info('Plugin published', {
+      requestId,
+      userId: user.id,
+      pluginId: plugin.id,
+    });
+
+    return jsonWithRequestId({ plugin }, { status: 201 }, requestId);
   } catch (error: unknown) {
-    console.error('Publish plugin error:', error);
+    logger.error('Publish plugin failed', {
+      requestId,
+      error: String(error),
+    });
 
     // Handle unique constraint violation (duplicate plugin ID)
     if (
@@ -81,15 +123,29 @@ export async function POST(request: Request) {
       'code' in error &&
       (error as { code: string }).code === 'P2002'
     ) {
-      return NextResponse.json(
-        { error: { code: 'DUPLICATE_ID', message: 'A plugin with this ID already exists' } },
+      return jsonWithRequestId(
+        {
+          error: {
+            code: 'DUPLICATE_ID',
+            message: 'A plugin with this ID already exists',
+            requestId,
+          },
+        },
         { status: 409 },
+        requestId,
       );
     }
 
-    return NextResponse.json(
-      { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
+    return jsonWithRequestId(
+      {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An unexpected error occurred',
+          requestId,
+        },
+      },
       { status: 500 },
+      requestId,
     );
   }
 }

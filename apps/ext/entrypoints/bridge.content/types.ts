@@ -1,8 +1,17 @@
 /**
- * Bridge content script types
- * These types are self-contained (no imports from shared/) because
- * the MAIN-world content script cannot import extension APIs.
+ * Bridge content script types (MAIN world).
+ *
+ * The on-the-wire data shapes (`FiberData`, `SourceLocation`, `RenderCause`)
+ * come from @repo/profile-contract so the bridge cannot drift from the API.
+ *
+ * The extension-only `FiberTag` enum is defined locally here because it is not
+ * part of the on-the-wire contract (it is consumed only by the bridge's
+ * fiber parser). The original note about being "self-contained" referred to
+ * extension *runtime APIs* (`browser.*`, `chrome.*`), which remain
+ * inaccessible from the MAIN world — that constraint is preserved.
  */
+
+export type { SourceLocation, FiberData, RenderCause } from '@repo/profile-contract';
 
 export enum FiberTag {
   FunctionComponent = 0,
@@ -30,42 +39,4 @@ export enum FiberTag {
   LegacyHiddenComponent = 23,
   CacheComponent = 24,
   TracingMarkerComponent = 25,
-}
-
-export interface SourceLocation {
-  fileName: string | null;
-  lineNumber: number | null;
-  columnNumber: number | null;
-}
-
-export interface RenderCause {
-  fiberId: string;
-  componentName: string;
-  causes: Array<{
-    type: 'props-changed' | 'state-changed' | 'parent-rerendered' | 'context-changed' | 'hooks-changed';
-    details: string;
-    changedKeys?: string[];
-  }>;
-}
-
-export interface FiberData {
-  id: string;
-  displayName: string;
-  key: string | null;
-  child: FiberData | null;
-  sibling: FiberData | null;
-  return: FiberData | null;
-  type: unknown;
-  elementType: unknown;
-  memoizedProps: Record<string, unknown>;
-  memoizedState: unknown;
-  actualDuration: number;
-  actualStartTime: number;
-  selfBaseDuration: number;
-  treeBaseDuration: number;
-  tag: number;
-  index: number;
-  flags?: number;
-  mode: number;
-  sourceLocation?: SourceLocation;
 }

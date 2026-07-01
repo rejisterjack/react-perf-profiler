@@ -7,10 +7,17 @@
 import { isBridgeMessage, isBackgroundMessage } from '@/src/shared/messaging';
 
 const CONTENT_SOURCE = 'react-perf-profiler-content';
-const SESSION_TOKEN = crypto.getRandomValues(new Uint8Array(16)).reduce((acc: string, b: number) => acc + b.toString(16).padStart(2, '0'), '');
+const SESSION_TOKEN = crypto
+  .getRandomValues(new Uint8Array(16))
+  .reduce((acc: string, b: number) => acc + b.toString(16).padStart(2, '0'), '');
 
 // State
-let port: { postMessage: (msg: unknown) => void; disconnect: () => void; onMessage: { addListener: (fn: (msg: unknown) => void) => void }; onDisconnect: { addListener: (fn: () => void) => void } } | null = null;
+let port: {
+  postMessage: (msg: unknown) => void;
+  disconnect: () => void;
+  onMessage: { addListener: (fn: (msg: unknown) => void) => void };
+  onDisconnect: { addListener: (fn: () => void) => void };
+} | null = null;
 let isBridgeReady = false;
 let bridgeInitState: 'pending' | 'success' | 'failed' = 'pending';
 let bridgeError: { type: string; message: string; recoverable: boolean } | null = null;
@@ -20,9 +27,18 @@ let lastKnownDevtoolsDetected = false;
 const pendingMessages: unknown[] = [];
 
 // Popup request handlers
-let checkReactPopup: { timer: ReturnType<typeof setTimeout>; respond: (result: { hasReact: boolean }) => void } | null = null;
-let pendingTechStackPopup: { timer: ReturnType<typeof setTimeout>; respond: (result: unknown) => void } | null = null;
-let pendingComponentTreePopup: { timer: ReturnType<typeof setTimeout>; respond: (result: unknown) => void } | null = null;
+let checkReactPopup: {
+  timer: ReturnType<typeof setTimeout>;
+  respond: (result: { hasReact: boolean }) => void;
+} | null = null;
+let pendingTechStackPopup: {
+  timer: ReturnType<typeof setTimeout>;
+  respond: (result: unknown) => void;
+} | null = null;
+let pendingComponentTreePopup: {
+  timer: ReturnType<typeof setTimeout>;
+  respond: (result: unknown) => void;
+} | null = null;
 
 // =============================================================================
 // Direct Detection (ISOLATED world — scans DOM directly, no bridge needed)
@@ -55,7 +71,10 @@ function detectReactDirectly(): boolean {
 
 function detectReactViaMainWorld(): Promise<{ detected: boolean; version: string | undefined }> {
   return new Promise((resolve) => {
-    if (cachedReactDetection) { resolve(cachedReactDetection); return; }
+    if (cachedReactDetection) {
+      resolve(cachedReactDetection);
+      return;
+    }
 
     const callbackId = 'rpp-detect-' + Math.random().toString(36).slice(2);
     const handler = (event: Event) => {
@@ -182,7 +201,11 @@ function detectFrameworksDirectly(): FrameworkInfo[] {
   // Angular
   const ngVersionEl = document.querySelector('[ng-version]');
   if (ngVersionEl || document.querySelector('[ng-app]')) {
-    results.push({ name: 'Angular', version: ngVersionEl?.getAttribute('ng-version') || undefined, confidence: 'high' });
+    results.push({
+      name: 'Angular',
+      version: ngVersionEl?.getAttribute('ng-version') || undefined,
+      confidence: 'high',
+    });
   }
   // Svelte
   const svelteEl = document.querySelector('[class*="svelte-"]');
@@ -192,7 +215,8 @@ function detectFrameworksDirectly(): FrameworkInfo[] {
     results.push({ name: 'Next.js', version: undefined, confidence: 'high' });
   }
   // Nuxt.js
-  if (document.getElementById('__nuxt')) results.push({ name: 'Nuxt.js', version: undefined, confidence: 'high' });
+  if (document.getElementById('__nuxt'))
+    results.push({ name: 'Nuxt.js', version: undefined, confidence: 'high' });
   // Gatsby
   const gatsbyMeta = document.querySelector('meta[name="generator"][content*="Gatsby"]');
   if (gatsbyMeta) {
@@ -212,17 +236,24 @@ function detectMetaDirectly(): TechStackResult['meta'] {
     title: document.title || '',
     description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
     viewport: document.querySelector('meta[name="viewport"]')?.getAttribute('content') || '',
-    themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content') || undefined,
-    ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
-    ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || undefined,
-    ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || undefined,
+    themeColor:
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') || undefined,
+    ogImage:
+      document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
+    ogTitle:
+      document.querySelector('meta[property="og:title"]')?.getAttribute('content') || undefined,
+    ogDescription:
+      document.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+      undefined,
   };
 }
 
 function detectFontsDirectly(): Array<{ family: string; source: string }> {
   const fontMap = new Map<string, string>();
   if (document.fonts && document.fonts.forEach) {
-    document.fonts.forEach((font: FontFace) => { fontMap.set(font.family, 'document-fonts-api'); });
+    document.fonts.forEach((font: FontFace) => {
+      fontMap.set(font.family, 'document-fonts-api');
+    });
   }
   for (const sel of ['body', 'h1', 'p', 'a']) {
     const el = document.querySelector(sel);
@@ -239,7 +270,10 @@ function detectFontsDirectly(): Array<{ family: string; source: string }> {
 function rgbToHex(color: string): string | null {
   if (/^#([0-9a-fA-F]{3,8})$/.test(color)) return color;
   const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-  if (m) return '#' + [m[1], m[2], m[3]].map(v => parseInt(v, 10).toString(16).padStart(2, '0')).join('');
+  if (m)
+    return (
+      '#' + [m[1], m[2], m[3]].map((v) => parseInt(v, 10).toString(16).padStart(2, '0')).join('')
+    );
   return null;
 }
 
@@ -248,11 +282,17 @@ function detectColorsDirectly(): string[] {
   const rootStyle = getComputedStyle(document.documentElement);
   for (let i = 0; i < rootStyle.length; i++) {
     const v = rootStyle.getPropertyValue(rootStyle[i]).trim();
-    if (v && (v.startsWith('#') || v.startsWith('rgb'))) { const hex = rgbToHex(v); if (hex) colorSet.add(hex); }
+    if (v && (v.startsWith('#') || v.startsWith('rgb'))) {
+      const hex = rgbToHex(v);
+      if (hex) colorSet.add(hex);
+    }
   }
   if (document.body) {
     const bg = getComputedStyle(document.body).backgroundColor;
-    if (bg) { const hex = rgbToHex(bg); if (hex && hex !== '#000000' && hex !== '#ffffff') colorSet.add(hex); }
+    if (bg) {
+      const hex = rgbToHex(bg);
+      if (hex && hex !== '#000000' && hex !== '#ffffff') colorSet.add(hex);
+    }
   }
   return Array.from(colorSet).slice(0, 12);
 }
@@ -267,11 +307,15 @@ function detectCSSToolsDirectly(): FrameworkInfo[] {
     for (let j = 0; j < elements[i].classList.length; j++) {
       const cls = elements[i].classList[j];
       for (const p of twPatterns) {
-        if (p.endsWith('-') ? cls.startsWith(p) : cls === p) { twMatches++; break; }
+        if (p.endsWith('-') ? cls.startsWith(p) : cls === p) {
+          twMatches++;
+          break;
+        }
       }
     }
   }
-  if (twMatches >= 5) results.push({ name: 'Tailwind CSS', version: undefined, confidence: 'high' });
+  if (twMatches >= 5)
+    results.push({ name: 'Tailwind CSS', version: undefined, confidence: 'high' });
   // Bootstrap
   const bsPatterns = ['container', 'row', 'col-', 'btn-'];
   let bsMatches = 0;
@@ -279,12 +323,16 @@ function detectCSSToolsDirectly(): FrameworkInfo[] {
     for (let j = 0; j < elements[i].classList.length; j++) {
       const cls = elements[i].classList[j];
       for (const p of bsPatterns) {
-        if (p.endsWith('-') ? cls.startsWith(p) : cls === p) { bsMatches++; break; }
+        if (p.endsWith('-') ? cls.startsWith(p) : cls === p) {
+          bsMatches++;
+          break;
+        }
       }
     }
   }
   if (bsMatches >= 3) results.push({ name: 'Bootstrap', version: undefined, confidence: 'medium' });
-  if (document.querySelector('style[data-styled]')) results.push({ name: 'styled-components', version: undefined, confidence: 'medium' });
+  if (document.querySelector('style[data-styled]'))
+    results.push({ name: 'styled-components', version: undefined, confidence: 'medium' });
   return results;
 }
 
@@ -293,7 +341,10 @@ function detectBuildToolsDirectly(): string[] {
   const scripts = document.querySelectorAll('script[type="module"]');
   for (let i = 0; i < scripts.length; i++) {
     const src = scripts[i].getAttribute('src') || '';
-    if (src.includes('/@vite/') || src.includes('/node_modules/.vite/')) { results.push('Vite'); break; }
+    if (src.includes('/@vite/') || src.includes('/node_modules/.vite/')) {
+      results.push('Vite');
+      break;
+    }
   }
   return results;
 }
@@ -334,10 +385,16 @@ function handshakeBridge(): void {
 
   handshakeTimer = setInterval(() => {
     if (isBridgeReady || handshakeAttempts >= MAX_HANDSHAKE_ATTEMPTS) {
-      if (handshakeTimer) { clearInterval(handshakeTimer); handshakeTimer = null; }
+      if (handshakeTimer) {
+        clearInterval(handshakeTimer);
+        handshakeTimer = null;
+      }
       if (!isBridgeReady) {
         bridgeInitState = 'failed';
-        reportError('Bridge handshake timed out', { type: 'HANDSHAKE_TIMEOUT', recoverable: false });
+        reportError('Bridge handshake timed out', {
+          type: 'HANDSHAKE_TIMEOUT',
+          recoverable: false,
+        });
       }
       return;
     }
@@ -348,7 +405,10 @@ function handshakeBridge(): void {
 
 function flushPendingIfNeeded(): void {
   if (isBridgeReady && pendingMessages.length > 0) {
-    while (pendingMessages.length > 0) { const msg = pendingMessages.shift(); sendToBridge(msg); }
+    while (pendingMessages.length > 0) {
+      const msg = pendingMessages.shift();
+      sendToBridge(msg);
+    }
   }
 }
 
@@ -366,6 +426,16 @@ function handleBridgeMessageEvent(event: MessageEvent): void {
   if (!isBridgeMessage(message)) return;
   if (!message.payload) return;
 
+  // Verify the bridge echoes our session token. Until the bridge has
+  // learned it from our first message, it sends with no token — accept the
+  // first message without verification to bootstrap the handshake.
+  const inboundToken = message.token;
+  if (inboundToken !== undefined && inboundToken !== SESSION_TOKEN) {
+    // Token mismatch — this is either a spoofed message from the page or a
+    // stale bridge instance. Ignore.
+    return;
+  }
+
   if (!isBridgeReady) {
     isBridgeReady = true;
     flushPendingIfNeeded();
@@ -374,25 +444,43 @@ function handleBridgeMessageEvent(event: MessageEvent): void {
 
   const { type, data, error, errorType, recoverable, retryCount } = message.payload;
 
-  if (type === 'INIT' && data && typeof data === 'object' && 'success' in (data as Record<string, unknown>)) {
+  if (
+    type === 'INIT' &&
+    data &&
+    typeof data === 'object' &&
+    'success' in (data as Record<string, unknown>)
+  ) {
     bridgeInitState = 'success';
     bridgeError = null;
     bridgeRetryCount = 0;
   }
 
   if (type === 'ERROR') {
-    bridgeError = { type: errorType || 'UNKNOWN', message: error || 'Unknown error', recoverable: recoverable !== false };
+    bridgeError = {
+      type: errorType || 'UNKNOWN',
+      message: error || 'Unknown error',
+      recoverable: recoverable !== false,
+    };
     if (bridgeInitState === 'pending') bridgeInitState = 'failed';
     reportError(error || 'Bridge error', { type: errorType, recoverable, retryCount });
   }
 
   if (type === 'RETRY_SCHEDULED') {
     bridgeRetryCount = retryCount || 0;
-    sendToBackground({ type: 'BRIDGE_RETRY_SCHEDULED', payload: { retryCount, maxRetries: message.payload.maxRetries, nextRetryIn: message.payload.nextRetryIn } });
+    sendToBackground({
+      type: 'BRIDGE_RETRY_SCHEDULED',
+      payload: {
+        retryCount,
+        maxRetries: message.payload.maxRetries,
+        nextRetryIn: message.payload.nextRetryIn,
+      },
+    });
   }
 
   switch (type) {
-    case 'COMMIT': sendToBackground({ type: 'COMMIT_DATA', payload: data }); break;
+    case 'COMMIT':
+      sendToBackground({ type: 'COMMIT_DATA', payload: data });
+      break;
     case 'COMMIT_BATCH': {
       const batch = data as Record<string, unknown>[];
       for (const commit of batch) {
@@ -402,21 +490,48 @@ function handleBridgeMessageEvent(event: MessageEvent): void {
     }
     case 'INIT':
       if (typeof data === 'object' && data !== null) {
-        if ('reactDetected' in (data as Record<string, unknown>)) lastKnownReactDetected = !!(data as Record<string, unknown>).reactDetected;
-        if ('isInitialized' in (data as Record<string, unknown>)) bridgeInitState = (data as Record<string, unknown>).isInitialized ? 'success' : 'pending';
+        if ('reactDetected' in (data as Record<string, unknown>))
+          lastKnownReactDetected = !!(data as Record<string, unknown>).reactDetected;
+        if ('isInitialized' in (data as Record<string, unknown>))
+          bridgeInitState = (data as Record<string, unknown>).isInitialized ? 'success' : 'pending';
       }
-      sendToBackground({ type: 'BRIDGE_INIT', payload: { ...(typeof data === 'object' && data !== null ? data as Record<string, unknown> : {}), url: window.location.href, state: bridgeInitState } });
+      sendToBackground({
+        type: 'BRIDGE_INIT',
+        payload: {
+          ...(typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {}),
+          url: window.location.href,
+          state: bridgeInitState,
+        },
+      });
       break;
-    case 'START': sendToBackground({ type: 'PROFILING_STARTED', payload: data }); break;
-    case 'STOP': sendToBackground({ type: 'PROFILING_STOPPED', payload: data }); break;
+    case 'START':
+      sendToBackground({ type: 'PROFILING_STARTED', payload: data });
+      break;
+    case 'STOP':
+      sendToBackground({ type: 'PROFILING_STOPPED', payload: data });
+      break;
     case 'DETECT_RESULT': {
       lastKnownReactDetected = !!message.payload.reactDetected;
       lastKnownDevtoolsDetected = !!message.payload.devtoolsDetected;
-      if (checkReactPopup) { const { timer, respond } = checkReactPopup; checkReactPopup = null; clearTimeout(timer); respond({ hasReact: lastKnownReactDetected }); }
-      sendToBackground({ type: 'REACT_DETECT_RESULT', payload: { reactDetected: lastKnownReactDetected, devtoolsDetected: lastKnownDevtoolsDetected, isInitialized: message.payload.isInitialized } });
+      if (checkReactPopup) {
+        const { timer, respond } = checkReactPopup;
+        checkReactPopup = null;
+        clearTimeout(timer);
+        respond({ hasReact: lastKnownReactDetected });
+      }
+      sendToBackground({
+        type: 'REACT_DETECT_RESULT',
+        payload: {
+          reactDetected: lastKnownReactDetected,
+          devtoolsDetected: lastKnownDevtoolsDetected,
+          isInitialized: message.payload.isInitialized,
+        },
+      });
       break;
     }
-    case 'WEB_VITALS': sendToBackground({ type: 'WEB_VITALS', payload: data }); break;
+    case 'WEB_VITALS':
+      sendToBackground({ type: 'WEB_VITALS', payload: data });
+      break;
     case 'TECH_STACK_RESULT': {
       sendToBackground({ type: 'TECH_STACK_RESULT', payload: data });
       if (pendingTechStackPopup) {
@@ -440,9 +555,22 @@ function handleBridgeMessageEvent(event: MessageEvent): void {
   }
 }
 
+// The content script's SESSION_TOKEN authenticates the bidirectional
+// postMessage channel between this content script and the bridge script
+// (MAIN world). We generate it at load time, include it in every message we
+// send TO the bridge, and require the bridge to echo it back in every
+// message it sends TO us. The bridge learns it from our first PING and
+// locks it in for the session. This prevents a malicious page from spoofing
+// bridge→content-script or content-script→bridge messages even though
+// postMessage is observable from the page — the page cannot forge a message
+// that has BOTH the correct `source` string AND the matching random token.
+
 function sendToBridge(payload: unknown): void {
   const message = { source: CONTENT_SOURCE, token: SESSION_TOKEN, payload };
-  if (!isBridgeReady) { pendingMessages.push(payload); return; }
+  if (!isBridgeReady) {
+    pendingMessages.push(payload);
+    return;
+  }
   const targetOrigin = window.location.origin === 'null' ? '*' : window.location.origin;
   window.postMessage(message, targetOrigin);
 }
@@ -460,17 +588,42 @@ function connectToBackground(): void {
       const message = msg as Record<string, unknown>;
 
       switch (message.type) {
-        case 'START_PROFILING': sendToBridge({ type: 'START' }); break;
-        case 'STOP_PROFILING': sendToBridge({ type: 'STOP' }); break;
-        case 'PING':
-          sendToBackground({ type: 'PONG', payload: { active: true, bridgeState: bridgeInitState, bridgeError } });
+        case 'START_PROFILING':
+          sendToBridge({ type: 'START' });
           break;
-        case 'DETECT_REACT': sendToBridge({ type: 'DETECT_REACT' }); break;
-        case 'GET_COMPONENT_TREE': sendToBridge({ type: 'GET_COMPONENT_TREE' }); break;
-        case 'FORCE_INIT': bridgeInitState = 'pending'; bridgeError = null; sendToBridge({ type: 'FORCE_INIT' }); break;
+        case 'STOP_PROFILING':
+          sendToBridge({ type: 'STOP' });
+          break;
+        case 'PING':
+          sendToBackground({
+            type: 'PONG',
+            payload: { active: true, bridgeState: bridgeInitState, bridgeError },
+          });
+          break;
+        case 'DETECT_REACT':
+          sendToBridge({ type: 'DETECT_REACT' });
+          break;
+        case 'GET_COMPONENT_TREE':
+          sendToBridge({ type: 'GET_COMPONENT_TREE' });
+          break;
+        case 'FORCE_INIT':
+          bridgeInitState = 'pending';
+          bridgeError = null;
+          sendToBridge({ type: 'FORCE_INIT' });
+          break;
         case 'GET_BRIDGE_STATUS':
           sendToBridge({ type: 'DETECT_REACT' });
-          sendToBackground({ type: 'BRIDGE_STATUS', payload: { state: bridgeInitState, error: bridgeError, retryCount: bridgeRetryCount, isInjected: isBridgeReady, reactDetected: lastKnownReactDetected, devtoolsDetected: lastKnownDevtoolsDetected } });
+          sendToBackground({
+            type: 'BRIDGE_STATUS',
+            payload: {
+              state: bridgeInitState,
+              error: bridgeError,
+              retryCount: bridgeRetryCount,
+              isInjected: isBridgeReady,
+              reactDetected: lastKnownReactDetected,
+              devtoolsDetected: lastKnownDevtoolsDetected,
+            },
+          });
           break;
       }
     });
@@ -478,20 +631,41 @@ function connectToBackground(): void {
     port.onDisconnect.addListener(() => {
       port = null;
       sendToBridge({ type: 'BACKGROUND_DISCONNECTED' });
-      setTimeout(() => { if (!port) connectToBackground(); }, 1000);
+      setTimeout(() => {
+        if (!port) connectToBackground();
+      }, 1000);
     });
 
     sendToBackground({ type: 'PING', payload: { url: window.location.href } });
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function sendToBackground(message: Record<string, unknown>): void {
   if (!port) return;
-  try { port.postMessage(message); } catch { /* ignore */ }
+  try {
+    port.postMessage(message);
+  } catch {
+    /* ignore */
+  }
 }
 
-function reportError(error: string, context?: { type?: string; details?: string; recoverable?: boolean; retryCount?: number }): void {
-  sendToBackground({ type: 'ERROR', error, payload: { url: window.location.href, errorType: context?.type, errorDetails: context?.details, recoverable: context?.recoverable, retryCount: context?.retryCount } });
+function reportError(
+  error: string,
+  context?: { type?: string; details?: string; recoverable?: boolean; retryCount?: number },
+): void {
+  sendToBackground({
+    type: 'ERROR',
+    error,
+    payload: {
+      url: window.location.href,
+      errorType: context?.type,
+      errorDetails: context?.details,
+      recoverable: context?.recoverable,
+      retryCount: context?.retryCount,
+    },
+  });
 }
 
 // =============================================================================
@@ -501,7 +675,8 @@ function reportError(error: string, context?: { type?: string; details?: string;
 function handleVisibilityChange(): void {
   if (!document.hidden) {
     if (!port) connectToBackground();
-    if (bridgeInitState === 'failed' && bridgeError?.recoverable) sendToBridge({ type: 'FORCE_INIT' });
+    if (bridgeInitState === 'failed' && bridgeError?.recoverable)
+      sendToBridge({ type: 'FORCE_INIT' });
     sendToBridge({ type: 'DETECT_REACT' });
   }
 }
@@ -510,8 +685,18 @@ function cleanup(): void {
   window.removeEventListener('message', handleBridgeMessageEvent);
   window.removeEventListener('beforeunload', cleanup);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
-  if (handshakeTimer) { clearInterval(handshakeTimer); handshakeTimer = null; }
-  if (port) { try { port.disconnect(); } catch { /* ignore */ } port = null; }
+  if (handshakeTimer) {
+    clearInterval(handshakeTimer);
+    handshakeTimer = null;
+  }
+  if (port) {
+    try {
+      port.disconnect();
+    } catch {
+      /* ignore */
+    }
+    port = null;
+  }
   sendToBridge({ type: 'STOP' });
 }
 
@@ -534,7 +719,10 @@ export default defineContentScript({
       if (!message) return false;
 
       if (message.type === 'DETECT_TECH_STACK') {
-        if (pendingTechStackPopup) { clearTimeout(pendingTechStackPopup.timer); pendingTechStackPopup.respond(null); }
+        if (pendingTechStackPopup) {
+          clearTimeout(pendingTechStackPopup.timer);
+          pendingTechStackPopup.respond(null);
+        }
         let settled = false;
         const timer = setTimeout(() => {
           pendingTechStackPopup = null;
@@ -550,7 +738,11 @@ export default defineContentScript({
           clearTimeout(timer);
           pendingTechStackPopup = null;
           // Bridge response takes priority, but merge with direct detection
-          sendResponse(result && typeof result === 'object' && (result as FrameworkInfo[]).length > 0 ? result : detectTechStackDirectly());
+          sendResponse(
+            result && typeof result === 'object' && (result as FrameworkInfo[]).length > 0
+              ? result
+              : detectTechStackDirectly(),
+          );
         };
         pendingTechStackPopup = { timer, respond };
         sendToBridge({ type: 'DETECT_TECH_STACK' });
@@ -558,11 +750,17 @@ export default defineContentScript({
       }
 
       if (message.type === 'GET_COMPONENT_TREE') {
-        if (pendingComponentTreePopup) { clearTimeout(pendingComponentTreePopup.timer); pendingComponentTreePopup.respond(null); }
+        if (pendingComponentTreePopup) {
+          clearTimeout(pendingComponentTreePopup.timer);
+          pendingComponentTreePopup.respond(null);
+        }
         let settled = false;
         const timer = setTimeout(() => {
           pendingComponentTreePopup = null;
-          if (!settled) { settled = true; sendResponse([]); }
+          if (!settled) {
+            settled = true;
+            sendResponse([]);
+          }
         }, 3000);
         const respond = (result: unknown) => {
           if (settled) return;
@@ -578,7 +776,10 @@ export default defineContentScript({
 
       if (message.type !== 'CHECK_REACT') return false;
 
-      if (checkReactPopup) { clearTimeout(checkReactPopup.timer); checkReactPopup.respond({ hasReact: false }); }
+      if (checkReactPopup) {
+        clearTimeout(checkReactPopup.timer);
+        checkReactPopup.respond({ hasReact: false });
+      }
 
       let settled = false;
       const respondFinal = (detected: boolean) => {
@@ -590,16 +791,23 @@ export default defineContentScript({
       };
 
       // Timeout fallback
-      const timer = setTimeout(() => { respondFinal(detectReactDirectly()); }, 3000);
+      const timer = setTimeout(() => {
+        respondFinal(detectReactDirectly());
+      }, 3000);
 
       // Bridge response handler
       checkReactPopup = {
         timer,
         respond: (result: { hasReact: boolean }) => {
           if (settled) return;
-          if (result.hasReact) { respondFinal(true); return; }
+          if (result.hasReact) {
+            respondFinal(true);
+            return;
+          }
           // Bridge said no — run MAIN world detection as final check
-          detectReactViaMainWorld().then((r) => { respondFinal(r.detected); });
+          detectReactViaMainWorld().then((r) => {
+            respondFinal(r.detected);
+          });
         },
       };
 

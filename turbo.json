@@ -5,7 +5,21 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "env": ["DATABASE_URL", "DIRECT_URL", "NEXTAUTH_SECRET"],
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "NEXTAUTH_SECRET",
+        "ALLOWED_EXTENSION_IDS",
+        "NEXT_PUBLIC_SITE_URL",
+        "NEXT_PUBLIC_PLAUSIBLE_DOMAIN",
+        "NEXT_PUBLIC_FORMSPREE_ID",
+        "NEXT_PUBLIC_EMAIL_ENDPOINT",
+        "NODE_ENV",
+        "LOG_LEVEL",
+        "VERCEL",
+        "VERCEL_ENV",
+        "VERCEL_URL"
+      ],
       "outputs": [".next/**", "!.next/cache/**", ".output/**"]
     },
     "lint": {

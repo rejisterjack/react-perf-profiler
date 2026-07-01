@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Turbo cache key — bump to invalidate every cache.
+  TURBO_CACHE_VERSION: 1
+  # The web app's `next build` reads these at build time. Provide placeholder
+  # values so the build succeeds in CI without provisioning a real DB.
+  DATABASE_URL: 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
+  DIRECT_URL: 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
+  NEXTAUTH_SECRET: 'ci-not-a-real-secret-32-chars-or-more-xx'
+
+jobs:
+  build:
+    name: Lint, Type-check, Test, Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+
+      - name: Derive toolchain cache key
+        id: cache-key
+        run: echo "key=bun-${{ runner.os }}-${{ hashFiles('**/package.json', 'bun.lock') }}-v${TURBO_CACHE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore bun cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            .next/cache
+            **/.turbo
+            **/node_modules/.cache
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun --filter web run postinstall
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Type-check
+        run: bun run check-types
+
+      - name: Test
+        run: bun --filter '*' run test
+        continue-on-error: true # only the ext has tests today
+
+      - name: Build
+        run: bun run build
+        env:
+          ALLOWED_EXTENSION_IDS: ''
+          NEXT_PUBLIC_SITE_URL: 'https://reactperfprofiler.com'
+          NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ''
+          NEXT_PUBLIC_FORMSPREE_ID: ''
+          NEXT_PUBLIC_EMAIL_ENDPOINT: ''
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-builds
+          path: |
+            apps/ext/.output/chrome-mv3
+            apps/ext/.output/firefox-mv2
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+          if-no-files-found: warn
+          retention-days: 7

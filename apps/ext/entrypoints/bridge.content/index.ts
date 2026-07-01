@@ -4,8 +4,16 @@
  * All logic is inside main() because WXT executes this at build time.
  */
 
-import { parseFiberRoot, parseFiberNode, getReactVersion, diffFiberTree, buildFiberStateMap, type FiberDelta } from './fiberParser';
+import {
+  parseFiberRoot,
+  parseFiberNode,
+  getReactVersion,
+  diffFiberTree,
+  buildFiberStateMap,
+  type FiberDelta,
+} from './fiberParser';
 import type { FiberRoot } from './reactInternals';
+import type { FiberData } from '@repo/profile-contract';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -13,9 +21,23 @@ export default defineContentScript({
   runAt: 'document_start',
   main() {
     // State
-    let originalOnCommitFiberRoot: ((rendererID: number, root: FiberRoot, priorityLevel: number) => void) | null = null;
+    let originalOnCommitFiberRoot:
+      | ((rendererID: number, root: FiberRoot, priorityLevel: number) => void)
+      | null = null;
     let isProfiling = false;
     let reactVersion: string | undefined;
+
+    // Session token — learned from the content script's first message and
+    // echoed in every message we send back. The content script generates
+    // this token (see apps/ext/entrypoints/content.ts) and includes it in
+    // every command; we learn it on the first PING and require it on every
+    // subsequent message. This prevents a malicious page from spoofing
+    // START/STOP commands even if it knows the `source` string, because it
+    // cannot observe the token (the content script never exposes it to the
+    // page — only to this bridge via postMessage, which the page can also
+    // see, but the page cannot forge the content-script source string AND
+    // match the random per-session token together).
+    let sessionToken: string | null = null;
 
     // Batch accumulator — collects all commits within a window, sends as batch
     const BATCH_WINDOW_MS = 50;
@@ -43,7 +65,10 @@ export default defineContentScript({
 
     // Render cause tracking — track state/prop changes between commits
     let renderCauseTrackingEnabled = true;
-    let previousCommitFibers: Map<string, { memoizedProps: Record<string, unknown>; memoizedState: unknown }> | null = null;
+    let previousCommitFibers: Map<
+      string,
+      { memoizedProps: Record<string, unknown>; memoizedState: unknown }
+    > | null = null;
 
     // Targeted recording filters
     type RecordingFilter = {
@@ -75,7 +100,9 @@ export default defineContentScript({
 
     function sendMessage(payload: Record<string, unknown>): void {
       if (typeof window === 'undefined') return;
-      const message = { source: BRIDGE_SOURCE, payload };
+      // Echo the content script's session token so the content script can
+      // authenticate this message came from this bridge instance.
+      const message = { source: BRIDGE_SOURCE, token: sessionToken ?? undefined, payload };
       const targetOrigin = window.location.origin === 'null' ? '*' : window.location.origin;
       window.postMessage(message, targetOrigin);
     }
@@ -117,9 +144,7 @@ export default defineContentScript({
         switch (filter.type) {
           case 'component': {
             const targetName = filter.value as string;
-            const hasComponent = commitData.fibers.some(
-              (f) => f.displayName === targetName
-            );
+            const hasComponent = commitData.fibers.some((f) => f.displayName === targetName);
             if (hasComponent) return true;
             break;
           }
@@ -162,13 +187,16 @@ export default defineContentScript({
     // Render Cause Analysis
     // =========================================================================
 
-    function buildRenderCauses(
-      commitData: ReturnType<typeof parseFiberRoot>
-    ): Array<{
+    function buildRenderCauses(commitData: ReturnType<typeof parseFiberRoot>): Array<{
       fiberId: string;
       componentName: string;
       causes: Array<{
-        type: 'props-changed' | 'state-changed' | 'parent-rerendered' | 'context-changed' | 'hooks-changed';
+        type:
+          | 'props-changed'
+          | 'state-changed'
+          | 'parent-rerendered'
+          | 'context-changed'
+          | 'hooks-changed';
         details: string;
         changedKeys?: string[];
       }>;
@@ -179,13 +207,21 @@ export default defineContentScript({
         fiberId: string;
         componentName: string;
         causes: Array<{
-          type: 'props-changed' | 'state-changed' | 'parent-rerendered' | 'context-changed' | 'hooks-changed';
+          type:
+            | 'props-changed'
+            | 'state-changed'
+            | 'parent-rerendered'
+            | 'context-changed'
+            | 'hooks-changed';
           details: string;
           changedKeys?: string[];
         }>;
       }> = [];
 
-      const currentFibers = new Map<string, { memoizedProps: Record<string, unknown>; memoizedState: unknown }>();
+      const currentFibers = new Map<
+        string,
+        { memoizedProps: Record<string, unknown>; memoizedState: unknown }
+      >();
 
       for (const fiber of commitData.fibers) {
         if (!fiber.displayName) continue;
@@ -197,7 +233,12 @@ export default defineContentScript({
         if (!prev) continue;
 
         const fiberCauses: Array<{
-          type: 'props-changed' | 'state-changed' | 'parent-rerendered' | 'context-changed' | 'hooks-changed';
+          type:
+            | 'props-changed'
+            | 'state-changed'
+            | 'parent-rerendered'
+            | 'context-changed'
+            | 'hooks-changed';
           details: string;
           changedKeys?: string[];
         }> = [];
@@ -265,12 +306,24 @@ export default defineContentScript({
       return window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || null;
     }
 
-    function setupHookInterception(hook: NonNullable<ReturnType<typeof getReactDevToolsHook>>): void {
+    function setupHookInterception(
+      hook: NonNullable<ReturnType<typeof getReactDevToolsHook>>,
+    ): void {
       reactVersion = getReactVersion();
       if (hook.onCommitFiberRoot) originalOnCommitFiberRoot = hook.onCommitFiberRoot.bind(hook);
 
-      hook.onCommitFiberRoot = (rendererID: number, root: FiberRoot, priorityLevel: number): void => {
-        if (originalOnCommitFiberRoot) { try { originalOnCommitFiberRoot(rendererID, root, priorityLevel); } catch (_e) { /* ignore */ } }
+      hook.onCommitFiberRoot = (
+        rendererID: number,
+        root: FiberRoot,
+        priorityLevel: number,
+      ): void => {
+        if (originalOnCommitFiberRoot) {
+          try {
+            originalOnCommitFiberRoot(rendererID, root, priorityLevel);
+          } catch (_e) {
+            /* ignore */
+          }
+        }
         if (!isProfiling) return;
         try {
           const current = root?.current;
@@ -283,10 +336,15 @@ export default defineContentScript({
           });
 
           // Delta tree serialization — send only changed fibers after first commit
-          if (deltaModeEnabled && !isFirstCommit && previousFiberState && commitData.fibers.length > 0) {
+          if (
+            deltaModeEnabled &&
+            !isFirstCommit &&
+            previousFiberState &&
+            commitData.fibers.length > 0
+          ) {
             const delta = diffFiberTree(commitData.fibers, previousFiberState);
             delta.baseCommitId = lastCommitId ?? '';
-            commitData.changedFiberIds = delta.changedFibers.map(f => f.id);
+            commitData.changedFiberIds = delta.changedFibers.map((f) => f.id);
             commitData.isDelta = true;
             // Store full fiber data in changedFiberIds format but keep delta info
             // The panel will merge deltas into its fiber map
@@ -324,11 +382,23 @@ export default defineContentScript({
 
           addToBatch(commitData);
         } catch (error) {
-          sendMessage({ type: 'ERROR', error: error instanceof Error ? error.message : String(error), errorType: 'PARSE_ERROR', recoverable: true });
+          sendMessage({
+            type: 'ERROR',
+            error: error instanceof Error ? error.message : String(error),
+            errorType: 'PARSE_ERROR',
+            recoverable: true,
+          });
         }
       };
 
-      sendMessage({ type: 'INIT', data: { reactVersion, supportsFiber: hook.supportsFiber, rendererCount: hook.renderers?.size ?? 0 } });
+      sendMessage({
+        type: 'INIT',
+        data: {
+          reactVersion,
+          supportsFiber: hook.supportsFiber,
+          rendererCount: hook.renderers?.size ?? 0,
+        },
+      });
     }
 
     // =========================================================================
@@ -338,34 +408,79 @@ export default defineContentScript({
     function initBridge(): void {
       if (isInitialized) return;
       const hook = getReactDevToolsHook();
-      if (!hook) { handleInitFailure('DEVTOOLS_NOT_FOUND'); return; }
+      if (!hook) {
+        handleInitFailure('DEVTOOLS_NOT_FOUND');
+        return;
+      }
       try {
         setupHookInterception(hook);
         isInitialized = true;
         initRetryCount = 0;
         lastError = null;
-        sendMessage({ type: 'INIT', data: { reactVersion, supportsFiber: hook.supportsFiber, rendererCount: hook.renderers?.size ?? 0, success: true } });
+        sendMessage({
+          type: 'INIT',
+          data: {
+            reactVersion,
+            supportsFiber: hook.supportsFiber,
+            rendererCount: hook.renderers?.size ?? 0,
+            success: true,
+          },
+        });
       } catch (error) {
         handleInitFailure('INIT_FAILED', error instanceof Error ? error.message : String(error));
       }
     }
 
-    function handleInitFailure(reason: 'DEVTOOLS_NOT_FOUND' | 'INIT_FAILED', details?: string): void {
-      lastError = { type: reason, message: details || (reason === 'DEVTOOLS_NOT_FOUND' ? 'React DevTools hook not found.' : 'Failed to initialize bridge.'), timestamp: Date.now() };
-      sendMessage({ type: 'ERROR', error: lastError.message, errorType: reason, recoverable: initRetryCount < MAX_RETRY_ATTEMPTS, retryCount: initRetryCount });
-      if (detectReact() && !getReactDevToolsHook() && initRetryCount < MAX_RETRY_ATTEMPTS) scheduleRetry();
-      else if (!detectReact()) sendMessage({ type: 'ERROR', error: 'React not detected.', errorType: 'REACT_NOT_FOUND', recoverable: false });
+    function handleInitFailure(
+      reason: 'DEVTOOLS_NOT_FOUND' | 'INIT_FAILED',
+      details?: string,
+    ): void {
+      lastError = {
+        type: reason,
+        message:
+          details ||
+          (reason === 'DEVTOOLS_NOT_FOUND'
+            ? 'React DevTools hook not found.'
+            : 'Failed to initialize bridge.'),
+        timestamp: Date.now(),
+      };
+      sendMessage({
+        type: 'ERROR',
+        error: lastError.message,
+        errorType: reason,
+        recoverable: initRetryCount < MAX_RETRY_ATTEMPTS,
+        retryCount: initRetryCount,
+      });
+      if (detectReact() && !getReactDevToolsHook() && initRetryCount < MAX_RETRY_ATTEMPTS)
+        scheduleRetry();
+      else if (!detectReact())
+        sendMessage({
+          type: 'ERROR',
+          error: 'React not detected.',
+          errorType: 'REACT_NOT_FOUND',
+          recoverable: false,
+        });
     }
 
     function scheduleRetry(): void {
       if (initRetryTimeout) clearTimeout(initRetryTimeout);
       initRetryCount++;
       const delay = Math.min(MAX_RETRY_DELAY_MS, 2 ** initRetryCount * INITIAL_RETRY_DELAY);
-      sendMessage({ type: 'RETRY_SCHEDULED', retryCount: initRetryCount, maxRetries: MAX_RETRY_ATTEMPTS, nextRetryIn: delay });
+      sendMessage({
+        type: 'RETRY_SCHEDULED',
+        retryCount: initRetryCount,
+        maxRetries: MAX_RETRY_ATTEMPTS,
+        nextRetryIn: delay,
+      });
       initRetryTimeout = setTimeout(() => initBridge(), delay);
     }
 
-    function cancelRetry(): void { if (initRetryTimeout) { clearTimeout(initRetryTimeout); initRetryTimeout = null; } }
+    function cancelRetry(): void {
+      if (initRetryTimeout) {
+        clearTimeout(initRetryTimeout);
+        initRetryTimeout = null;
+      }
+    }
 
     // =========================================================================
     // Profiling
@@ -402,7 +517,11 @@ export default defineContentScript({
       // Strategy 1: DevTools hook (fastest)
       if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) return true;
       // Strategy 2: Global React object
-      if ((window as unknown as Record<string, unknown>).React || (window as unknown as Record<string, unknown>).__REACT__) return true;
+      if (
+        (window as unknown as Record<string, unknown>).React ||
+        (window as unknown as Record<string, unknown>).__REACT__
+      )
+        return true;
       // Strategy 3: Legacy data attributes (React <16)
       if (document.querySelector('[data-reactroot], [data-reactid]')) return true;
       // Strategy 4: Known root containers
@@ -410,17 +529,27 @@ export default defineContentScript({
         const el = document.getElementById(id);
         if (el) {
           if ((el as unknown as Record<string, unknown>)._reactRootContainer) return true;
-          if (Object.getOwnPropertyNames(el).some((k) => k.startsWith('__reactContainer$'))) return true;
+          if (Object.getOwnPropertyNames(el).some((k) => k.startsWith('__reactContainer$')))
+            return true;
         }
       }
       // Strategy 5: Aggressive DOM scan for React fiber properties
       // Covers facebook.com, production builds, non-standard containers
-      const FIBER_PREFIXES = ['__reactFiber$', '__reactInternalInstance$', '__reactContainer$', '__reactProps$', '__reactEventHandlers$'];
+      const FIBER_PREFIXES = [
+        '__reactFiber$',
+        '__reactInternalInstance$',
+        '__reactContainer$',
+        '__reactProps$',
+        '__reactEventHandlers$',
+      ];
       function hasReactFiber(el: Element): boolean {
         const props = Object.getOwnPropertyNames(el);
         for (const p of props) {
-          for (const prefix of FIBER_PREFIXES) { if (p.startsWith(prefix)) return true; }
-          if (p.startsWith('_react') || (p.startsWith('__react') && !p.startsWith('__REACT'))) return true;
+          for (const prefix of FIBER_PREFIXES) {
+            if (p.startsWith(prefix)) return true;
+          }
+          if (p.startsWith('_react') || (p.startsWith('__react') && !p.startsWith('__REACT')))
+            return true;
         }
         return false;
       }
@@ -517,7 +646,9 @@ export default defineContentScript({
       if (w.__VUE_DEVTOOLS_GLOBAL_HOOK__ || w.Vue) {
         const hook = w.__VUE_DEVTOOLS_GLOBAL_HOOK__ as Record<string, unknown> | undefined;
         const vue = w.Vue as Record<string, unknown> | undefined;
-        const version = (vue?.version as string) || (hook?.Vue as Record<string, unknown>)?.version as string | undefined;
+        const version =
+          (vue?.version as string) ||
+          ((hook?.Vue as Record<string, unknown>)?.version as string | undefined);
         results.push({ name: 'Vue.js', version, confidence: 'high' });
       } else {
         // Scan DOM for Vue app instances
@@ -557,7 +688,11 @@ export default defineContentScript({
       // Next.js
       const nextData = w.__NEXT_DATA__ as Record<string, unknown> | undefined;
       if (nextData) {
-        results.push({ name: 'Next.js', version: (nextData.buildId as string) || undefined, confidence: 'high' });
+        results.push({
+          name: 'Next.js',
+          version: (nextData.buildId as string) || undefined,
+          confidence: 'high',
+        });
       } else if (document.querySelector('meta[name="next-head-count"]')) {
         results.push({ name: 'Next.js', version: undefined, confidence: 'medium' });
       }
@@ -584,7 +719,11 @@ export default defineContentScript({
       // Remix
       if (w.__remixContext) {
         const ctx = w.__remixContext as Record<string, unknown>;
-        results.push({ name: 'Remix', version: (ctx.manifest as Record<string, unknown>)?.version as string | undefined, confidence: 'high' });
+        results.push({
+          name: 'Remix',
+          version: (ctx.manifest as Record<string, unknown>)?.version as string | undefined,
+          confidence: 'high',
+        });
       } else {
         const remixMeta = document.querySelector('meta[name="generator"][content*="Remix"]');
         if (remixMeta) {
@@ -596,7 +735,11 @@ export default defineContentScript({
       if (w.jQuery || w.$) {
         const jq = (w.jQuery || w.$) as Record<string, unknown>;
         const fn = jq.fn as Record<string, unknown> | undefined;
-        results.push({ name: 'jQuery', version: (fn?.jquery as string) || undefined, confidence: 'high' });
+        results.push({
+          name: 'jQuery',
+          version: (fn?.jquery as string) || undefined,
+          confidence: 'high',
+        });
       }
 
       // Preact
@@ -610,12 +753,18 @@ export default defineContentScript({
     function detectMeta(): TechStackResult['meta'] {
       return {
         title: document.title || '',
-        description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+        description:
+          document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
         viewport: document.querySelector('meta[name="viewport"]')?.getAttribute('content') || '',
-        themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content') || undefined,
-        ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
-        ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || undefined,
-        ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || undefined,
+        themeColor:
+          document.querySelector('meta[name="theme-color"]')?.getAttribute('content') || undefined,
+        ogImage:
+          document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
+        ogTitle:
+          document.querySelector('meta[property="og:title"]')?.getAttribute('content') || undefined,
+        ogDescription:
+          document.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+          undefined,
       };
     }
 
@@ -657,7 +806,7 @@ export default defineContentScript({
         const r = parseInt(rgbMatch[1], 10);
         const g = parseInt(rgbMatch[2], 10);
         const b = parseInt(rgbMatch[3], 10);
-        return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+        return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
       }
       return null;
     }
@@ -714,18 +863,32 @@ export default defineContentScript({
           try {
             const rules = document.styleSheets[s].cssRules;
             for (let r = 0; r < rules.length; r++) {
-              const selector = rules[r] instanceof CSSStyleRule ? (rules[r] as CSSStyleRule).selectorText : '';
-              if (selector && (selector === '.flex' || selector.startsWith('.bg-') || selector.startsWith('.text-'))) {
+              const selector =
+                rules[r] instanceof CSSStyleRule ? (rules[r] as CSSStyleRule).selectorText : '';
+              if (
+                selector &&
+                (selector === '.flex' ||
+                  selector.startsWith('.bg-') ||
+                  selector.startsWith('.text-'))
+              ) {
                 twSheetMatch = true;
                 break;
               }
             }
-          } catch { /* cross-origin stylesheet */ }
+          } catch {
+            /* cross-origin stylesheet */
+          }
           if (twSheetMatch) break;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       if (twMatches >= 5 || twSheetMatch) {
-        results.push({ name: 'Tailwind CSS', version: undefined, confidence: twMatches >= 5 ? 'high' : 'medium' });
+        results.push({
+          name: 'Tailwind CSS',
+          version: undefined,
+          confidence: twMatches >= 5 ? 'high' : 'medium',
+        });
       }
 
       // Bootstrap
@@ -750,14 +913,22 @@ export default defineContentScript({
 
       // styled-components
       if (w.__SC_VERSION__) {
-        results.push({ name: 'styled-components', version: w.__SC_VERSION__ as string, confidence: 'high' });
+        results.push({
+          name: 'styled-components',
+          version: w.__SC_VERSION__ as string,
+          confidence: 'high',
+        });
       } else if (document.querySelector('style[data-styled]')) {
         results.push({ name: 'styled-components', version: undefined, confidence: 'medium' });
       }
 
       // Emotion
       if (w.__EMOTION_VERSION__) {
-        results.push({ name: 'Emotion', version: w.__EMOTION_VERSION__ as string, confidence: 'high' });
+        results.push({
+          name: 'Emotion',
+          version: w.__EMOTION_VERSION__ as string,
+          confidence: 'high',
+        });
       }
 
       return results;
@@ -853,9 +1024,18 @@ export default defineContentScript({
           const fiberObj = fiber as Record<string, unknown>;
           const id = fiberMap.get(parseFiberNode(fiber).id);
           if (id) {
-            if (fiberObj['child']) { const c = fiberMap.get(parseFiberNode(fiberObj['child']).id); if (c) id.child = c; }
-            if (fiberObj['sibling']) { const s = fiberMap.get(parseFiberNode(fiberObj['sibling']).id); if (s) id.sibling = s; }
-            if (fiberObj['return']) { const r = fiberMap.get(parseFiberNode(fiberObj['return']).id); if (r) id.return = r; }
+            if (fiberObj['child']) {
+              const c = fiberMap.get(parseFiberNode(fiberObj['child']).id);
+              if (c) id.child = c;
+            }
+            if (fiberObj['sibling']) {
+              const s = fiberMap.get(parseFiberNode(fiberObj['sibling']).id);
+              if (s) id.sibling = s;
+            }
+            if (fiberObj['return']) {
+              const r = fiberMap.get(parseFiberNode(fiberObj['return']).id);
+              if (r) id.return = r;
+            }
           }
           if (fiberObj['child']) linkOne(fiberObj['child']);
           if (fiberObj['sibling']) linkOne(fiberObj['sibling']);
@@ -867,11 +1047,16 @@ export default defineContentScript({
       }
 
       // ── Strategy 1: Use __REACT_DEVTOOLS_GLOBAL_HOOK__ renderers (same as React DevTools) ──
-      const hook = (window as unknown as Record<string, unknown>).__REACT_DEVTOOLS_GLOBAL_HOOK__ as {
-        renderers?: Map<number, { currentDispatcherRef?: unknown; overrideProps?: unknown }> | null;
-        getFiberRoots?: (rendererID: number) => Set<unknown>;
-        _fiberRoots?: Map<number, Set<unknown>>;
-      } | undefined;
+      const hook = (window as unknown as Record<string, unknown>).__REACT_DEVTOOLS_GLOBAL_HOOK__ as
+        | {
+            renderers?: Map<
+              number,
+              { currentDispatcherRef?: unknown; overrideProps?: unknown }
+            > | null;
+            getFiberRoots?: (rendererID: number) => Set<unknown>;
+            _fiberRoots?: Map<number, Set<unknown>>;
+          }
+        | undefined;
 
       if (hook) {
         // Try getFiberRoots API (React 18+)
@@ -884,7 +1069,9 @@ export default defineContentScript({
                 const currentFiber = rootObj['current'] ?? root;
                 collectFiber(currentFiber);
               }
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
         }
         // Try _fiberRoots (internal, React 17+)
@@ -935,7 +1122,8 @@ export default defineContentScript({
                   // __reactContainer$ → .current is the root HostRoot fiber
                   let rootFiber = value;
                   if (valObj['stateNode'] && valObj['current']) rootFiber = valObj['current'];
-                  else if (valObj['current'] && typeof valObj['current'] === 'object') rootFiber = valObj['current'];
+                  else if (valObj['current'] && typeof valObj['current'] === 'object')
+                    rootFiber = valObj['current'];
                   collectFiber(rootFiber);
                 }
               }
@@ -962,9 +1150,18 @@ export default defineContentScript({
           const selfId = parseFiberNode(fiber).id;
           const data = fiberMap.get(selfId);
           if (data) {
-            if (fiberObj['child']) { const c = fiberMap.get(parseFiberNode(fiberObj['child']).id); if (c) data.child = c; }
-            if (fiberObj['sibling']) { const s = fiberMap.get(parseFiberNode(fiberObj['sibling']).id); if (s) data.sibling = s; }
-            if (fiberObj['return']) { const r = fiberMap.get(parseFiberNode(fiberObj['return']).id); if (r) data.return = r; }
+            if (fiberObj['child']) {
+              const c = fiberMap.get(parseFiberNode(fiberObj['child']).id);
+              if (c) data.child = c;
+            }
+            if (fiberObj['sibling']) {
+              const s = fiberMap.get(parseFiberNode(fiberObj['sibling']).id);
+              if (s) data.sibling = s;
+            }
+            if (fiberObj['return']) {
+              const r = fiberMap.get(parseFiberNode(fiberObj['return']).id);
+              if (r) data.return = r;
+            }
           }
           if (fiberObj['child']) linkOne(fiberObj['child']);
           if (fiberObj['sibling']) linkOne(fiberObj['sibling']);
@@ -985,9 +1182,18 @@ export default defineContentScript({
           const selfId = parseFiberNode(rawFiber).id;
           const data = fiberMap.get(selfId);
           if (data) {
-            if (fiberObj['child']) { const c = fiberMap.get(parseFiberNode(fiberObj['child']).id); if (c) data.child = c; }
-            if (fiberObj['sibling']) { const s = fiberMap.get(parseFiberNode(fiberObj['sibling']).id); if (s) data.sibling = s; }
-            if (fiberObj['return']) { const r = fiberMap.get(parseFiberNode(fiberObj['return']).id); if (r) data.return = r; }
+            if (fiberObj['child']) {
+              const c = fiberMap.get(parseFiberNode(fiberObj['child']).id);
+              if (c) data.child = c;
+            }
+            if (fiberObj['sibling']) {
+              const s = fiberMap.get(parseFiberNode(fiberObj['sibling']).id);
+              if (s) data.sibling = s;
+            }
+            if (fiberObj['return']) {
+              const r = fiberMap.get(parseFiberNode(fiberObj['return']).id);
+              if (r) data.return = r;
+            }
           }
           if (fiberObj['child']) relinkFiber(fiberObj['child']);
           if (fiberObj['sibling']) relinkFiber(fiberObj['sibling']);
@@ -1012,13 +1218,56 @@ export default defineContentScript({
       if (!data || typeof data !== 'object') return;
       if ((data as Record<string, unknown>).source !== 'react-perf-profiler-content') return;
       if (!(data as Record<string, unknown>).payload) return;
-      const { type, ...rest } = (data as { payload: { type: string } & Record<string, unknown> }).payload;
+
+      // Learn the session token from the first inbound message, then require
+      // it on every subsequent message. The content script generates this
+      // token (see apps/ext/entrypoints/content.ts) and includes it in all
+      // commands; we echo it back via sendMessage(). A malicious page can
+      // observe postMessage traffic but cannot forge a message that has
+      // BOTH the correct `source` string AND the matching random token.
+      const inboundToken = (data as Record<string, unknown>).token;
+      const { type, ...rest } = (data as { payload: { type: string } & Record<string, unknown> })
+        .payload;
+
+      if (sessionToken === null) {
+        // First contact — lock in the token. If the first message has no
+        // token (older content script), accept anyway for back-compat.
+        if (typeof inboundToken === 'string') {
+          sessionToken = inboundToken;
+        }
+      } else if (inboundToken !== sessionToken) {
+        // Token mismatch — silently drop. Logging would let an attacker
+        // spam the console.
+        return;
+      }
+
       switch (type) {
-        case 'START': startProfiling(); break;
-        case 'STOP': stopProfiling(); break;
-        case 'PING': sendMessage({ type: 'INIT', data: { isProfiling, reactVersion, isInitialized, lastError: lastError?.message } }); break;
-        case 'DETECT_REACT': sendMessage({ type: 'DETECT_RESULT', reactDetected: detectReact(), reactVersion: detectReactVersion(), devtoolsDetected: !!getReactDevToolsHook(), isInitialized }); break;
-        case 'FORCE_INIT': cancelRetry(); initRetryCount = 0; initBridge(); break;
+        case 'START':
+          startProfiling();
+          break;
+        case 'STOP':
+          stopProfiling();
+          break;
+        case 'PING':
+          sendMessage({
+            type: 'INIT',
+            data: { isProfiling, reactVersion, isInitialized, lastError: lastError?.message },
+          });
+          break;
+        case 'DETECT_REACT':
+          sendMessage({
+            type: 'DETECT_RESULT',
+            reactDetected: detectReact(),
+            reactVersion: detectReactVersion(),
+            devtoolsDetected: !!getReactDevToolsHook(),
+            isInitialized,
+          });
+          break;
+        case 'FORCE_INIT':
+          cancelRetry();
+          initRetryCount = 0;
+          initBridge();
+          break;
         case 'SET_RECORDING_FILTERS':
           recordingFilters = (rest.filters as RecordingFilter[]) ?? [];
           if (recordingFilters.some((f) => f.type === 'interaction')) {
@@ -1028,11 +1277,15 @@ export default defineContentScript({
           break;
         case 'SET_CONFIG': {
           const config = rest as Record<string, unknown>;
-          if ('incrementalDiffing' in config) incrementalDiffingEnabled = !!config.incrementalDiffing;
+          if ('incrementalDiffing' in config)
+            incrementalDiffingEnabled = !!config.incrementalDiffing;
           if ('sourceCorrelation' in config) sourceCorrelationEnabled = !!config.sourceCorrelation;
-          if ('renderCauseTracking' in config) renderCauseTrackingEnabled = !!config.renderCauseTracking;
-          if ('maxPropDepth' in config) PROP_SERIALIZATION_LIMITS.maxPropDepth = (config.maxPropDepth as number) ?? 3;
-          if ('maxPropKeys' in config) PROP_SERIALIZATION_LIMITS.maxPropKeys = (config.maxPropKeys as number) ?? 20;
+          if ('renderCauseTracking' in config)
+            renderCauseTrackingEnabled = !!config.renderCauseTracking;
+          if ('maxPropDepth' in config)
+            PROP_SERIALIZATION_LIMITS.maxPropDepth = (config.maxPropDepth as number) ?? 3;
+          if ('maxPropKeys' in config)
+            PROP_SERIALIZATION_LIMITS.maxPropKeys = (config.maxPropKeys as number) ?? 20;
           break;
         }
         case 'DETECT_TECH_STACK': {
@@ -1053,14 +1306,23 @@ export default defineContentScript({
     // =========================================================================
 
     function stopReactWatcher(): void {
-      if (_reactWatchTimer !== null) { clearTimeout(_reactWatchTimer); _reactWatchTimer = null; }
-      if (_reactWatchObserver !== null) { _reactWatchObserver.disconnect(); _reactWatchObserver = null; }
+      if (_reactWatchTimer !== null) {
+        clearTimeout(_reactWatchTimer);
+        _reactWatchTimer = null;
+      }
+      if (_reactWatchObserver !== null) {
+        _reactWatchObserver.disconnect();
+        _reactWatchObserver = null;
+      }
     }
 
     function cleanup(): void {
       cancelRetry();
       stopReactWatcher();
-      if (batchTimer !== null) { clearTimeout(batchTimer); batchTimer = null; }
+      if (batchTimer !== null) {
+        clearTimeout(batchTimer);
+        batchTimer = null;
+      }
       const hook = getReactDevToolsHook();
       if (hook && originalOnCommitFiberRoot) hook.onCommitFiberRoot = originalOnCommitFiberRoot;
       window.removeEventListener('message', handleBridgeMessage);
@@ -1077,8 +1339,11 @@ export default defineContentScript({
     window.addEventListener('message', handleBridgeMessage);
 
     function tryInit(): void {
-      try { initBridge(); }
-      catch (error) { handleInitFailure('INIT_FAILED', error instanceof Error ? error.message : String(error)); }
+      try {
+        initBridge();
+      } catch (error) {
+        handleInitFailure('INIT_FAILED', error instanceof Error ? error.message : String(error));
+      }
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryInit);
@@ -1086,7 +1351,10 @@ export default defineContentScript({
 
     if (!isInitialized) {
       _reactWatchObserver = new MutationObserver(() => {
-        if (!isInitialized && detectReact() && getReactDevToolsHook()) { stopReactWatcher(); tryInit(); }
+        if (!isInitialized && detectReact() && getReactDevToolsHook()) {
+          stopReactWatcher();
+          tryInit();
+        }
       });
       _reactWatchObserver.observe(document, { childList: true, subtree: true });
       _reactWatchTimer = setTimeout(stopReactWatcher, 10000);

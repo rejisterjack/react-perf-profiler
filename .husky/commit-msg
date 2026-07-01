@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Commit-msg: enforce Conventional Commits (see commitlint.config.mjs).
+bunx commitlint --edit "$1"

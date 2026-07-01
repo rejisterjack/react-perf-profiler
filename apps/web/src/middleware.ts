@@ -10,6 +10,12 @@ import type { NextRequest } from 'next/server';
 
 const WINDOW_MS = 60_000;
 
+// Body size caps enforced at the middleware layer (before the route handler
+// parses JSON). Keeps CPU-bound parsing off the event loop for oversized
+// payloads.
+const DEFAULT_MAX_BODY_BYTES = 1 * 1024 * 1024; // 1 MB
+const PROFILE_MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB (POST /api/profiles)
+
 function getLimits(pathname: string, method: string): { limit: number; windowMs: number } {
   if (pathname.startsWith('/api/auth')) {
     return { limit: 5, windowMs: WINDOW_MS };
@@ -62,6 +68,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Streaming size guard: reject oversized request bodies at the edge before
+  // the route handler spends CPU parsing JSON. Protects POST /api/profiles
+  // (10 MB cap) and every other endpoint (1 MB default) from CPU DoS.
+  if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+    const declaredSize = Number(request.headers.get('content-length') ?? 0);
+    const isProfileIngest = pathname === '/api/profiles';
+    const limit = isProfileIngest ? PROFILE_MAX_BODY_BYTES : DEFAULT_MAX_BODY_BYTES;
+
+    if (declaredSize > limit) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'PAYLOAD_TOO_LARGE',
+            message: `Request body exceeds the ${limit} byte limit`,
+          },
+        },
+        { status: 413 },
+      );
+    }
+  }
+
   // CSRF protection: require Origin header on state-changing requests
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
     const origin = request.headers.get('origin');
@@ -92,9 +119,10 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    ?? request.headers.get('x-real-ip')
-    ?? 'unknown';
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown';
 
   const { limit, windowMs } = getLimits(pathname, request.method);
   const cookieName = `rl_${ip.replace(/[^a-zA-Z0-9]/g, '_')}`;

@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Pre-commit: format & lint staged files via lint-staged, then verify types.
+# The type-check is fast (cached) and catches the most common pre-commit foot-gun.
+bunx lint-staged

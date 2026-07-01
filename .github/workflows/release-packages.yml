@@ -1,0 +1,47 @@
+name: Release Packages
+
+# Consumes pending Changesets and (when a "Version Packages" PR is merged)
+# publishes the bumped packages to npm. Uses the official Changesets action.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # required for npm provenance
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Version & Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # changesets needs history to detect new entries
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+
+      - run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun --filter web run postinstall
+
+      - name: Create or consume Version Packages PR
+        uses: changesets/action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # npm provenance is enabled (id-token: write above). Secrets:
+          #   NPM_TOKEN — automation-scoped publish token for @react-perf-profiler
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        with:
+          publish: bun run release
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+          setupGitUser: true

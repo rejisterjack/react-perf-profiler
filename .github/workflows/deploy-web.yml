@@ -1,0 +1,106 @@
+name: Deploy Web (Vercel)
+
+# Deploys apps/web to Vercel. Every PR gets a preview deployment; pushes to
+# `main` go to production. Both rely on Vercel's built-in Git integration,
+# but we use `vercel deploy --prod`/`--target preview` here so the deploy
+# is observable in the GitHub Actions tab and can be gated by CI.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'bun.lock'
+      - '.github/workflows/deploy-web.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'bun.lock'
+      - '.github/workflows/deploy-web.yml'
+
+permissions:
+  deployments: write
+  pull-requests: write
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  deploy-preview:
+    name: Preview deployment
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+      - run: bun install --frozen-lockfile
+
+      - name: Apply pending Prisma migrations (preview DB)
+        run: bun --filter web run db:deploy
+        env:
+          DATABASE_URL: ${{ secrets.VERCEL_PREVIEW_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.VERCEL_PREVIEW_DIRECT_URL }}
+        continue-on-error: true # first run on a new DB may need `prisma migrate resolve`
+
+      - name: Install Vercel CLI
+        run: bun add -g vercel@latest
+
+      - name: Deploy (preview)
+        id: deploy
+        run: |
+          URL=$(vercel deploy --yes --cwd apps/web --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Deployed preview: ${{ steps.deploy.outputs.url }}`
+            })
+
+  deploy-prod:
+    name: Production deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+      - run: bun install --frozen-lockfile
+
+      - name: Apply pending Prisma migrations (prod DB)
+        run: bun --filter web run db:deploy
+        env:
+          DATABASE_URL: ${{ secrets.VERCEL_PROD_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.VERCEL_PROD_DIRECT_URL }}
+
+      - name: Install Vercel CLI
+        run: bun add -g vercel@latest
+
+      - name: Deploy (prod)
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prod --yes --cwd apps/web --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}

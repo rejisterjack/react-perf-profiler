@@ -27,7 +27,9 @@ const nextConfig: NextConfig = {
             value: [
               // Production extension ID(s) — update after CWS / AMO publishing
               ...(process.env.ALLOWED_EXTENSION_IDS
-                ? process.env.ALLOWED_EXTENSION_IDS.split(',').map((id) => `chrome-extension://${id}`)
+                ? process.env.ALLOWED_EXTENSION_IDS.split(',').map(
+                    (id) => `chrome-extension://${id}`,
+                  )
                 : []),
               // Allow development extension ID (changes per load, so allow all in dev)
               ...(process.env.NODE_ENV !== 'production'
@@ -62,6 +64,16 @@ const nextConfig: NextConfig = {
             value: 'public, max-age=2592000, stale-while-revalidate=86400',
           },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    // Serve the standalone privacy policy HTML under /privacy without
+    // duplicating its content into a Next route.
+    return [
+      {
+        source: '/privacy',
+        destination: '/privacy/index.html',
       },
     ];
   },

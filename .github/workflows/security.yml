@@ -1,0 +1,63 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run nightly to catch newly-disclosed CVEs in transitive deps.
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  osv-scan:
+    name: Dependency vulnerabilities (osv-scanner)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run osv-scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.0
+        with:
+          scan-recursive: true
+          # The repo uses bun.lock; osv-scanner parses it natively.
+          # We point at the root so all lockfiles are covered.
+          directory: .
+
+  secret-scan:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks needs full history for PR diffs
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # If you want upload-on-fail to SARIF, set GITLEAKS_ENABLE_UPLOAD_ARTIFACT=true.
+
+  codeql:
+    name: CodeQL (SAST)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Use the default security-extended query suite.
+          queries: security-extended
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'

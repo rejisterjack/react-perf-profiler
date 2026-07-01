@@ -36,7 +36,7 @@ function TerminalAnimation() {
       }
 
       const line = HERO_LINES[lineIdx];
-      if (charIdx <= line.text.length) {
+      if (line && charIdx <= line.text.length) {
         setVisibleLines(lineIdx);
         setCurrentChar(charIdx);
         charIdx++;
@@ -59,10 +59,11 @@ function TerminalAnimation() {
       </div>
       <div className="space-y-1.5">
         {HERO_LINES.map((line, i) => (
-          <div key={i} className={`${line.color} ${i > visibleLines ? 'opacity-0' : 'opacity-100'} transition-opacity`}>
-            {i === visibleLines && !prefersReduced
-              ? line.text.slice(0, currentChar)
-              : line.text}
+          <div
+            key={i}
+            className={`${line.color} ${i > visibleLines ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+          >
+            {i === visibleLines && !prefersReduced ? line.text.slice(0, currentChar) : line.text}
             {i === visibleLines && !prefersReduced && (
               <span className="inline-block w-2 h-4 bg-brand-react ml-0.5 animate-terminal-cursor" />
             )}
@@ -103,8 +104,7 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6 text-balance"
           >
-            Stop Guessing.{' '}
-            <span className="gradient-text">Start Profiling.</span>
+            Stop Guessing. <span className="gradient-text">Start Profiling.</span>
           </motion.h1>
 
           {/* Subheadline */}
@@ -114,8 +114,8 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg sm:text-xl text-surface-300 max-w-2xl mx-auto mb-10 text-balance leading-relaxed"
           >
-            The React performance profiler that finds your wasted renders, analyzes your
-            memoization strategy, and tells you exactly what to fix — before your users notice.
+            The React performance profiler that finds your wasted renders, analyzes your memoization
+            strategy, and tells you exactly what to fix — before your users notice.
           </motion.p>
 
           {/* CTA Buttons */}

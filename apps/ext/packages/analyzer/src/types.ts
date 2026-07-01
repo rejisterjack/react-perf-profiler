@@ -1,5 +1,14 @@
 /**
  * Core types for @react-perf-profiler/analyzer.
+ *
+ * NOTE: This file is structurally identical to the canonical definitions in
+ * `packages/profile-contract/src/types.ts` (the monorepo-wide source of truth).
+ * The analyzer keeps its own copy because it is published to npm as a
+ * standalone package and cannot depend on the private `@repo/profile-contract`
+ * workspace package at runtime. When the contract changes, update this file
+ * to match. The web app and the extension both import directly from
+ * `@repo/profile-contract`.
+ *
  * Self-contained — zero browser or extension dependencies.
  */
 
@@ -37,7 +46,12 @@ export interface RenderCause {
   fiberId: string;
   componentName: string;
   causes: Array<{
-    type: 'props-changed' | 'state-changed' | 'parent-rerendered' | 'context-changed' | 'hooks-changed';
+    type:
+      | 'props-changed'
+      | 'state-changed'
+      | 'parent-rerendered'
+      | 'context-changed'
+      | 'hooks-changed';
     details: string;
     changedKeys?: string[];
   }>;
@@ -84,7 +98,13 @@ export interface ComponentMetrics {
 }
 
 export interface WastedRenderIssue {
-  type: 'prop-reference' | 'state-reference' | 'inline-function' | 'inline-object' | 'inline-array' | 'context-change';
+  type:
+    | 'prop-reference'
+    | 'state-reference'
+    | 'inline-function'
+    | 'inline-object'
+    | 'inline-array'
+    | 'context-change';
   description: string;
   suggestion: string;
   occurrences: string[];

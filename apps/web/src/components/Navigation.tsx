@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'How It Works', href: '#demo' },
-  { label: 'Who It\'s For', href: '#who-is-it-for' },
+  { label: "Who It's For", href: '#who-is-it-for' },
   { label: 'CI/CD', href: '#ci-cd' },
   { label: 'Compare', href: '#comparison' },
   { label: 'Pricing', href: '#pricing' },
@@ -32,7 +32,10 @@ export function Navigation() {
 
   return (
     <>
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-blue focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-blue focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold"
+      >
         Skip to content
       </a>
       <motion.nav
@@ -40,15 +43,13 @@ export function Navigation() {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-surface-900/80 backdrop-blur-xl border-b border-white/5'
-            : 'bg-transparent'
+          scrolled ? 'bg-surface-900/80 backdrop-blur-xl border-b border-white/5' : 'bg-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo */}
-            <a href="/react-perf-profiler/" className="flex items-center gap-2.5 group shrink-0">
+            <a href="/" className="flex items-center gap-2.5 group shrink-0">
               <div className="w-8 h-8 rounded-lg bg-brand-react flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Zap className="w-5 h-5 text-surface-900" />
               </div>
@@ -140,7 +141,7 @@ export function Navigation() {
                   >
                     {link.label}
                   </button>
-                )
+                ),
               )}
               <div className="pt-4 border-t border-white/10 space-y-3 mt-2">
                 <a
